@@ -28,6 +28,8 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
+		<dependency-check.version>12.2.2</dependency-check.version>
+		<dependency-check.data.dir>${project.basedir}/.dependency-check-data</dependency-check.data.dir>
 		<spring-modulith.version>2.1.1</spring-modulith.version>
 		<langchain4j.version>1.0.0</langchain4j.version>
 		<pdfbox.version>3.0.7</pdfbox.version>
@@ -300,6 +302,33 @@
 								<arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
 							</compilerArgs>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.owasp</groupId>
+				<artifactId>dependency-check-maven</artifactId>
+				<version>${dependency-check.version}</version>
+				<configuration>
+					<failBuildOnCVSS>7</failBuildOnCVSS>
+					<formats>
+						<format>HTML</format>
+						<format>JSON</format>
+					</formats>
+					<nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+					<suppressionFiles>
+						<suppressionFile>${project.basedir}/dependency-check-suppressions.xml</suppressionFile>
+					</suppressionFiles>
+					<dataDirectory>${dependency-check.data.dir}</dataDirectory>
+					<nvdValidForHours>24</nvdValidForHours>
+					<assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+					<ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>
