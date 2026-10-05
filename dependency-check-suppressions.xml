@@ -7,7 +7,7 @@
       CVE-2026-53914 é desserialização no build cache do compilador/Gradle do Kotlin. O kotlin-stdlib é só
       a biblioteca de runtime e não contém esse código.
     ]]></notes>
-    <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-stdlib(-common)?@.*$</packageUrl>
+    <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-stdlib(-[a-z0-9]+)?@.*$</packageUrl>
     <cpe>cpe:/a:jetbrains:kotlin</cpe>
   </suppress>
 
