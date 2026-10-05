@@ -31,6 +31,17 @@ Veja o passo a passo no [README do repositório principal](https://github.com/Di
 O contrato é exposto via OpenAPI em `/v3/api-docs` (Swagger UI em `/swagger-ui.html`). O front gera os tipos a
 partir dele.
 
+## API de integração
+
+`POST /api/v1/integrations/jobs` cadastra vagas para sistemas externos. Exige o header `X-API-Key` com o valor
+da variável de ambiente `INTEGRATION_API_KEY`. Sem a variável definida, toda rota `/api/v1/integrations/**`
+responde 401. O payload é o mesmo de `POST /api/v1/jobs`.
+
+```bash
+curl -X POST http://localhost:8080/api/v1/integrations/jobs \
+  -H "X-API-Key: $INTEGRATION_API_KEY" -H "Content-Type: application/json" \
+  -d '{"text":"Vaga de backend Java...","company":"Acme","sourceUrl":"https://exemplo.com/vaga/1"}'
+```
 
 ## Licença
 
