@@ -19,7 +19,7 @@ public class TestcontainersConfiguration {
 
 	@Bean
 	MinIOContainer minioContainer() {
-		DockerImageName minioImage = DockerImageName.parse("quay.io/minio/minio:latest")
+		DockerImageName minioImage = DockerImageName.parse("cgr.dev/chainguard/minio:latest")
 				.asCompatibleSubstituteFor("minio/minio");
 		return new MinIOContainer(minioImage);
 	}
