@@ -30,3 +30,9 @@ Veja o passo a passo no [README do repositório principal](https://github.com/Di
 
 O contrato é exposto via OpenAPI em `/v3/api-docs` (Swagger UI em `/swagger-ui.html`). O front gera os tipos a
 partir dele.
+
+
+## Licença
+
+[PolyForm Noncommercial 1.0.0](LICENSE). Uso, estudo e modificação livres para fins não comerciais. Vender,
+revender ou embutir em produto ou serviço pago não é permitido.
