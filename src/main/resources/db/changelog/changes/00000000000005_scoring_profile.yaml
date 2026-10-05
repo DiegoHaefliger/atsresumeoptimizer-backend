@@ -1,0 +1,80 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000005-scoring-profile
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: scoring_profile
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mode
+                  type: varchar(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weights
+                  type: jsonb
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: scoring_profile
+            columnNames: name, version, mode
+            constraintName: uk_scoring_profile_name_version_mode
+        - insert:
+            tableName: scoring_profile
+            columns:
+              - column:
+                  name: id
+                  value: 22222222-2222-2222-2222-222222222221
+              - column:
+                  name: name
+                  value: default
+              - column:
+                  name: version
+                  valueNumeric: 1
+              - column:
+                  name: mode
+                  value: JOB_MATCH
+              - column:
+                  name: weights
+                  valueComputed: "'{\"PARSEABILITY\":0.20,\"STRUCTURE_SECTIONS\":0.10,\"CONTACT_DATA\":0.05,\"KEYWORD_MATCH\":0.30,\"REQUIREMENTS_SENIORITY\":0.15,\"CONTENT_QUALITY\":0.10,\"LANGUAGE\":0.10}'::jsonb"
+        - insert:
+            tableName: scoring_profile
+            columns:
+              - column:
+                  name: id
+                  value: 22222222-2222-2222-2222-222222222222
+              - column:
+                  name: name
+                  value: default
+              - column:
+                  name: version
+                  valueNumeric: 1
+              - column:
+                  name: mode
+                  value: GENERAL
+              - column:
+                  name: weights
+                  valueComputed: "'{\"PARSEABILITY\":0.25,\"STRUCTURE_SECTIONS\":0.15,\"CONTACT_DATA\":0.10,\"CONTENT_QUALITY\":0.35,\"LANGUAGE\":0.15}'::jsonb"

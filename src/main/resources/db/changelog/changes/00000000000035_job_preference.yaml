@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000035-job-preference
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: job_preference
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: work_models
+                  type: text[]
+                  constraints:
+                    nullable: false
+              - column:
+                  name: contract_types
+                  type: text[]
+                  constraints:
+                    nullable: false
+              - column:
+                  name: min_salary
+                  type: numeric(12,2)
+              - column:
+                  name: desired_salary
+                  type: numeric(12,2)
+              - column:
+                  name: benefits
+                  type: text[]
+                  constraints:
+                    nullable: false
+              - column:
+                  name: seniorities
+                  type: text[]
+                  constraints:
+                    nullable: false
+              - column:
+                  name: locations
+                  type: text[]
+                  constraints:
+                    nullable: false
+              - column:
+                  name: preferred_companies
+                  type: text[]
+                  constraints:
+                    nullable: false
+              - column:
+                  name: avoided_companies
+                  type: text[]
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false

@@ -1,0 +1,59 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000018-resume-rewrite
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: resume_rewrite
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: analysis_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_resume_rewrite_analysis
+                    references: analysis(id)
+              - column:
+                  name: docx_resume_version_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_resume_rewrite_docx_version
+                    references: resume_version(id)
+              - column:
+                  name: pdf_resume_version_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_resume_rewrite_pdf_version
+                    references: resume_version(id)
+              - column:
+                  name: ai_model
+                  type: varchar(100)
+              - column:
+                  name: tokens_in
+                  type: integer
+              - column:
+                  name: tokens_out
+                  type: integer
+              - column:
+                  name: cost_usd
+                  type: numeric(10,4)
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_resume_rewrite_analysis_id
+            tableName: resume_rewrite
+            columns:
+              - column:
+                  name: analysis_id

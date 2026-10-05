@@ -1,0 +1,94 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000020-prompt-template-resume-structuring
+      author: DiegoHaefliger
+      changes:
+        - insert:
+            tableName: prompt_template
+            columns:
+              - column:
+                  name: id
+                  value: 33333333-3333-3333-3333-333333333334
+              - column:
+                  name: key
+                  value: resume-structuring
+              - column:
+                  name: version
+                  valueNumeric: 1
+              - column:
+                  name: content
+                  value: |
+                    Você organiza currículos em português num JSON estruturado pronto pra virar um
+                    documento bem diagramado. NUNCA invente fato, número, empresa, cargo, tecnologia,
+                    data ou qualquer informação que não esteja literalmente no texto original — só
+                    reorganize, clareie e formate o que já existe.
+
+                    Responda só com um JSON no formato exato abaixo (sem comentários, sem markdown):
+
+                    {
+                      "name": "nome completo da pessoa",
+                      "headline": "cargo-alvo/título profissional curto, ou null se não achar um",
+                      "contactLine": "{{contactLine}}",
+                      "sections": [
+                        {
+                          "title": "RESUMO PROFISSIONAL",
+                          "kind": "PARAGRAPH",
+                          "paragraph": "texto corrido do resumo, sem bullet",
+                          "keyValues": null, "richLines": null, "entries": null
+                        },
+                        {
+                          "title": "COMPETÊNCIAS TÉCNICAS",
+                          "kind": "KEY_VALUE",
+                          "keyValues": [{"label": "Linguagens", "value": "Java, SQL, Python"}],
+                          "paragraph": null, "richLines": null, "entries": null
+                        },
+                        {
+                          "title": "EXPERIÊNCIA PROFISSIONAL",
+                          "kind": "ENTRIES",
+                          "entries": [{
+                            "heading": "Cargo ocupado",
+                            "period": "mm/aaaa – mm/aaaa ou mm/aaaa – atual",
+                            "subheading": "Empresa | Cidade, UF (remoto/híbrido/presencial se souber)",
+                            "context": "frase curta de contexto opcional, ou null",
+                            "bullets": [[
+                              {"text": "trecho normal ", "bold": false},
+                              {"text": "número ou resultado de destaque", "bold": true},
+                              {"text": " resto da frase.", "bold": false}
+                            ]],
+                            "technologies": "lista separada por vírgula das tecnologias citadas nesse cargo, ou null"
+                          }],
+                          "paragraph": null, "keyValues": null, "richLines": null
+                        },
+                        {
+                          "title": "FORMAÇÃO ACADÊMICA",
+                          "kind": "RICH_LINES",
+                          "richLines": [[
+                            {"text": "Nome do curso", "bold": true},
+                            {"text": " | Instituição | período", "bold": false}
+                          ]],
+                          "paragraph": null, "keyValues": null, "entries": null
+                        }
+                      ]
+                    }
+
+                    Regras de organização:
+                    - "kind" é sempre um destes literais: PARAGRAPH, KEY_VALUE, RICH_LINES, ENTRIES.
+                    - RESUMO/PERFIL/OBJETIVO -> PARAGRAPH.
+                    - COMPETÊNCIAS/HABILIDADES/SKILLS -> KEY_VALUE, agrupando por categoria (Linguagens,
+                      Frameworks, Cloud, etc.) quando o currículo já sugerir esse agrupamento; senão uma
+                      única linha "Competências" com tudo.
+                    - EXPERIÊNCIA PROFISSIONAL e PROJETOS PESSOAIS -> ENTRIES. Projetos pessoais não têm
+                      "subheading" nem "period" (deixe null) a menos que o texto original traga isso.
+                    - FORMAÇÃO ACADÊMICA e CURSOS/CERTIFICAÇÕES -> RICH_LINES, uma linha por item, com o
+                      nome do curso/certificação em negrito e o resto (instituição, período) normal.
+                    - Dentro de "bullets", só marque "bold": true em números, métricas ou palavras-chave
+                      de resultado que já estejam no texto original — nunca em frases inteiras.
+                    - Preserve TODAS as seções e itens do currículo original; não descarte experiência,
+                      projeto, formação ou curso nenhum.
+                    - Só inclua os campos referentes ao "kind" da seção; os demais ficam null.
+
+                    Currículo original (texto extraído, seção por seção):
+                    {{resumeText}}
+              - column:
+                  name: model
+                  value: gpt-4o-mini

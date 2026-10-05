@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000040-job-posting-synthetic
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: job_posting
+            columns:
+              - column:
+                  name: synthetic
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+        - update:
+            tableName: job_posting
+            columns:
+              - column:
+                  name: synthetic
+                  valueBoolean: true
+            where: raw_text like 'Nenhuma vaga real foi colada.%'

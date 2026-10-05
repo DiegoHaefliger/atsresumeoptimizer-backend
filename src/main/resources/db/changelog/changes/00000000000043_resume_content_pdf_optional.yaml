@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000043-resume-content-pdf-optional
+      author: DiegoHaefliger
+      changes:
+        - dropNotNullConstraint:
+            tableName: resume_content
+            columnName: pdf_version_id
+            columnDataType: uuid

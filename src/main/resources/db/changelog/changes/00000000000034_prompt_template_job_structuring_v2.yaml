@@ -1,0 +1,51 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000034-prompt-template-job-structuring-v2
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM prompt_template WHERE id = '33333333-3333-3333-3333-333333333344'
+      changes:
+        - insert:
+            tableName: prompt_template
+            columns:
+              - column:
+                  name: id
+                  value: 33333333-3333-3333-3333-333333333344
+              - column:
+                  name: key
+                  value: job-structuring
+              - column:
+                  name: version
+                  valueNumeric: 2
+              - column:
+                  name: content
+                  value: |
+                    Você é um analista de recrutamento. Extraia da descrição de vaga abaixo, em português,
+                    um JSON com exatamente estes campos: "title" (cargo), "seniority" (júnior/pleno/sênior/etc.,
+                    ou null), "minYearsExperience" (número inteiro ou null), "educationLevel" (texto curto ou
+                    null), "languages" (lista de idiomas exigidos), "requiredKeywords" (lista de termos técnicos
+                    ou de negócio obrigatórios, na grafia exata usada na vaga), "keywordEquivalents" (objeto
+                    mapeando cada termo de "requiredKeywords" para uma lista de sinônimos ou formas equivalentes
+                    que um currículo poderia usar em vez do termo exato) e "conditions" (o que a vaga oferece).
+
+                    "conditions" é um objeto com:
+                    - "company": nome da empresa contratante, ou null.
+                    - "workModel": "REMOTE", "HYBRID" ou "ON_SITE", ou null se a vaga não disser.
+                    - "contractType": "CLT", "PJ", "INTERNSHIP" (estágio) ou "TEMPORARY", ou null.
+                    - "salaryMin" e "salaryMax": salário MENSAL bruto em reais, só números. Valor anual vira
+                      mensal dividindo por 12. Valor único preenche os dois. Sem salário informado, null.
+                    - "benefits": lista curta dos benefícios citados (ex.: "plano de saúde", "vale refeição",
+                      "PLR", "auxílio home office"); [] se nenhum.
+                    - "location": cidade/estado da vaga, ou null.
+
+                    Não invente requisitos nem condições que não estejam no texto. Responda só com o JSON,
+                    sem comentários.
+
+                    Vaga:
+                    {{jobText}}
+              - column:
+                  name: model
+                  value: gpt-4o-mini

@@ -1,0 +1,59 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000011-finding
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: finding
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: analysis_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_finding_analysis
+                    references: analysis(id)
+              - column:
+                  name: dimension
+                  type: varchar(40)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: severity
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: code
+                  type: varchar(60)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: message
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: suggestion
+                  type: text
+              - column:
+                  name: start_offset
+                  type: integer
+              - column:
+                  name: end_offset
+                  type: integer
+              - column:
+                  name: excerpt
+                  type: text
+        - createIndex:
+            indexName: idx_finding_analysis_id
+            tableName: finding
+            columns:
+              - column:
+                  name: analysis_id

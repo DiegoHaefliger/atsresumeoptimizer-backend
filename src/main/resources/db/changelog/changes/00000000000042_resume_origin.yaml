@@ -1,0 +1,74 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000042-resume-origin
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: resume
+            columns:
+              - column:
+                  name: origin
+                  type: varchar(20)
+                  defaultValue: BASE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source_analysis_id
+                  type: uuid
+        - createIndex:
+            indexName: idx_resume_source_analysis_id
+            tableName: resume
+            columns:
+              - column:
+                  name: source_analysis_id
+  - changeSet:
+      id: 00000000000042-resume-origin-split-adapted
+      author: DiegoHaefliger
+      changes:
+        - sql:
+            sql: |
+              CREATE TEMP TABLE adapted_resume_map ON COMMIT DROP AS
+              SELECT rw.analysis_id,
+                     rw.docx_resume_version_id,
+                     rw.pdf_resume_version_id,
+                     rw.created_at,
+                     v.resume_id AS base_resume_id,
+                     gen_random_uuid() AS adapted_resume_id,
+                     CASE
+                       WHEN r.title = '[removido]' THEN r.title
+                       WHEN coalesce(jp.title, '') <> '' THEN r.title || ' · adaptado para ' || jp.title
+                       WHEN coalesce(a.target_role, '') <> '' THEN r.title || ' · adaptado para ' || a.target_role
+                       WHEN a.mode = 'JOB_MATCH' THEN r.title || ' · adaptado para a vaga'
+                       ELSE r.title || ' · adaptado na avaliação geral'
+                     END AS title
+              FROM resume_rewrite rw
+              JOIN resume_version v ON v.id = rw.docx_resume_version_id
+              JOIN resume r ON r.id = v.resume_id
+              JOIN analysis a ON a.id = rw.analysis_id
+              LEFT JOIN job_posting jp ON jp.id = a.job_posting_id
+              WHERE r.origin = 'BASE';
+
+              INSERT INTO resume (id, title, created_at, origin, source_analysis_id)
+              SELECT adapted_resume_id, left(title, 255), created_at, 'ADAPTED', analysis_id
+              FROM adapted_resume_map;
+
+              UPDATE resume_version v
+              SET resume_id = m.adapted_resume_id
+              FROM adapted_resume_map m
+              WHERE v.id IN (m.docx_resume_version_id, m.pdf_resume_version_id);
+
+              UPDATE resume_version v
+              SET resume_id = (SELECT m.adapted_resume_id
+                               FROM adapted_resume_map m
+                               WHERE m.base_resume_id = v.resume_id AND m.created_at <= v.created_at
+                               ORDER BY m.created_at DESC
+                               LIMIT 1)
+              WHERE v.file_name LIKE 'curriculo-adaptado.%'
+                AND EXISTS (SELECT 1
+                            FROM adapted_resume_map m
+                            WHERE m.base_resume_id = v.resume_id AND m.created_at <= v.created_at);
+
+              UPDATE resume_content c
+              SET resume_id = v.resume_id
+              FROM resume_version v
+              WHERE v.id = c.docx_version_id AND c.resume_id <> v.resume_id;

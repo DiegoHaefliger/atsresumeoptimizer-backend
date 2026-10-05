@@ -1,0 +1,35 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000007-llm-cache
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: llm_cache
+            columns:
+              - column:
+                  name: key_hash
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: prompt_key
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: prompt_version
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: response
+                  type: jsonb
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false

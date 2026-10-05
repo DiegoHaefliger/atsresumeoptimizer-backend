@@ -1,0 +1,59 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000008-tech-term
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: tech_term
+            columns:
+              - column:
+                  name: canonical
+                  type: varchar(150)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: aliases
+                  type: text[]
+                  defaultValueComputed: "'{}'"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category
+                  type: varchar(50)
+        - insert:
+            tableName: tech_term
+            columns:
+              - column: { name: canonical, value: Kubernetes }
+              - column: { name: aliases, valueComputed: "'{k8s}'" }
+              - column: { name: category, value: tool }
+        - insert:
+            tableName: tech_term
+            columns:
+              - column: { name: canonical, value: Spring Boot }
+              - column: { name: aliases, valueComputed: "'{spring,springboot}'" }
+              - column: { name: category, value: framework }
+        - insert:
+            tableName: tech_term
+            columns:
+              - column: { name: canonical, value: PostgreSQL }
+              - column: { name: aliases, valueComputed: "'{postgres,psql}'" }
+              - column: { name: category, value: database }
+        - insert:
+            tableName: tech_term
+            columns:
+              - column: { name: canonical, value: JWT }
+              - column: { name: aliases, valueComputed: "'{\"json web token\"}'" }
+              - column: { name: category, value: security }
+        - insert:
+            tableName: tech_term
+            columns:
+              - column: { name: canonical, value: Node.js }
+              - column: { name: aliases, valueComputed: "'{node,nodejs}'" }
+              - column: { name: category, value: platform }
+        - insert:
+            tableName: tech_term
+            columns:
+              - column: { name: canonical, value: CI/CD }
+              - column: { name: aliases, valueComputed: "'{\"continuous integration\",\"continuous delivery\",\"integracao continua\"}'" }
+              - column: { name: category, value: practice }

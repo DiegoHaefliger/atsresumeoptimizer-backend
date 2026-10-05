@@ -1,0 +1,43 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000010-analysis-dimension
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: analysis_dimension
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: analysis_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_analysis_dimension_analysis
+                    references: analysis(id)
+              - column:
+                  name: dimension
+                  type: varchar(40)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: score
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weight
+                  type: numeric(5,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: details
+                  type: jsonb
+        - addUniqueConstraint:
+            tableName: analysis_dimension
+            columnNames: analysis_id, dimension
+            constraintName: uk_analysis_dimension_analysis_dimension

@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000038-resume-version-sha256-index
+      author: DiegoHaefliger
+      changes:
+        - createIndex:
+            indexName: idx_resume_version_sha256
+            tableName: resume_version
+            columns:
+              - column:
+                  name: sha256

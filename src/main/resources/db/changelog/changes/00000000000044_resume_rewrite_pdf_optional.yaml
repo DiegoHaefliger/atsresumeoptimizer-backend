@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000044-resume-rewrite-pdf-optional
+      author: DiegoHaefliger
+      changes:
+        - dropNotNullConstraint:
+            tableName: resume_rewrite
+            columnName: pdf_resume_version_id
+            columnDataType: uuid

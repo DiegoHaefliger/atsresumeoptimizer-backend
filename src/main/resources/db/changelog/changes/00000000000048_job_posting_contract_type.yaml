@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000048-job-posting-contract-type
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: job_posting
+            columns:
+              - column:
+                  name: contract_type
+                  type: varchar(20)

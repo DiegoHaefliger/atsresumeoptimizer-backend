@@ -1,0 +1,62 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000012-keyword-match
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: keyword_match
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: analysis_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_keyword_match_analysis
+                    references: analysis(id)
+              - column:
+                  name: term
+                  type: varchar(150)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category
+                  type: varchar(50)
+              - column:
+                  name: required
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: found_exact
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: found_semantic
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: occurrences
+                  type: integer
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sections
+                  type: text[]
+        - createIndex:
+            indexName: idx_keyword_match_analysis_id
+            tableName: keyword_match
+            columns:
+              - column:
+                  name: analysis_id

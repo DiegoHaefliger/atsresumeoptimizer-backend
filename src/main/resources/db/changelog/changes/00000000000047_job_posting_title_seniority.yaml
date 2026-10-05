@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000047-job-posting-title-seniority
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: job_posting
+            columns:
+              - column:
+                  name: custom_title
+                  type: varchar(255)
+              - column:
+                  name: seniority
+                  type: varchar(50)

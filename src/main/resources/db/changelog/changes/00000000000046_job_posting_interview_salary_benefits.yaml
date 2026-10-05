@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000046-job-posting-interview-salary-benefits
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: job_posting
+            columns:
+              - column:
+                  name: interview_url
+                  type: varchar(1000)
+              - column:
+                  name: salary
+                  type: numeric(12,2)
+              - column:
+                  name: benefits
+                  type: text

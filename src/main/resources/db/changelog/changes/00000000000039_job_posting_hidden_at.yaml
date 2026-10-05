@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000039-job-posting-hidden-at
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: job_posting
+            columns:
+              - column:
+                  name: hidden_at
+                  type: timestamptz

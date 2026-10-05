@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000036-ai-settings
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: ai_settings
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: active_provider
+                  type: varchar(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: temperature
+                  type: numeric(3,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_output_tokens
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: timeout_seconds
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: ai_provider_config
+            columns:
+              - column:
+                  name: provider
+                  type: varchar(30)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: api_key_encrypted
+                  type: text
+              - column:
+                  name: api_key_hint
+                  type: varchar(20)
+              - column:
+                  name: base_url
+                  type: varchar(500)
+              - column:
+                  name: model
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: heavy_model
+                  type: varchar(100)
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false

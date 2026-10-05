@@ -1,0 +1,52 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000030-prompt-template-requirement-evidence
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM prompt_template WHERE id = '33333333-3333-3333-3333-333333333342'
+      changes:
+        - insert:
+            tableName: prompt_template
+            columns:
+              - column:
+                  name: id
+                  value: 33333333-3333-3333-3333-333333333342
+              - column:
+                  name: key
+                  value: requirement-evidence
+              - column:
+                  name: version
+                  valueNumeric: 1
+              - column:
+                  name: content
+                  value: |
+                    Você compara exigências de uma vaga com um currículo em português. Para cada exigência da
+                    lista, procure no currículo uma evidência EQUIVALENTE: a mesma coisa com outra grafia ou
+                    outro nome (ex.: "microserviços" e "microsserviços"), ou uma tecnologia que é um caso
+                    concreto da exigência genérica (ex.: "bancos de dados relacionais" e "PostgreSQL";
+                    "mensageria" e "Kafka"; "testes unitários" e "JUnit"; "cloud" e "AWS").
+
+                    Regras:
+                    - Só aceite equivalência que um recrutador técnico aceitaria sem discutir.
+                    - Ferramenta ou produto específico só é evidenciado por ele mesmo: AWS NÃO é evidência de
+                      GCP, Kafka NÃO é evidência de RabbitMQ, PostgreSQL NÃO é evidência de Firestore, JUnit
+                      NÃO é evidência de TDD.
+                    - "evidence" é um trecho copiado LITERALMENTE do currículo, curto (1 a 6 palavras), sem
+                      mudar letra nenhuma.
+                    - "requirement" é a exigência exatamente como está na lista.
+                    - Exigência sem evidência fica de fora. Na dúvida, deixe de fora.
+
+                    Responda só com um JSON: lista de objetos {"requirement": "...", "evidence": "..."}.
+                    Se nenhuma tiver evidência, responda [].
+
+                    Exigências da vaga:
+                    {{requirements}}
+
+                    Currículo:
+                    {{resumeText}}
+              - column:
+                  name: model
+                  value: gpt-4o-mini

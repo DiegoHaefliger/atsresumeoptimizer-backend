@@ -1,0 +1,79 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000009-analysis
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: analysis
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: resume_version_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_analysis_resume_version
+                    references: resume_version(id)
+              - column:
+                  name: job_posting_id
+                  type: uuid
+                  constraints:
+                    foreignKeyName: fk_analysis_job_posting
+                    references: job_posting(id)
+              - column:
+                  name: mode
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target_role
+                  type: varchar(255)
+              - column:
+                  name: job_description
+                  type: text
+              - column:
+                  name: status
+                  type: varchar(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: overall_score
+                  type: integer
+              - column:
+                  name: scoring_profile_id
+                  type: uuid
+                  constraints:
+                    foreignKeyName: fk_analysis_scoring_profile
+                    references: scoring_profile(id)
+              - column:
+                  name: ai_model
+                  type: varchar(100)
+              - column:
+                  name: tokens_in
+                  type: integer
+              - column:
+                  name: tokens_out
+                  type: integer
+              - column:
+                  name: cost_usd
+                  type: numeric(10,4)
+              - column:
+                  name: error
+                  type: text
+              - column:
+                  name: started_at
+                  type: timestamptz
+              - column:
+                  name: finished_at
+                  type: timestamptz
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false

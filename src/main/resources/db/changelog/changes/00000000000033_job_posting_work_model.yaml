@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000033-job-posting-work-model
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: job_posting
+            columns:
+              - column:
+                  name: work_model
+                  type: varchar(20)

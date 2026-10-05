@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000003-resume-version
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: resume_version
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: resume_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_resume_version_resume
+                    references: resume(id)
+              - column:
+                  name: storage_key
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mime_type
+                  type: varchar(150)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: size_bytes
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sha256
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: page_count
+                  type: integer
+              - column:
+                  name: raw_text
+                  type: text
+              - column:
+                  name: structured_text
+                  type: text
+              - column:
+                  name: language
+                  type: varchar(10)
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_resume_version_resume_id
+            tableName: resume_version
+            columns:
+              - column:
+                  name: resume_id

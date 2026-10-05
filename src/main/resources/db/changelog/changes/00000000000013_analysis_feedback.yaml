@@ -1,0 +1,43 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000013-analysis-feedback
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: analysis_feedback
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: analysis_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_analysis_feedback_analysis
+                    references: analysis(id)
+              - column:
+                  name: rating
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: comment
+                  type: text
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: alter table analysis_feedback add constraint ck_analysis_feedback_rating_range check (rating between 1 and 5)
+        - createIndex:
+            indexName: idx_analysis_feedback_analysis_id
+            tableName: analysis_feedback
+            columns:
+              - column:
+                  name: analysis_id

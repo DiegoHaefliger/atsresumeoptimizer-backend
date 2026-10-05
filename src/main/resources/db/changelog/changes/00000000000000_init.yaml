@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000000-baseline
+      author: DiegoHaefliger
+      changes:
+        - tagDatabase:
+            tag: baseline

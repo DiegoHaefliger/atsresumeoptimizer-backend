@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000019-prompt-template-rewrite
+      author: DiegoHaefliger
+      changes:
+        - insert:
+            tableName: prompt_template
+            columns:
+              - column:
+                  name: id
+                  value: 33333333-3333-3333-3333-333333333333
+              - column:
+                  name: key
+                  value: rewrite
+              - column:
+                  name: version
+                  valueNumeric: 1
+              - column:
+                  name: content
+                  value: |
+                    Você reescreve bullets de currículo em português pra ficarem mais fortes:
+                    verbo de ação no início, resultado claro, específico. NUNCA invente número,
+                    métrica, empresa, cargo, tecnologia ou qualquer fato que não esteja
+                    literalmente no bullet original — se não tem métrica, não invente uma; só
+                    melhore clareza e verbo. Responda só com um JSON: lista de objetos com
+                    "original" (o bullet de entrada, sem alteração) e "rewritten" (a versão
+                    melhorada), na mesma ordem dos bullets de entrada.
+
+                    Bullets:
+                    {{bullets}}
+              - column:
+                  name: model
+                  value: gpt-4o-mini

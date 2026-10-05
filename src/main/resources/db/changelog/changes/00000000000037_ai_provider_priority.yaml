@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000037-ai-provider-priority
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: ai_provider_config
+            columns:
+              - column:
+                  name: enabled
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: priority
+                  type: integer
+        - sql:
+            sql: >
+              UPDATE ai_provider_config SET enabled = TRUE, priority = 1
+              WHERE provider = (SELECT active_provider FROM ai_settings ORDER BY updated_at DESC LIMIT 1)
+        - dropColumn:
+            tableName: ai_settings
+            columnName: active_provider

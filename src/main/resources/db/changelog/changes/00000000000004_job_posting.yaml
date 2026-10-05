@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000004-job-posting
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: job_posting
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(255)
+              - column:
+                  name: company
+                  type: varchar(255)
+              - column:
+                  name: source_url
+                  type: varchar(1000)
+              - column:
+                  name: raw_text
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: text_hash
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: structured
+                  type: jsonb
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_job_posting_text_hash
+            tableName: job_posting
+            unique: true
+            columns:
+              - column:
+                  name: text_hash

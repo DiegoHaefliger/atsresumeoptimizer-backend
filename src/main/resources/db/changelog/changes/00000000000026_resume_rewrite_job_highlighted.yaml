@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000026-resume-rewrite-job-highlighted
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: resume_rewrite
+            columns:
+              - column:
+                  name: job_highlighted
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

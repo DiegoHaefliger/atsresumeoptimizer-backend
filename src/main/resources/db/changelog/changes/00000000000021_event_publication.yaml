@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000021-event-publication
+      author: DiegoHaefliger
+      comment: Tabela do Spring Modulith pro registro transacional de eventos (event_publication) — necessária pra @ApplicationModuleListener funcionar, já que o schema é Liquibase-managed (Hibernate não cria essa tabela sozinho).
+      changes:
+        - createTable:
+            tableName: event_publication
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: listener_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: event_type
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: serialized_event
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: publication_date
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: completion_date
+                  type: timestamptz
+              - column:
+                  name: last_resubmission_date
+                  type: timestamptz
+              - column:
+                  name: completion_attempts
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(255)
