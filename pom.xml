@@ -28,19 +28,23 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
+		<dependency-check.version>12.2.2</dependency-check.version>
+		<dependency-check.data.dir>${project.basedir}/.dependency-check-data</dependency-check.data.dir>
 		<spring-modulith.version>2.1.1</spring-modulith.version>
 		<langchain4j.version>1.0.0</langchain4j.version>
 		<pdfbox.version>3.0.7</pdfbox.version>
 		<poi.version>5.5.1</poi.version>
-		<tika.version>3.3.1</tika.version>
+		<tika.version>3.3.2</tika.version>
 		<languagetool.version>6.6</languagetool.version>
 		<uuid-creator.version>6.1.1</uuid-creator.version>
 		<aws-sdk.version>2.46.7</aws-sdk.version>
-		<springdoc.version>2.8.6</springdoc.version>
+		<springdoc.version>3.1.1</springdoc.version>
 		<testcontainers-minio.version>1.21.3</testcontainers-minio.version>
 		<guava.version>33.4.0-jre</guava.version>
 		<bucket4j.version>8.10.1</bucket4j.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
+		<opennlp.version>2.5.12</opennlp.version>
+		<tomcat.version>11.0.26</tomcat.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -260,6 +264,11 @@
 			     um Guava onde com.google.common.base.Supplier estende java.util.function.Supplier
 			     (só a partir da 20.0). Fixa uma versão recente para vencer a mediação de dependências. -->
 			<dependency>
+				<groupId>org.apache.opennlp</groupId>
+				<artifactId>opennlp-tools</artifactId>
+				<version>${opennlp.version}</version>
+			</dependency>
+			<dependency>
 				<groupId>com.google.guava</groupId>
 				<artifactId>guava</artifactId>
 				<version>${guava.version}</version>
@@ -300,6 +309,33 @@
 								<arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
 							</compilerArgs>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.owasp</groupId>
+				<artifactId>dependency-check-maven</artifactId>
+				<version>${dependency-check.version}</version>
+				<configuration>
+					<failBuildOnCVSS>7</failBuildOnCVSS>
+					<formats>
+						<format>HTML</format>
+						<format>JSON</format>
+					</formats>
+					<nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+					<suppressionFiles>
+						<suppressionFile>${project.basedir}/dependency-check-suppressions.xml</suppressionFile>
+					</suppressionFiles>
+					<dataDirectory>${dependency-check.data.dir}</dataDirectory>
+					<nvdValidForHours>24</nvdValidForHours>
+					<assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+					<ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>

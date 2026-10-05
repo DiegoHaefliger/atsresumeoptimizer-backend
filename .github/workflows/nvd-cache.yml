@@ -1,0 +1,49 @@
+name: NVD cache (Dependency-Check)
+
+# Cache criado em PR não é visível a outros PRs, só o da branch padrão. Por isso o banco é gravado aqui
+# e o CI de PR só restaura. Schedule e workflow_dispatch só rodam a partir da main: depois do merge,
+# dispare uma vez com `gh workflow run nvd-cache.yml`.
+
+on:
+  schedule:
+    - cron: "0 6,18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nvd-cache
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Atualizar banco NVD
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: "temurin"
+          cache: "maven"
+
+      # Chave única por execução: restore-keys pega o mais recente e o post-step grava o banco atualizado.
+      - name: Cache do banco NVD
+        uses: actions/cache@v4
+        with:
+          path: .dependency-check-data
+          key: nvd-data-${{ github.run_id }}
+          restore-keys: nvd-data-
+
+      - name: Atualizar banco NVD
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [ -z "$NVD_API_KEY" ]; then
+            echo "::error title=NVD_API_KEY ausente::Sem a chave a NVD limita a 5 req/30s e o download leva ~20 min."
+            exit 1
+          fi
+          ./mvnw -B -ntp org.owasp:dependency-check-maven:update-only

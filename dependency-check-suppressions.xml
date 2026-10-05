@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Só falso positivo do Dependency-Check; suprima sempre pelo par packageUrl x CPE, nunca pelo <cve> solto. -->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+  <suppress>
+    <notes><![CDATA[
+      CVE-2026-53914 é desserialização no build cache do compilador/Gradle do Kotlin. O kotlin-stdlib é só
+      a biblioteca de runtime e não contém esse código.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-stdlib(-[a-z0-9]+)?@.*$</packageUrl>
+    <cpe>cpe:/a:jetbrains:kotlin</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+      CVE-2026-44843 é do LangChain (Python). O langchain4j é outro projeto, sem relação de código, que só
+      herda o nome na NVD.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/dev\.langchain4j/.*$</packageUrl>
+    <cpe>cpe:/a:langchain:langchain</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+      CVE-2026-24051 e CVE-2026-39883 são do OpenTelemetry Go (execução de ioreg/kenv em macOS/BSD). O jar
+      opentelemetry-semconv (Java) só tem constantes de convenção de nomes.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/io\.opentelemetry/opentelemetry-semconv@.*$</packageUrl>
+    <cpe>cpe:/a:opentelemetry:opentelemetry</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+      CVE-2022-31691 afeta o Spring Tools 4 for Eclipse e extensões de VSCode (editor de YAML), não o
+      spring-boot-devtools. O devtools também é optional e não entra no jar de produção.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework\.boot/spring-boot-devtools@.*$</packageUrl>
+    <cpe>cpe:/a:vmware:spring_tools</cpe>
+    <cpe>cpe:/a:vmware:spring_boot_tools</cpe>
+  </suppress>
+
+</suppressions>

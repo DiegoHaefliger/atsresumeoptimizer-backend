@@ -22,3 +22,5 @@ target/
 .env.local
 
 graphify-out/
+
+.dependency-check-data/
