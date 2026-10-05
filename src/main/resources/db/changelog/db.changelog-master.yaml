@@ -85,3 +85,5 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000047_job_posting_title_seniority.yaml
   - include:
       file: db/changelog/changes/00000000000048_job_posting_contract_type.yaml
+  - include:
+      file: db/changelog/changes/00000000000049_prompt_template_resume_structuring_v10.yaml
