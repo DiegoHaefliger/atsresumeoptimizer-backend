@@ -355,7 +355,6 @@ class RewriteServiceImpl implements RewriteService {
 
 	private List<OriginalSection> originalSections(ParsingResult parsingResult) {
 		return parsingResult.sections().stream()
-				.filter(Section::recognized)
 				.map(section -> new OriginalSection(section.title(), section.content()))
 				.toList();
 	}
