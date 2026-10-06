@@ -38,6 +38,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeOrigin;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeSummary;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -228,5 +230,19 @@ class AnalysesControllerTest {
 						.param("jobDescription", "vaga")
 						.param("jobUrl", "javascript:alert(1)"))
 				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void listsTheResumesGeneratedForAJob() throws Exception {
+		UUID jobId = UUID.randomUUID();
+		UUID resumeId = UUID.randomUUID();
+		when(analysisQueryService.generatedResumes(jobId)).thenReturn(List.of(new ResumeSummary(resumeId,
+				"Currículo - Vaga A", Instant.now(), ResumeOrigin.ADAPTED, UUID.randomUUID(), false, 83, List.of())));
+
+		mockMvc.perform(get("/api/v1/jobs/{jobId}/resumes", jobId))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].id").value(resumeId.toString()))
+				.andExpect(jsonPath("$[0].origin").value("ADAPTED"))
+				.andExpect(jsonPath("$[0].atsScore").value(83));
 	}
 }

@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000055-resume-ats-score
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: resume
+            columns:
+              - column:
+                  name: ats_score
+                  type: integer

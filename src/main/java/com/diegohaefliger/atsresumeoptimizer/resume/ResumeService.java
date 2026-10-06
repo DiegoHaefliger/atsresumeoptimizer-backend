@@ -1,5 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.resume;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,6 +25,12 @@ public interface ResumeService {
 
 	/** O número da versão conta as já apagadas, pra "versão 2" não virar "versão 1" depois de excluir a primeira. */
 	List<ResumeSummary> listResumes();
+
+	/** Só currículos adaptados cuja análise está na lista, do mais novo para o mais antigo. */
+	List<ResumeSummary> listAdaptedFromAnalyses(Collection<UUID> analysisIds);
+
+	/** Nota ATS do currículo gerado, calculada ao fim da adaptação. */
+	void updateAtsScore(UUID resumeId, Integer atsScore);
 
 	List<ResumeVersionSummary> listVersions(UUID resumeId);
 

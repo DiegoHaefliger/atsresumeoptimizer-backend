@@ -29,6 +29,9 @@ class Resume {
 
 	private boolean favorite;
 
+	@Column(name = "ats_score")
+	private Integer atsScore;
+
 	@Column(name = "created_at")
 	private Instant createdAt;
 
@@ -65,6 +68,14 @@ class Resume {
 
 	UUID sourceAnalysisId() {
 		return sourceAnalysisId;
+	}
+
+	Integer atsScore() {
+		return atsScore;
+	}
+
+	void updateAtsScore(Integer atsScore) {
+		this.atsScore = atsScore;
 	}
 
 	boolean favorite() {

@@ -16,6 +16,7 @@ import com.diegohaefliger.atsresumeoptimizer.resume.domain.ResumeNotFoundExcepti
 import com.diegohaefliger.atsresumeoptimizer.resume.domain.ResumeVersionNotFoundException;
 import com.github.f4b6a3.uuid.UuidCreator;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -126,7 +127,30 @@ class ResumeServiceImpl implements ResumeService {
 	@Override
 	@Transactional(readOnly = true)
 	public List<ResumeSummary> listResumes() {
-		List<Resume> resumes = resumeRepository.findTop50ByTitleNotOrderByCreatedAtDesc(Resume.SCRUBBED_PLACEHOLDER);
+		return summarize(resumeRepository.findTop50ByTitleNotOrderByCreatedAtDesc(Resume.SCRUBBED_PLACEHOLDER)).stream()
+				.sorted(Comparator.comparing(ResumeSummary::favorite).reversed())
+				.toList();
+	}
+
+	@Override
+	@Transactional
+	public void updateAtsScore(UUID resumeId, Integer atsScore) {
+		Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> new ResumeNotFoundException(resumeId));
+		resume.updateAtsScore(atsScore);
+		resumeRepository.save(resume);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ResumeSummary> listAdaptedFromAnalyses(Collection<UUID> analysisIds) {
+		if (analysisIds.isEmpty()) {
+			return List.of();
+		}
+		return summarize(resumeRepository.findByOriginAndSourceAnalysisIdInAndTitleNotOrderByCreatedAtDesc(
+				ResumeOrigin.ADAPTED, analysisIds, Resume.SCRUBBED_PLACEHOLDER));
+	}
+
+	private List<ResumeSummary> summarize(List<Resume> resumes) {
 		Map<UUID, List<ResumeVersionSummary>> versionsByResume = resumeVersionRepository
 				.findByResumeIdInOrderByCreatedAtAsc(resumes.stream().map(Resume::id).toList())
 				.stream()
@@ -135,8 +159,7 @@ class ResumeServiceImpl implements ResumeService {
 		return resumes.stream()
 				.filter(resume -> !versionsByResume.getOrDefault(resume.id(), List.of()).isEmpty())
 				.map(resume -> new ResumeSummary(resume.id(), resume.title(), resume.createdAt(), resume.origin(),
-						resume.sourceAnalysisId(), resume.favorite(), versionsByResume.get(resume.id())))
-				.sorted(Comparator.comparing(ResumeSummary::favorite).reversed())
+						resume.sourceAnalysisId(), resume.favorite(), resume.atsScore(), versionsByResume.get(resume.id())))
 				.toList();
 	}
 

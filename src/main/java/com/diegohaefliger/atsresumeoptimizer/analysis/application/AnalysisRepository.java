@@ -18,6 +18,9 @@ interface AnalysisRepository extends JpaRepository<AnalysisEntity, UUID> {
 			""")
 	List<CostByModelProjection> aggregateCostByModel();
 
+	@Query("select a.id from AnalysisEntity a where a.jobPostingId = :jobPostingId")
+	List<UUID> findIdsByJobPostingId(@Param("jobPostingId") UUID jobPostingId);
+
 	@Query("""
 			select new com.diegohaefliger.atsresumeoptimizer.analysis.application.RecentJobInput(
 			       a.jobPostingId, a.targetRole, a.jobDescription, a.createdAt)

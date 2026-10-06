@@ -11,6 +11,7 @@ public record ResumeSummary(
 		ResumeOrigin origin,
 		UUID sourceAnalysisId,
 		boolean favorite,
+		Integer atsScore,
 		List<ResumeVersionSummary> versions) {
 
 	public ResumeSummary {
