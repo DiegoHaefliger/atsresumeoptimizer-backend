@@ -33,13 +33,14 @@ class GoogleCalendarControllerTest {
 
 	@Test
 	void returnsTheStatus() throws Exception {
-		when(service.status()).thenReturn(new GoogleConnectionStatus(true, true, "eu@example.com"));
+		when(service.status()).thenReturn(new GoogleConnectionStatus(true, true, "eu@example.com", "http://localhost:8080/cb"));
 
 		mockMvc.perform(get(BASE))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.configured").value(true))
 				.andExpect(jsonPath("$.connected").value(true))
-				.andExpect(jsonPath("$.accountEmail").value("eu@example.com"));
+				.andExpect(jsonPath("$.accountEmail").value("eu@example.com"))
+				.andExpect(jsonPath("$.redirectUri").value("http://localhost:8080/cb"));
 	}
 
 	@Test

@@ -67,6 +67,7 @@ class GoogleCalendarServiceImplTest {
 		var connected = service().status();
 		assertThat(connected.connected()).isTrue();
 		assertThat(connected.accountEmail()).isEqualTo("eu@example.com");
+		assertThat(connected.redirectUri()).isEqualTo("http://localhost:8080/cb");
 		assertThat(service("", "").status().configured()).isFalse();
 	}
 

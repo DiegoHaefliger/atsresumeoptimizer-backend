@@ -36,7 +36,8 @@ class GoogleCalendarServiceImpl implements GoogleCalendarService {
 	public GoogleConnectionStatus status() {
 		Optional<GoogleAccountEntity> account = accountStore.account();
 		return new GoogleConnectionStatus(
-				properties.configured(), account.isPresent(), account.map(GoogleAccountEntity::getAccountEmail).orElse(null));
+				properties.configured(), account.isPresent(), account.map(GoogleAccountEntity::getAccountEmail).orElse(null),
+				properties.redirectUri());
 	}
 
 	@Override
