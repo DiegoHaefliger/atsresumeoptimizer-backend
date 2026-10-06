@@ -12,6 +12,9 @@ import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 import com.diegohaefliger.atsresumeoptimizer.job.WorkModel;
 import com.diegohaefliger.atsresumeoptimizer.preference.JobPreferenceMatchService;
 import com.diegohaefliger.atsresumeoptimizer.preference.PreferenceMatch;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeOrigin;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeService;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeSummary;
 import com.diegohaefliger.atsresumeoptimizer.scoring.domain.AnalysisMode;
 import java.time.Instant;
 import java.util.List;
@@ -39,6 +42,9 @@ class RecentJobServiceImplTest {
 	@Mock
 	private JobPreferenceMatchService preferenceMatchService;
 
+	@Mock
+	private ResumeService resumeService;
+
 	@InjectMocks
 	private RecentJobServiceImpl service;
 
@@ -64,12 +70,41 @@ class RecentJobServiceImplTest {
 	}
 
 	@Test
+	void exposesTheAtsScoreOfTheNewestAdaptedResumeForEachJob() {
+		UUID job = UUID.randomUUID();
+		UUID olderAnalysis = UUID.randomUUID();
+		UUID newerAnalysis = UUID.randomUUID();
+		when(jobStructuringService.listJobs()).thenReturn(List.of(new JobListing(offer(job, "Backend", null, null), MONDAY)));
+		when(analysisRepository.findAllJobRefs())
+				.thenReturn(List.of(new AnalysisJobRef(olderAnalysis, job), new AnalysisJobRef(newerAnalysis, job)));
+		when(resumeService.listAdaptedFromAnalyses(anyCollection())).thenReturn(List.of(
+				adapted(newerAnalysis, 88), adapted(olderAnalysis, 70)));
+
+		assertThat(service.recentJobs()).extracting(RecentJobView::atsScore).containsExactly(88);
+	}
+
+	@Test
+	void leavesTheAtsScoreEmptyWhenNoAdaptedResumeIsScored() {
+		UUID job = UUID.randomUUID();
+		UUID analysis = UUID.randomUUID();
+		when(jobStructuringService.listJobs()).thenReturn(List.of(new JobListing(offer(job, "Backend", null, null), MONDAY)));
+		when(analysisRepository.findAllJobRefs()).thenReturn(List.of(new AnalysisJobRef(analysis, job)));
+		when(resumeService.listAdaptedFromAnalyses(anyCollection())).thenReturn(List.of(adapted(analysis, null)));
+
+		assertThat(service.recentJobs()).extracting(RecentJobView::atsScore).containsOnlyNulls();
+	}
+
+	@Test
 	void removeHidesTheJobFromTheList() {
 		UUID jobId = UUID.randomUUID();
 
 		service.remove(jobId);
 
 		verify(jobStructuringService).hideFromRecent(jobId);
+	}
+
+	private ResumeSummary adapted(UUID analysisId, Integer atsScore) {
+		return new ResumeSummary(UUID.randomUUID(), "adaptado", MONDAY, ResumeOrigin.ADAPTED, analysisId, false, atsScore, List.of());
 	}
 
 	private JobOffer offer(UUID id, String title, String company, WorkModel workModel) {
