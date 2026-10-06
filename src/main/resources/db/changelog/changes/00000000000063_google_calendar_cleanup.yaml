@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000063-google-calendar-drop-client-columns
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: google_account
+            columnName: client_id
+      changes:
+        - dropColumn:
+            tableName: google_account
+            columnName: client_id
+        - dropColumn:
+            tableName: google_account
+            columnName: client_secret
+  - changeSet:
+      id: 00000000000063-google-calendar-require-refresh-token
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 1
+            sql: >-
+              SELECT count(*) FROM information_schema.columns
+              WHERE table_schema = current_schema() AND table_name = 'google_account'
+              AND column_name = 'refresh_token' AND is_nullable = 'YES'
+      changes:
+        - delete:
+            tableName: google_account
+            where: refresh_token IS NULL
+        - addNotNullConstraint:
+            tableName: google_account
+            columnName: refresh_token
+            columnDataType: text
+  - changeSet:
+      id: 00000000000063-drop-calendar-feed
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: calendar_feed
+      changes:
+        - dropTable:
+            tableName: calendar_feed

@@ -2,6 +2,11 @@ databaseChangeLog:
   - changeSet:
       id: 00000000000062-google-calendar
       author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: google_account
       changes:
         - createTable:
             tableName: google_account
