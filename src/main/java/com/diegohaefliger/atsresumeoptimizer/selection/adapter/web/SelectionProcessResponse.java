@@ -9,6 +9,7 @@ import java.util.UUID;
 
 record SelectionProcessResponse(
 		UUID id,
+		UUID jobPostingId,
 		String company,
 		String jobTitle,
 		String jobUrl,

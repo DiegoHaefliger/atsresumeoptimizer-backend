@@ -2,11 +2,10 @@ package com.diegohaefliger.atsresumeoptimizer.selection.domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 public record SelectionProcessData(
-		String company,
-		String jobTitle,
-		String jobUrl,
+		UUID jobPostingId,
 		String processUrl,
 		LocalDate appliedOn,
 		LocalDate nextStepOn,
@@ -16,9 +15,6 @@ public record SelectionProcessData(
 		String notes) {
 
 	public SelectionProcessData {
-		company = blankToNull(company);
-		jobTitle = blankToNull(jobTitle);
-		jobUrl = blankToNull(jobUrl);
 		processUrl = blankToNull(processUrl);
 		contactName = blankToNull(contactName);
 		contactEmail = blankToNull(contactEmail);

@@ -19,13 +19,8 @@ class SelectionProcessEntity {
 	@Id
 	private UUID id;
 
-	private String company;
-
-	@Column(name = "job_title")
-	private String jobTitle;
-
-	@Column(name = "job_url")
-	private String jobUrl;
+	@Column(name = "job_posting_id")
+	private UUID jobPostingId;
 
 	@Column(name = "process_url")
 	private String processUrl;
@@ -69,28 +64,12 @@ class SelectionProcessEntity {
 		return id;
 	}
 
-	public String getCompany() {
-		return company;
+	public UUID getJobPostingId() {
+		return jobPostingId;
 	}
 
-	public void setCompany(String company) {
-		this.company = company;
-	}
-
-	public String getJobTitle() {
-		return jobTitle;
-	}
-
-	public void setJobTitle(String jobTitle) {
-		this.jobTitle = jobTitle;
-	}
-
-	public String getJobUrl() {
-		return jobUrl;
-	}
-
-	public void setJobUrl(String jobUrl) {
-		this.jobUrl = jobUrl;
+	public void setJobPostingId(UUID jobPostingId) {
+		this.jobPostingId = jobPostingId;
 	}
 
 	public String getProcessUrl() {

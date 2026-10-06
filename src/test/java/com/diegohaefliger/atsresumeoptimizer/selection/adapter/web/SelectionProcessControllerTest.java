@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class SelectionProcessControllerTest {
 
 	private static final UUID ID = UUID.randomUUID();
+	private static final UUID JOB_ID = UUID.randomUUID();
 	private static final String BASE = "/api/v1/selection-processes";
 
 	@Autowired
@@ -59,16 +60,18 @@ class SelectionProcessControllerTest {
 
 		mockMvc.perform(post(BASE)
 						.contentType("application/json")
-						.content("{\"company\":\"Acme\",\"jobTitle\":\"Dev Java\",\"jobUrl\":\"https://acme.com/vaga\"}"))
+						.content("{\"jobPostingId\":\"" + JOB_ID + "\"}"))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.stage").value("INTERESTED"));
 	}
 
 	@Test
-	void rejectsCreationWithoutCompanyOrWithInvalidLink() throws Exception {
+	void rejectsCreationWithoutAJobOrWithInvalidLink() throws Exception {
+		mockMvc.perform(post(BASE).contentType("application/json").content("{\"processUrl\":\"https://x.com\"}"))
+				.andExpect(status().isBadRequest());
 		mockMvc.perform(post(BASE)
 						.contentType("application/json")
-						.content("{\"jobTitle\":\"Dev\",\"jobUrl\":\"not-a-link\"}"))
+						.content("{\"jobPostingId\":\"" + JOB_ID + "\",\"processUrl\":\"not-a-link\"}"))
 				.andExpect(status().isBadRequest());
 
 		verifyNoInteractions(service);
@@ -112,7 +115,7 @@ class SelectionProcessControllerTest {
 
 	private SelectionProcess process(SelectionStage stage) {
 		Instant now = Instant.now();
-		return new SelectionProcess(ID, "Acme", "Dev Java", "https://acme.com/vaga", "https://acme.gupy.io/p/1", stage,
+		return new SelectionProcess(ID, JOB_ID, "Acme", "Dev Java", "https://acme.com/vaga", "https://acme.gupy.io/p/1", stage,
 				null, null, null, null, null, null, now, now, List.of(new StageMovement(SelectionStage.APPLIED, null, now)));
 	}
 }

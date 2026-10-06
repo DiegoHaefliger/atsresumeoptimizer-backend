@@ -1,14 +1,18 @@
 package com.diegohaefliger.atsresumeoptimizer.selection.application;
 
+import com.diegohaefliger.atsresumeoptimizer.job.JobOffer;
+import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.InvalidStageMovementException;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcess;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcessData;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcessNotFoundException;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.StageMovement;
+import com.diegohaefliger.atsresumeoptimizer.selection.domain.UnknownJobPostingException;
 import com.github.f4b6a3.uuid.UuidCreator;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -20,12 +24,15 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 	private final SelectionProcessRepository repository;
 	private final SelectionStageMovementRepository movementRepository;
 	private final SelectionProcessEntityMapper mapper;
+	private final JobStructuringService jobService;
 
 	SelectionProcessServiceImpl(SelectionProcessRepository repository,
-			SelectionStageMovementRepository movementRepository, SelectionProcessEntityMapper mapper) {
+			SelectionStageMovementRepository movementRepository, SelectionProcessEntityMapper mapper,
+			JobStructuringService jobService) {
 		this.repository = repository;
 		this.movementRepository = movementRepository;
 		this.mapper = mapper;
+		this.jobService = jobService;
 	}
 
 	@Override
@@ -34,7 +41,11 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 		List<SelectionProcessEntity> entities = stage
 				.map(repository::findByStageOrderByUpdatedAtDesc)
 				.orElseGet(repository::findAllByOrderByUpdatedAtDesc);
-		return entities.stream().map(entity -> mapper.toDomain(entity, List.of())).toList();
+		Map<UUID, JobOffer> offers =
+				jobService.offers(entities.stream().map(SelectionProcessEntity::getJobPostingId).distinct().toList());
+		return entities.stream()
+				.map(entity -> mapper.toDomain(entity, offers.get(entity.getJobPostingId()), List.of()))
+				.toList();
 	}
 
 	@Override
@@ -46,6 +57,7 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 	@Override
 	@Transactional
 	public SelectionProcess create(SelectionProcessData data, SelectionStage initialStage) {
+		requireJob(data.jobPostingId());
 		Instant now = Instant.now();
 		SelectionProcessEntity entity =
 				new SelectionProcessEntity(UuidCreator.getTimeOrderedEpoch(), initialStage, now);
@@ -58,6 +70,7 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 	@Override
 	@Transactional
 	public SelectionProcess update(UUID id, SelectionProcessData data) {
+		requireJob(data.jobPostingId());
 		SelectionProcessEntity entity = find(id);
 		mapper.update(data, entity);
 		entity.setUpdatedAt(Instant.now());
@@ -84,6 +97,12 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 		repository.delete(find(id));
 	}
 
+	private void requireJob(UUID jobPostingId) {
+		if (jobService.offer(jobPostingId).isEmpty()) {
+			throw new UnknownJobPostingException(jobPostingId);
+		}
+	}
+
 	private SelectionProcessEntity find(UUID id) {
 		return repository.findById(id).orElseThrow(() -> new SelectionProcessNotFoundException(id));
 	}
@@ -92,7 +111,7 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 		List<StageMovement> history = movementRepository.findByProcessIdOrderByMovedAtAsc(entity.getId()).stream()
 				.map(mapper::toDomain)
 				.toList();
-		return mapper.toDomain(entity, history);
+		return mapper.toDomain(entity, jobService.offer(entity.getJobPostingId()).orElse(null), history);
 	}
 
 	private static String blankToNull(String text) {

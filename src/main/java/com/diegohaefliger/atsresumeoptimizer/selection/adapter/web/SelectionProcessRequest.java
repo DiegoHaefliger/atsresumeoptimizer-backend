@@ -3,16 +3,15 @@ package com.diegohaefliger.atsresumeoptimizer.selection.adapter.web;
 import com.diegohaefliger.atsresumeoptimizer.HttpUrl;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 record SelectionProcessRequest(
-		@NotBlank @Size(max = 255) String company,
-		@NotBlank @Size(max = 255) String jobTitle,
-		@Size(max = 1000) @HttpUrl String jobUrl,
+		@NotNull UUID jobPostingId,
 		@Size(max = 1000) @HttpUrl String processUrl,
 		SelectionStage stage,
 		LocalDate appliedOn,

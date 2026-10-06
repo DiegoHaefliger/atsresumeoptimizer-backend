@@ -13,18 +13,12 @@ databaseChangeLog:
                     primaryKey: true
                     nullable: false
               - column:
-                  name: company
-                  type: varchar(255)
+                  name: job_posting_id
+                  type: uuid
                   constraints:
                     nullable: false
-              - column:
-                  name: job_title
-                  type: varchar(255)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: job_url
-                  type: varchar(1000)
+                    foreignKeyName: fk_selection_process_job_posting
+                    references: job_posting(id)
               - column:
                   name: process_url
                   type: varchar(1000)
@@ -61,6 +55,12 @@ databaseChangeLog:
                   type: timestamptz
                   constraints:
                     nullable: false
+        - createIndex:
+            indexName: idx_selection_process_job_posting
+            tableName: selection_process
+            columns:
+              - column:
+                  name: job_posting_id
         - createIndex:
             indexName: idx_selection_process_stage
             tableName: selection_process
