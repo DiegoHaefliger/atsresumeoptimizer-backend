@@ -2,6 +2,7 @@ package com.diegohaefliger.atsresumeoptimizer.selection.adapter.web;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -114,9 +115,29 @@ class SelectionProcessControllerTest {
 		verify(service).delete(ID);
 	}
 
+	@Test
+	void removesAPreviousMovement() throws Exception {
+		UUID movementId = UUID.randomUUID();
+
+		mockMvc.perform(delete(BASE + "/" + ID + "/history/" + movementId)).andExpect(status().isNoContent());
+
+		verify(service).removeMovement(ID, movementId);
+	}
+
+	@Test
+	void refusesToRemoveTheCurrentMovement() throws Exception {
+		UUID movementId = UUID.randomUUID();
+		doThrow(new InvalidStageMovementException("A etapa atual não pode ser excluída. Mova o processo antes."))
+				.when(service).removeMovement(ID, movementId);
+
+		mockMvc.perform(delete(BASE + "/" + ID + "/history/" + movementId))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.detail").value("A etapa atual não pode ser excluída. Mova o processo antes."));
+	}
+
 	private SelectionProcess process(SelectionStage stage) {
 		Instant now = Instant.now();
 		return new SelectionProcess(ID, JOB_ID, 12L, "Acme", "Dev Java", "https://acme.com/vaga", "https://acme.gupy.io/p/1", stage,
-				null, null, null, null, null, null, now, now, List.of(new StageMovement(SelectionStage.APPLIED, null, now)));
+				null, null, null, null, null, null, now, now, List.of(new StageMovement(UUID.randomUUID(), SelectionStage.APPLIED, null, now)));
 	}
 }

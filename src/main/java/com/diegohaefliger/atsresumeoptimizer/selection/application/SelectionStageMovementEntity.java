@@ -40,6 +40,10 @@ class SelectionStageMovementEntity {
 		this.movedAt = movedAt;
 	}
 
+	public UUID getId() {
+		return id;
+	}
+
 	public SelectionStage getStage() {
 		return stage;
 	}

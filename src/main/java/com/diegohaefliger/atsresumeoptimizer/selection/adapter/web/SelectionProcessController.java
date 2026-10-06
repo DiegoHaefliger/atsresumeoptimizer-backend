@@ -61,6 +61,12 @@ class SelectionProcessController {
 		return mapper.toResponse(service.moveTo(id, request.stage(), request.note()));
 	}
 
+	@DeleteMapping("/{id}/history/{movementId}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	void removeMovement(@PathVariable UUID id, @PathVariable UUID movementId) {
+		service.removeMovement(id, movementId);
+	}
+
 	@DeleteMapping("/{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	void delete(@PathVariable UUID id) {

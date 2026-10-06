@@ -8,6 +8,7 @@ import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcess;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcessData;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcessNotFoundException;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.StageMovement;
+import com.diegohaefliger.atsresumeoptimizer.selection.domain.StageMovementNotFoundException;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.UnknownJobPostingException;
 import com.github.f4b6a3.uuid.UuidCreator;
 import java.time.Instant;
@@ -89,6 +90,21 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 		entity.setUpdatedAt(now);
 		movementRepository.save(new SelectionStageMovementEntity(id, stage, blankToNull(note), now));
 		return withHistory(entity);
+	}
+
+	@Override
+	@Transactional
+	public void removeMovement(UUID id, UUID movementId) {
+		find(id);
+		List<SelectionStageMovementEntity> movements = movementRepository.findByProcessIdOrderByMovedAtAsc(id);
+		SelectionStageMovementEntity target = movements.stream()
+				.filter(movement -> movement.getId().equals(movementId))
+				.findFirst()
+				.orElseThrow(() -> new StageMovementNotFoundException(movementId));
+		if (movements.getLast() == target) {
+			throw new InvalidStageMovementException("A etapa atual não pode ser excluída. Mova o processo antes.");
+		}
+		movementRepository.delete(target);
 	}
 
 	@Override

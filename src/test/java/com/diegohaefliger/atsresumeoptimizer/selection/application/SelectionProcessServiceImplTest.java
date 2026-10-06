@@ -14,6 +14,7 @@ import com.diegohaefliger.atsresumeoptimizer.selection.domain.InvalidStageMoveme
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcess;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcessData;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcessNotFoundException;
+import com.diegohaefliger.atsresumeoptimizer.selection.domain.StageMovementNotFoundException;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.UnknownJobPostingException;
 import java.time.Instant;
 import java.util.List;
@@ -119,6 +120,31 @@ class SelectionProcessServiceImplTest {
 	}
 
 	@Test
+	void removesAPreviousMovementButNotTheCurrentOne() {
+		SelectionProcessEntity entity = existing(SelectionStage.SCREENING);
+		SelectionStageMovementEntity first = movement(SelectionStage.APPLIED, "2026-10-06T10:00:00Z");
+		SelectionStageMovementEntity current = movement(SelectionStage.SCREENING, "2026-10-06T11:00:00Z");
+		when(repository.findById(ID)).thenReturn(Optional.of(entity));
+		when(movementRepository.findByProcessIdOrderByMovedAtAsc(ID)).thenReturn(List.of(first, current));
+
+		service().removeMovement(ID, first.getId());
+
+		verify(movementRepository).delete(first);
+		assertThatThrownBy(() -> service().removeMovement(ID, current.getId()))
+				.isInstanceOf(InvalidStageMovementException.class);
+		verify(movementRepository, never()).delete(current);
+	}
+
+	@Test
+	void failsToRemoveAnUnknownMovement() {
+		when(repository.findById(ID)).thenReturn(Optional.of(existing(SelectionStage.APPLIED)));
+		when(movementRepository.findByProcessIdOrderByMovedAtAsc(ID)).thenReturn(List.of());
+
+		assertThatThrownBy(() -> service().removeMovement(ID, UUID.randomUUID()))
+				.isInstanceOf(StageMovementNotFoundException.class);
+	}
+
+	@Test
 	void rejectsMovingToTheCurrentStage() {
 		when(repository.findById(ID)).thenReturn(Optional.of(existing(SelectionStage.OFFER)));
 
@@ -162,6 +188,10 @@ class SelectionProcessServiceImplTest {
 		assertThat(listed.get(0).jobTitle()).isEqualTo("Dev Java");
 		assertThat(listed.get(0).jobCode()).isEqualTo(12L);
 		verify(repository, never()).findAllByOrderByUpdatedAtDesc();
+	}
+
+	private SelectionStageMovementEntity movement(SelectionStage stage, String movedAt) {
+		return new SelectionStageMovementEntity(ID, stage, null, Instant.parse(movedAt));
 	}
 
 	private SelectionProcessEntity existing(SelectionStage stage) {

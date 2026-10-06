@@ -19,5 +19,7 @@ public interface SelectionProcessService {
 
 	SelectionProcess moveTo(UUID id, SelectionStage stage, String note);
 
+	void removeMovement(UUID id, UUID movementId);
+
 	void delete(UUID id);
 }
