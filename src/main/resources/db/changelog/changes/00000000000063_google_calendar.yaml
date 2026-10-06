@@ -1,0 +1,54 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000063-google-calendar
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: google_account
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: client_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: client_secret
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: refresh_token
+                  type: text
+              - column:
+                  name: account_email
+                  type: varchar(255)
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: google_event_link
+            columns:
+              - column:
+                  name: schedule_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: google_event_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: synced_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false

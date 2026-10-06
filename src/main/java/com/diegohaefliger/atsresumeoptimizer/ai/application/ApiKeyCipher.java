@@ -1,6 +1,7 @@
 package com.diegohaefliger.atsresumeoptimizer.ai.application;
 
 import com.diegohaefliger.atsresumeoptimizer.Sha256;
+import com.diegohaefliger.atsresumeoptimizer.ai.SecretCipher;
 import com.diegohaefliger.atsresumeoptimizer.ai.domain.AiSettingsSecretMissingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -13,7 +14,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.stereotype.Component;
 
 @Component
-class ApiKeyCipher {
+class ApiKeyCipher implements SecretCipher {
 
 	private static final String KEY_ALGORITHM = "AES";
 	private static final String TRANSFORMATION = "AES/GCM/NoPadding";
@@ -27,7 +28,8 @@ class ApiKeyCipher {
 		this.secretStore = secretStore;
 	}
 
-	String encrypt(String plainText) {
+	@Override
+	public String encrypt(String plainText) {
 		SecretKeySpec key = key(secretStore.currentOrCreate());
 		try {
 			byte[] iv = new byte[IV_BYTES];
@@ -37,11 +39,12 @@ class ApiKeyCipher {
 			byte[] encrypted = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
 			return Base64.getEncoder().encodeToString(ByteBuffer.allocate(iv.length + encrypted.length).put(iv).put(encrypted).array());
 		} catch (GeneralSecurityException exception) {
-			throw new IllegalStateException("Falha ao criptografar a chave da IA", exception);
+			throw new IllegalStateException("Falha ao criptografar o segredo", exception);
 		}
 	}
 
-	String decrypt(String encoded) {
+	@Override
+	public String decrypt(String encoded) {
 		SecretKeySpec key = key(secretStore.current().orElseThrow(AiSettingsSecretMissingException::new));
 		try {
 			ByteBuffer buffer = ByteBuffer.wrap(Base64.getDecoder().decode(encoded));
@@ -53,7 +56,7 @@ class ApiKeyCipher {
 			cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, iv));
 			return new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8);
 		} catch (GeneralSecurityException exception) {
-			throw new IllegalStateException("Chave da IA salva não abre com o segredo atual (AI_SETTINGS_SECRET ou arquivo)", exception);
+			throw new IllegalStateException("Segredo salvo não abre com o segredo atual (AI_SETTINGS_SECRET ou arquivo)", exception);
 		}
 	}
 

@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -45,6 +46,12 @@ class SelectionCalendarImpl implements SelectionCalendar {
 		requireValidRange(from, to);
 		return toEvents(scheduleRepository.findByStatusAndScheduledAtBetweenOrderByScheduledAtAsc(
 				ScheduleStatus.SCHEDULED, from, to));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<CalendarEvent> find(UUID scheduleId) {
+		return scheduleRepository.findById(scheduleId).map(schedule -> toEvents(List.of(schedule)).getFirst());
 	}
 
 	private static void requireValidRange(Instant from, Instant to) {

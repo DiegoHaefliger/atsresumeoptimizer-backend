@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleChanged;
 import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleStatus;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.InvalidScheduleException;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class SelectionScheduleServiceImplTest {
@@ -40,12 +42,15 @@ class SelectionScheduleServiceImplTest {
 	@Mock
 	private SelectionProcessRepository processRepository;
 
+	@Mock
+	private ApplicationEventPublisher events;
+
 	private final SelectionScheduleData data =
 			new SelectionScheduleData(null, INTERVIEW_AT, 60, "  https://meet.example/abc  ", null);
 
 	private SelectionScheduleServiceImpl service() {
 		return new SelectionScheduleServiceImpl(repository, processRepository, new SelectionScheduleEntityMapperImpl(),
-				Clock.fixed(NOW, ZoneOffset.UTC));
+				Clock.fixed(NOW, ZoneOffset.UTC), events);
 	}
 
 	private SelectionProcessEntity process(SelectionStage stage) {
@@ -70,6 +75,7 @@ class SelectionScheduleServiceImplTest {
 		assertThat(created.scheduledAt()).isEqualTo(INTERVIEW_AT);
 		assertThat(created.location()).isEqualTo("https://meet.example/abc");
 		assertThat(created.createdAt()).isEqualTo(NOW);
+		verify(events).publishEvent(new ScheduleChanged(created.id()));
 	}
 
 	@Test
@@ -107,6 +113,8 @@ class SelectionScheduleServiceImplTest {
 		assertThat(replacement.scheduledAt()).isEqualTo(later);
 		assertThat(replacement.stage()).isEqualTo(SelectionStage.SCREENING);
 		assertThat(replacement.status()).isEqualTo(ScheduleStatus.SCHEDULED);
+		verify(events).publishEvent(new ScheduleChanged(previous.getId()));
+		verify(events).publishEvent(new ScheduleChanged(replacement.id()));
 	}
 
 	@Test
@@ -120,6 +128,7 @@ class SelectionScheduleServiceImplTest {
 		assertThat(service().complete(PROCESS_ID, toComplete.getId()).status()).isEqualTo(ScheduleStatus.DONE);
 		assertThat(service().cancel(PROCESS_ID, toCancel.getId()).status()).isEqualTo(ScheduleStatus.CANCELED);
 		assertThat(toCancel.getUpdatedAt()).isEqualTo(NOW);
+		verify(events).publishEvent(new ScheduleChanged(toCancel.getId()));
 	}
 
 	@Test

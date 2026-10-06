@@ -2,6 +2,7 @@ package com.diegohaefliger.atsresumeoptimizer.selection.application;
 
 import com.diegohaefliger.atsresumeoptimizer.job.JobOffer;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
+import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleChanged;
 import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleStatus;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.InvalidStageMovementException;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,17 +33,19 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 	private final SelectionScheduleEntityMapper scheduleMapper;
 	private final SelectionProcessEntityMapper mapper;
 	private final JobStructuringService jobService;
+	private final ApplicationEventPublisher events;
 
 	SelectionProcessServiceImpl(SelectionProcessRepository repository,
 			SelectionStageMovementRepository movementRepository, SelectionScheduleRepository scheduleRepository,
 			SelectionScheduleEntityMapper scheduleMapper, SelectionProcessEntityMapper mapper,
-			JobStructuringService jobService) {
+			JobStructuringService jobService, ApplicationEventPublisher events) {
 		this.repository = repository;
 		this.movementRepository = movementRepository;
 		this.scheduleRepository = scheduleRepository;
 		this.scheduleMapper = scheduleMapper;
 		this.mapper = mapper;
 		this.jobService = jobService;
+		this.events = events;
 	}
 
 	@Override
@@ -120,7 +124,10 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 	@Override
 	@Transactional
 	public void delete(UUID id) {
-		repository.delete(find(id));
+		SelectionProcessEntity entity = find(id);
+		scheduleRepository.findByProcessIdOrderByScheduledAtAsc(id)
+				.forEach(schedule -> events.publishEvent(new ScheduleChanged(schedule.getId())));
+		repository.delete(entity);
 	}
 
 	private void requireJob(UUID jobPostingId) {

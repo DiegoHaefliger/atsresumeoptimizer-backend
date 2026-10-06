@@ -1,5 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.selection.application;
 
+import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleChanged;
 import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleStatus;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.InvalidScheduleException;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.ScheduleNotFoundException;
@@ -10,6 +11,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,13 +22,16 @@ class SelectionScheduleServiceImpl implements SelectionScheduleService {
 	private final SelectionProcessRepository processRepository;
 	private final SelectionScheduleEntityMapper mapper;
 	private final Clock clock;
+	private final ApplicationEventPublisher events;
 
 	SelectionScheduleServiceImpl(SelectionScheduleRepository repository, SelectionProcessRepository processRepository,
-			SelectionScheduleEntityMapper mapper, Clock clock) {
+			SelectionScheduleEntityMapper mapper, Clock clock,
+			ApplicationEventPublisher events) {
 		this.repository = repository;
 		this.processRepository = processRepository;
 		this.mapper = mapper;
 		this.clock = clock;
+		this.events = events;
 	}
 
 	@Override
@@ -44,7 +49,9 @@ class SelectionScheduleServiceImpl implements SelectionScheduleService {
 		SelectionScheduleEntity entity = new SelectionScheduleEntity(
 				processId, data.stage() == null ? process.getStage() : data.stage(), Instant.now(clock));
 		mapper.update(data, entity);
-		return mapper.toDomain(repository.save(entity));
+		SelectionScheduleEntity saved = repository.save(entity);
+		events.publishEvent(new ScheduleChanged(saved.getId()));
+		return mapper.toDomain(saved);
 	}
 
 	@Override
@@ -57,7 +64,10 @@ class SelectionScheduleServiceImpl implements SelectionScheduleService {
 		SelectionScheduleEntity replacement = new SelectionScheduleEntity(
 				processId, data.stage() == null ? previous.getStage() : data.stage(), now);
 		mapper.update(data, replacement);
-		return mapper.toDomain(repository.save(replacement));
+		SelectionScheduleEntity saved = repository.save(replacement);
+		events.publishEvent(new ScheduleChanged(previous.getId()));
+		events.publishEvent(new ScheduleChanged(saved.getId()));
+		return mapper.toDomain(saved);
 	}
 
 	@Override
@@ -76,6 +86,7 @@ class SelectionScheduleServiceImpl implements SelectionScheduleService {
 		SelectionScheduleEntity entity = findActive(processId, scheduleId);
 		entity.setStatus(status);
 		entity.setUpdatedAt(Instant.now(clock));
+		events.publishEvent(new ScheduleChanged(entity.getId()));
 		return mapper.toDomain(entity);
 	}
 
