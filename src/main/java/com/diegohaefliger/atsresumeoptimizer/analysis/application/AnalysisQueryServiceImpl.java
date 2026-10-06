@@ -6,11 +6,13 @@ import com.diegohaefliger.atsresumeoptimizer.job.JobOffer;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 import com.diegohaefliger.atsresumeoptimizer.preference.JobPreferenceMatchService;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeService;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeSummary;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionText;
 import com.diegohaefliger.atsresumeoptimizer.scoring.domain.AnalysisMode;
 import com.diegohaefliger.atsresumeoptimizer.scoring.domain.FindingCode;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -118,6 +120,12 @@ class AnalysisQueryServiceImpl implements AnalysisQueryService {
 		AnalysisEntity analysis = find(id);
 		ResumeVersionText text = resumeService.getVersionText(analysis.resumeVersionId());
 		return new AnalysisAtsView(text.rawText(), text.structuredText());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ResumeSummary> generatedResumes(UUID jobPostingId) {
+		return resumeService.listAdaptedFromAnalyses(analysisRepository.findIdsByJobPostingId(jobPostingId));
 	}
 
 	private AnalysisEntity find(AnalysisId id) {

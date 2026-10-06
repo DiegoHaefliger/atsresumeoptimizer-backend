@@ -50,6 +50,24 @@ class ResumeServiceImplTest {
 	}
 
 	@Test
+	void listsOnlyTheAdaptedResumesOfTheGivenAnalyses() {
+		ResumeVersionCreated base = resumeService.storeUpload(
+				"base.pdf", unique("base"), "base.pdf", "application/pdf", "texto", "texto", 1);
+		UUID analysisId = UUID.randomUUID();
+		UUID otherAnalysisId = UUID.randomUUID();
+		ResumeVersionCreated adapted = resumeService.storeAdapted(base.resumeVersionId(), analysisId, "Vaga A",
+				unique("adaptado A"), "curriculo-adaptado.docx", DOCX_MIME, "texto");
+		resumeService.storeAdapted(base.resumeVersionId(), otherAnalysisId, "Vaga B", unique("adaptado B"),
+				"curriculo-adaptado.docx", DOCX_MIME, "texto");
+
+		List<ResumeSummary> found = resumeService.listAdaptedFromAnalyses(List.of(analysisId));
+
+		assertThat(found).extracting(ResumeSummary::id).containsExactly(adapted.resumeId());
+		assertThat(found.getFirst().origin()).isEqualTo(ResumeOrigin.ADAPTED);
+		assertThat(resumeService.listAdaptedFromAnalyses(List.of())).isEmpty();
+	}
+
+	@Test
 	void attachesAGeneratedVersionToTheSameResumeAndAllowsDownloadingIt() {
 		ResumeVersionCreated original = resumeService.storeUpload(
 				"curriculo.pdf", unique("conteudo original"), "curriculo.pdf", "application/pdf", "texto original",

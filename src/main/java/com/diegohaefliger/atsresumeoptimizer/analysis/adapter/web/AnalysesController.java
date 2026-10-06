@@ -16,6 +16,7 @@ import com.diegohaefliger.atsresumeoptimizer.analysis.domain.AnalysisId;
 import com.diegohaefliger.atsresumeoptimizer.job.JobDetails;
 import jakarta.validation.Valid;
 import java.io.IOException;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeSummary;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -91,6 +92,11 @@ class AnalysesController {
 	@GetMapping("/analyses/{id}")
 	AnalysisReportView get(@PathVariable UUID id) {
 		return analysisQueryService.get(new AnalysisId(id));
+	}
+
+	@GetMapping("/jobs/{jobId}/resumes")
+	List<ResumeSummary> generatedResumes(@PathVariable UUID jobId) {
+		return analysisQueryService.generatedResumes(jobId);
 	}
 
 	@PutMapping("/analyses/{id}/keywords")
