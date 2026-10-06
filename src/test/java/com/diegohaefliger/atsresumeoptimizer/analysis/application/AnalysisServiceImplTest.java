@@ -227,9 +227,18 @@ class AnalysisServiceImplTest {
 		verify(jobStructuringService, never()).getRawText(any());
 	}
 
+	@Mock
+	private KeywordMatchRepository keywordMatchRepository;
+
+	@Mock
+	private FindingRepository findingRepository;
+
+	@Mock
+	private AnalysisDimensionRepository dimensionRepository;
+
 	private AnalysisServiceImpl newService() {
 		return new AnalysisServiceImpl(parsingPipeline, resumeService, jobStructuringService, scoringService,
-				scoringProfileProvider, aiPort, analysisRepository, resultRecorder, eventEmitterRegistry, eventPublisher, sensitiveDataDetector,
+				scoringProfileProvider, aiPort, analysisRepository, resultRecorder, keywordMatchRepository, findingRepository, dimensionRepository, eventEmitterRegistry, eventPublisher, sensitiveDataDetector,
 				new BulletTextExtractor());
 	}
 }

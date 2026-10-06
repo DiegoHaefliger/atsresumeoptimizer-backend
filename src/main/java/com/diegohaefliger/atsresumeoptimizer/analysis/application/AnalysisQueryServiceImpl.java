@@ -80,12 +80,29 @@ class AnalysisQueryServiceImpl implements AnalysisQueryService {
 						keywordMatches.stream().filter(match -> !match.foundExact() && !match.foundSemantic())
 								.map(KeywordMatchEntity::term).toList(),
 						keywordMatches.stream().filter(match -> !match.foundExact() && match.foundSemantic())
-								.map(KeywordMatchEntity::term).toList());
+								.map(KeywordMatchEntity::term).toList(),
+						orderedTerms(analysis, keywordMatches), selectedTerms(analysis), editable(analysis));
 
 		Optional<JobOffer> offer = jobOffer(analysis);
 		return new AnalysisReportView(header, score, keywords, new FindingsListView(findings), blockers, analysis.error(),
 				offer.map(jobViewMapper::toView).orElse(null),
 				offer.flatMap(preferenceMatchService::match).orElse(null));
+	}
+
+	private boolean editable(AnalysisEntity analysis) {
+		return analysis.mode() == AnalysisMode.JOB_MATCH && analysis.jobPostingId() != null
+				&& StringUtils.hasText(analysis.jobDescription());
+	}
+
+	private List<String> orderedTerms(AnalysisEntity analysis, List<KeywordMatchEntity> matches) {
+		if (editable(analysis)) {
+			return jobStructuringService.keywords(analysis.jobPostingId());
+		}
+		return matches.stream().map(KeywordMatchEntity::term).toList();
+	}
+
+	private List<String> selectedTerms(AnalysisEntity analysis) {
+		return editable(analysis) ? jobStructuringService.selectedKeywords(analysis.jobPostingId()) : List.of();
 	}
 
 	private Optional<JobOffer> jobOffer(AnalysisEntity analysis) {

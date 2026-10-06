@@ -8,7 +8,10 @@ import com.diegohaefliger.atsresumeoptimizer.ai.BulletReview;
 import com.diegohaefliger.atsresumeoptimizer.analysis.AnalysisCompleted;
 import com.diegohaefliger.atsresumeoptimizer.analysis.AnalysisRequested;
 import com.diegohaefliger.atsresumeoptimizer.analysis.domain.AnalysisId;
+import com.diegohaefliger.atsresumeoptimizer.analysis.domain.AnalysisNotFoundException;
 import com.diegohaefliger.atsresumeoptimizer.analysis.domain.AnalysisStatus;
+import com.diegohaefliger.atsresumeoptimizer.analysis.domain.KeywordsNotEditableException;
+import com.diegohaefliger.atsresumeoptimizer.ai.JobStructured;
 import com.diegohaefliger.atsresumeoptimizer.job.JobDetails;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringResult;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
@@ -52,6 +55,9 @@ class AnalysisServiceImpl implements AnalysisService {
 	private final AiPort aiPort;
 	private final AnalysisRepository analysisRepository;
 	private final AnalysisResultRecorder resultRecorder;
+	private final KeywordMatchRepository keywordMatchRepository;
+	private final FindingRepository findingRepository;
+	private final AnalysisDimensionRepository dimensionRepository;
 	private final AnalysisEventEmitterRegistry eventEmitterRegistry;
 	private final ApplicationEventPublisher eventPublisher;
 	private final SensitiveDataDetector sensitiveDataDetector;
@@ -66,6 +72,9 @@ class AnalysisServiceImpl implements AnalysisService {
 			AiPort aiPort,
 			AnalysisRepository analysisRepository,
 			AnalysisResultRecorder resultRecorder,
+			KeywordMatchRepository keywordMatchRepository,
+			FindingRepository findingRepository,
+			AnalysisDimensionRepository dimensionRepository,
 			AnalysisEventEmitterRegistry eventEmitterRegistry,
 			ApplicationEventPublisher eventPublisher,
 			SensitiveDataDetector sensitiveDataDetector,
@@ -78,6 +87,9 @@ class AnalysisServiceImpl implements AnalysisService {
 		this.aiPort = aiPort;
 		this.analysisRepository = analysisRepository;
 		this.resultRecorder = resultRecorder;
+		this.keywordMatchRepository = keywordMatchRepository;
+		this.findingRepository = findingRepository;
+		this.dimensionRepository = dimensionRepository;
 		this.eventEmitterRegistry = eventEmitterRegistry;
 		this.eventPublisher = eventPublisher;
 		this.sensitiveDataDetector = sensitiveDataDetector;
@@ -104,6 +116,45 @@ class AnalysisServiceImpl implements AnalysisService {
 					resumeVersionId, jobPostingId, jobStructuringService.getRawText(jobPostingId), targetRole);
 		}
 		return createAnalysis(resumeVersionId, registerJob(jobDescription, jobDetails), jobDescription, targetRole);
+	}
+
+	@Override
+	@Transactional
+	public void updateKeywords(AnalysisId id, List<String> keywords, List<String> selected) {
+		AnalysisEntity entity = analysisRepository.findById(id.value()).orElseThrow(() -> new AnalysisNotFoundException(id));
+		if (entity.mode() != AnalysisMode.JOB_MATCH || entity.jobPostingId() == null
+				|| !StringUtils.hasText(entity.jobDescription())) {
+			throw new KeywordsNotEditableException();
+		}
+		jobStructuringService.replaceKeywords(entity.jobPostingId(), keywords, selected);
+		rescore(entity);
+	}
+
+	private void rescore(AnalysisEntity entity) {
+		ParsingResult parsingResult = parsingPipeline.analyze(resumeService.downloadContent(entity.resumeVersionId()));
+		JobStructured job = jobStructuringService.structureFromText(entity.jobDescription()).structured();
+		List<BulletReview> bulletReviews = reviewBullets(extractBullets(parsingResult));
+		ScoringProfileLookup profileLookup = scoringProfileProvider.activeProfile(entity.mode());
+		ScoringOutcome outcome = scoringService.score(profileLookup.profile(),
+				new ScoringContext(parsingResult, parsingResult.document().pageCount(), job, bulletReviews));
+		keywordMatchRepository.deleteByAnalysisId(entity.id());
+		findingRepository.deleteByAnalysisId(entity.id());
+		dimensionRepository.deleteByAnalysisId(entity.id());
+		entity.updateScore(outcome.overallScore());
+		analysisRepository.save(entity);
+		resultRecorder.record(entity.id(), outcome, profileLookup.profile());
+	}
+
+	private List<BulletReview> reviewBullets(List<String> bullets) {
+		if (bullets.isEmpty()) {
+			return List.of();
+		}
+		try {
+			return aiPort.reviewBullets(bullets).value();
+		} catch (AiCallException exception) {
+			LOGGER.warn("Reavaliação sem a revisão de bullets: {}", exception.getMessage());
+			return List.of();
+		}
 	}
 
 	/** Roda depois do commit que gravou {@code PENDING}: é o que deixa {@code POST /analyses} responder 202 sem esperar a IA. */

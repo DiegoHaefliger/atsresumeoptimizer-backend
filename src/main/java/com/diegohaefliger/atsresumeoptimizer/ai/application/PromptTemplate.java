@@ -31,15 +31,33 @@ class PromptTemplate {
 	protected PromptTemplate() {
 	}
 
-	String key() {
+	PromptTemplate(UUID id, String key, int version, String content, String model) {
+		this.id = id;
+		this.key = key;
+		this.version = version;
+		this.content = content;
+		this.model = model;
+		this.active = true;
+		this.createdAt = Instant.now();
+	}
+
+	public String getKey() {
 		return key;
 	}
 
-	int version() {
+	public int getVersion() {
 		return version;
 	}
 
-	String content() {
+	public String getContent() {
 		return content;
+	}
+
+	public String getModel() {
+		return model;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
 	}
 }

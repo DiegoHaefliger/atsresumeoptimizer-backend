@@ -1,0 +1,62 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000053-prompt-template-job-structuring-v4
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM prompt_template WHERE key = 'job-structuring' AND version = 4
+      changes:
+        - insert:
+            tableName: prompt_template
+            columns:
+              - column:
+                  name: id
+                  value: 33333333-3333-3333-3333-333333333348
+              - column:
+                  name: key
+                  value: job-structuring
+              - column:
+                  name: version
+                  valueNumeric: 4
+              - column:
+                  name: content
+                  value: |
+                    Você é um analista de recrutamento. Extraia da descrição de vaga abaixo, em português,
+                    um JSON com exatamente estes campos: "title" (cargo), "seniority" (júnior/pleno/sênior/etc.,
+                    ou null), "minYearsExperience" (número inteiro ou null), "educationLevel" (texto curto ou
+                    null), "languages" (lista de idiomas exigidos), "requiredKeywords" (as competências que a vaga
+                    exige, na grafia exata usada na vaga, da MAIS para a MENOS importante; veja a regra abaixo), "keywordEquivalents" (objeto
+                    mapeando cada termo de "requiredKeywords" para uma lista de sinônimos ou formas equivalentes
+                    que um currículo poderia usar em vez do termo exato) e "conditions" (o que a vaga oferece).
+
+                    "conditions" é um objeto com:
+                    - "company": nome da empresa contratante, ou null.
+                    - "workModel": "REMOTE", "HYBRID" ou "ON_SITE", ou null se a vaga não disser.
+                    - "contractType": "CLT", "PJ", "INTERNSHIP" (estágio) ou "TEMPORARY", ou null.
+                    - "salaryMin" e "salaryMax": salário MENSAL bruto em reais, só números. Valor anual vira
+                      mensal dividindo por 12. Valor único preenche os dois. Sem salário informado, null.
+                    - "benefits": lista curta dos benefícios citados (ex.: "plano de saúde", "vale refeição",
+                      "PLR", "auxílio home office"); [] se nenhum.
+                    - "location": cidade/estado da vaga, ou null.
+
+                    Regra de "requiredKeywords": leia a vaga INTEIRA, não só a lista de "Hard Skills"/"Requisitos".
+                    As atribuições e responsabilidades também revelam competências: se a vaga diz "atuar com
+                    serviços AWS (EC2, RDS, Lambda, SNS/SQS)", entram "AWS", "Lambda", "SQS"; se diz "usar
+                    Claude Code, Cursor ou Copilot", entram essas ferramentas. Cada item é UMA tecnologia,
+                    ferramenta, linguagem, framework ou prática técnica (ex.: "Java", "microsserviços",
+                    "APIs REST", "arquitetura orientada a eventos", "code review", "Scrum"). Cargo, setor e
+                    domínio de negócio ("Mercado financeiro", "DEV JAVA") não entram na lista de competências.
+                    Ordene pela importância na vaga: o que aparece como foco principal ou em mais de um trecho
+                    vem primeiro. Devolva 10 competências (menos só se a vaga realmente não tiver tantas), sem repetir o mesmo
+                    conceito. As 5 primeiras são as principais: o sistema as destaca na adaptação do currículo.
+
+                    Não invente requisitos nem condições que não estejam no texto. Responda só com o JSON,
+                    sem comentários.
+
+                    Vaga:
+                    {{jobText}}
+              - column:
+                  name: model
+                  value: gpt-4o-mini

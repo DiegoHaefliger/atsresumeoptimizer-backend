@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -62,6 +63,12 @@ class JobPosting {
 
 	@JdbcTypeCode(SqlTypes.JSON)
 	private String structured;
+
+	@Column(name = "custom_keywords")
+	private String customKeywords;
+
+	@Column(name = "selected_keywords")
+	private String selectedKeywords;
 
 	@Column(name = "created_at")
 	private Instant createdAt;
@@ -134,6 +141,23 @@ class JobPosting {
 		this.textHash = textHash;
 		this.title = null;
 		this.structured = null;
+		this.customKeywords = null;
+		this.selectedKeywords = null;
+	}
+
+	void replaceKeywords(List<String> keywords, List<String> selected) {
+		this.customKeywords = keywords.isEmpty() ? null : String.join(BENEFITS_SEPARATOR, keywords);
+		this.selectedKeywords = keywords.isEmpty() ? null : String.join(BENEFITS_SEPARATOR, selected);
+	}
+
+	Optional<List<String>> selectedKeywords() {
+		return customKeywords == null ? Optional.empty()
+				: Optional.of(selectedKeywords == null || selectedKeywords.isEmpty() ? List.of()
+						: Arrays.asList(selectedKeywords.split(BENEFITS_SEPARATOR)));
+	}
+
+	Optional<List<String>> customKeywords() {
+		return Optional.ofNullable(customKeywords).map(joined -> Arrays.asList(joined.split(BENEFITS_SEPARATOR)));
 	}
 
 	String textHash() {

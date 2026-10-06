@@ -477,7 +477,8 @@ class RewriteServiceImplTest {
 		var focusCaptor = org.mockito.ArgumentCaptor.forClass(JobFocus.class);
 		verify(aiPort).structureResume(any(), any(), focusCaptor.capture());
 		assertThat(focusCaptor.getValue()).isEqualTo(new JobFocus("Backend Java", "pleno", List.of("Java"),
-				List.of(new RequirementEvidence("versionamento de código", "Git"))));
+				List.of(new RequirementEvidence("versionamento de código", "Git")),
+				List.of(new com.diegohaefliger.atsresumeoptimizer.ai.PrioritySkill("Java", null, false))));
 		assertThat(result.evidencedRequirements()).containsExactly(new RequirementEvidence("versionamento de código", "Git"));
 		assertThat(result.jobHighlighted()).isTrue();
 		assertThat(result.removedSkills())

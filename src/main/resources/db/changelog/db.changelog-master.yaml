@@ -87,3 +87,11 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000048_job_posting_contract_type.yaml
   - include:
       file: db/changelog/changes/00000000000049_prompt_template_resume_structuring_v10.yaml
+  - include:
+      file: db/changelog/changes/00000000000051_prompt_template_job_structuring_v3.yaml
+  - include:
+      file: db/changelog/changes/00000000000052_job_posting_custom_keywords.yaml
+  - include:
+      file: db/changelog/changes/00000000000053_prompt_template_job_structuring_v4.yaml
+  - include:
+      file: db/changelog/changes/00000000000054_job_posting_selected_keywords.yaml

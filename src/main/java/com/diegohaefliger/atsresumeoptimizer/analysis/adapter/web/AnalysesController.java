@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -90,6 +91,12 @@ class AnalysesController {
 	@GetMapping("/analyses/{id}")
 	AnalysisReportView get(@PathVariable UUID id) {
 		return analysisQueryService.get(new AnalysisId(id));
+	}
+
+	@PutMapping("/analyses/{id}/keywords")
+	ResponseEntity<Void> updateKeywords(@PathVariable UUID id, @Valid @RequestBody AnalysisKeywordsRequest request) {
+		analysisService.updateKeywords(new AnalysisId(id), request.keywords(), request.selected());
+		return ResponseEntity.noContent().build();
 	}
 
 	@PostMapping("/analyses/{id}/feedback")

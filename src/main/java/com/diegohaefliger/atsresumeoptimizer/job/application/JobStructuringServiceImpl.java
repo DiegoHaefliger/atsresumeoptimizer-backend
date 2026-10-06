@@ -19,9 +19,12 @@ import com.diegohaefliger.atsresumeoptimizer.job.domain.DuplicateJobPostingExcep
 import com.diegohaefliger.atsresumeoptimizer.job.domain.JobPostingNotFoundException;
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -131,17 +134,14 @@ class JobStructuringServiceImpl implements JobStructuringService {
 	private JobStructuringResult structure(String jobText, JobDetails details, boolean synthetic) {
 		String textHash = Sha256.hex(jobText);
 		Optional<JobPosting> existing = repository.findByTextHash(textHash);
-		if (existing.isPresent() && existing.get().isStructured()) {
-			JobPosting posting = existing.get();
-			if (!JobDetails.NONE.equals(details)) {
-				posting.applyDetails(details);
-				repository.save(posting);
-			}
-			return new JobStructuringResult(posting.id(), withUserDetails(posting, parse(posting.structured())),
-					AiUsage.cached(null, null));
+		AiResult<JobStructured> aiResult;
+		try {
+			aiResult = aiPort.structureJob(jobText);
+		} catch (AiCallException exception) {
+			return existing.filter(JobPosting::isStructured)
+					.map(posting -> storedResult(posting, details))
+					.orElseThrow(() -> exception);
 		}
-
-		AiResult<JobStructured> aiResult = aiPort.structureJob(jobText);
 		JobPosting posting = existing.orElseGet(
 				() -> JobPosting.unstructured(jobText, textHash));
 		posting.structure(aiResult.value().title(), serialize(aiResult.value()));
@@ -156,6 +156,50 @@ class JobStructuringServiceImpl implements JobStructuringService {
 			return new JobStructuringResult(concurrent.id(), withUserDetails(concurrent, aiResult.value()), aiResult.usage());
 		}
 		return new JobStructuringResult(posting.id(), withUserDetails(posting, aiResult.value()), aiResult.usage());
+	}
+
+	private JobStructuringResult storedResult(JobPosting posting, JobDetails details) {
+		if (!JobDetails.NONE.equals(details)) {
+			posting.applyDetails(details);
+			repository.save(posting);
+		}
+		return new JobStructuringResult(posting.id(), withUserDetails(posting, parse(posting.structured())),
+				AiUsage.cached(null, null));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<String> keywords(UUID jobPostingId) {
+		JobPosting posting = find(jobPostingId);
+		return posting.customKeywords()
+				.orElseGet(() -> posting.isStructured() ? parse(posting.structured()).requiredKeywords() : List.of());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<String> selectedKeywords(UUID jobPostingId) {
+		JobPosting posting = find(jobPostingId);
+		return posting.selectedKeywords()
+				.orElseGet(() -> keywords(jobPostingId).stream().limit(JobStructured.DEFAULT_PRIORITY_COUNT).toList());
+	}
+
+	@Override
+	@Transactional
+	public void replaceKeywords(UUID jobPostingId, List<String> keywords, List<String> selected) {
+		JobPosting posting = find(jobPostingId);
+		List<String> terms = distinctTerms(keywords);
+		Set<String> chosen = distinctTerms(selected).stream().map(term -> term.toLowerCase(Locale.ROOT))
+				.collect(Collectors.toSet());
+		posting.replaceKeywords(terms,
+				terms.stream().filter(term -> chosen.contains(term.toLowerCase(Locale.ROOT))).toList());
+		repository.save(posting);
+	}
+
+	private static List<String> distinctTerms(List<String> keywords) {
+		Map<String, String> byLowerCase = new LinkedHashMap<>();
+		keywords.stream().map(String::strip).filter(term -> !term.isEmpty())
+				.forEach(term -> byLowerCase.putIfAbsent(term.toLowerCase(Locale.ROOT), term));
+		return List.copyOf(byLowerCase.values());
 	}
 
 	@Override
@@ -201,9 +245,10 @@ class JobStructuringServiceImpl implements JobStructuringService {
 	private static JobStructured withUserDetails(JobPosting posting, JobStructured structured) {
 		String title = posting.customTitle() != null ? posting.customTitle() : structured.title();
 		String seniority = posting.seniority() != null ? posting.seniority() : structured.seniority();
+		List<String> keywords = posting.customKeywords().orElse(structured.requiredKeywords());
 		return new JobStructured(title, seniority, structured.minYearsExperience(), structured.educationLevel(),
-				structured.languages(), structured.requiredKeywords(), structured.keywordEquivalents(),
-				structured.conditions());
+				structured.languages(), keywords, structured.keywordEquivalents(), structured.conditions(),
+				posting.selectedKeywords().orElse(null));
 	}
 
 	private JobStructured parse(String json) {

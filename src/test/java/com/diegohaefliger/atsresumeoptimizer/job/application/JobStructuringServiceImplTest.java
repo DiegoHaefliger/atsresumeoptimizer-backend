@@ -62,17 +62,32 @@ class JobStructuringServiceImplTest {
 	}
 
 	@Test
-	void reusesExistingJobPostingByTextHashWithoutCallingAi() throws Exception {
+	void restructuresAnExistingPostingSoANewPromptVersionTakesEffect() throws Exception {
+		service = new JobStructuringServiceImpl(aiPort, repository, new ObjectMapper());
+		JobPosting existing = new JobPosting(UUID.randomUUID(), "Antigo", "vaga de java",
+				"hash", new ObjectMapper().writeValueAsString(structured));
+		when(repository.findByTextHash(any())).thenReturn(Optional.of(existing));
+		when(aiPort.structureJob("vaga de java"))
+				.thenReturn(new AiResult<>(structured, new AiUsage("gpt-4o-mini", 100, 50, BigDecimal.ONE, false)));
+
+		JobStructuringResult result = service.structureFromText("vaga de java");
+
+		assertThat(result.jobPostingId()).isEqualTo(existing.id());
+		assertThat(existing.title()).isEqualTo("Backend Java");
+	}
+
+	@Test
+	void reusesTheStoredStructureWhenTheAiIsUnavailable() throws Exception {
 		service = new JobStructuringServiceImpl(aiPort, repository, new ObjectMapper());
 		JobPosting existing = new JobPosting(UUID.randomUUID(), "Backend Java", "vaga de java",
 				"hash", new ObjectMapper().writeValueAsString(structured));
 		when(repository.findByTextHash(any())).thenReturn(Optional.of(existing));
+		when(aiPort.structureJob("vaga de java")).thenThrow(new AiCallException("fora do ar", null));
 
 		JobStructuringResult result = service.structureFromText("vaga de java");
 
 		assertThat(result.structured().title()).isEqualTo("Backend Java");
 		assertThat(result.usage().cached()).isTrue();
-		verifyNoInteractions(aiPort);
 	}
 
 	@Test

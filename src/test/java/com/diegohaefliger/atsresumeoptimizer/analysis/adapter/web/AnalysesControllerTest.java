@@ -111,7 +111,7 @@ class AnalysesControllerTest {
 		var result = new AnalysisReportView(
 				new AnalysisHeaderView(id.value(), AnalysisStatus.COMPLETED, AnalysisMode.JOB_MATCH, true),
 				new ScoreSummaryView(71, List.of()),
-				new KeywordsPanelView(List.of(), List.of(), List.of()),
+				new KeywordsPanelView(List.of(), List.of(), List.of(), List.of(), List.of(), false),
 				new FindingsListView(List.of()),
 				List.of(),
 				null,

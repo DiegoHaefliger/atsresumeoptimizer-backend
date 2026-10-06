@@ -52,10 +52,10 @@ class LangChain4jAiPortTest {
 	void explainsThatNoProviderIsConfiguredWhenTheQueueIsEmpty() {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = mock(PromptTemplate.class);
-		lenient().when(template.key()).thenReturn("job-structuring");
-		lenient().when(template.version()).thenReturn(1);
-		lenient().when(template.content()).thenReturn("Estruture: {{jobText}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("job-structuring"))
+		lenient().when(template.getKey()).thenReturn("job-structuring");
+		lenient().when(template.getVersion()).thenReturn(1);
+		lenient().when(template.getContent()).thenReturn("Estruture: {{jobText}}");
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("job-structuring"))
 				.thenReturn(Optional.of(template));
 		lenient().when(llmCacheRepository.findById(any())).thenReturn(Optional.empty());
 		when(modelGateway.resolveChain("job-structuring")).thenReturn(java.util.List.of());
@@ -69,7 +69,7 @@ class LangChain4jAiPortTest {
 	void callsTheModelParsesJsonAndSavesToCacheOnMiss() {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = template("job-structuring", "Estruture: {{jobText}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("job-structuring"))
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("job-structuring"))
 				.thenReturn(Optional.of(template));
 		when(llmCacheRepository.findById(any())).thenReturn(Optional.empty());
 		String json = """
@@ -95,7 +95,7 @@ class LangChain4jAiPortTest {
 	void reusesCachedResponseWithoutCallingTheModel() {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = template("job-structuring", "Estruture: {{jobText}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("job-structuring"))
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("job-structuring"))
 				.thenReturn(Optional.of(template));
 		String cachedJson = """
 				{"title":"Backend Java","seniority":null,"minYearsExperience":null,"educationLevel":null,
@@ -115,7 +115,7 @@ class LangChain4jAiPortTest {
 	void structuresResumeIntoRichSections() {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = template("resume-structuring", "Estruture: {{resumeText}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("resume-structuring"))
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("resume-structuring"))
 				.thenReturn(Optional.of(template));
 		when(llmCacheRepository.findById(any())).thenReturn(Optional.empty());
 		String json = """
@@ -138,7 +138,7 @@ class LangChain4jAiPortTest {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template =
 				template("resume-structuring", "Estruture: {{resumeText}} | Correções: {{correctionInstructions}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("resume-structuring"))
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("resume-structuring"))
 				.thenReturn(Optional.of(template));
 		when(llmCacheRepository.findById(any())).thenReturn(Optional.empty());
 		String json = """
@@ -157,7 +157,7 @@ class LangChain4jAiPortTest {
 	void sendsOnlyTheJobKeywordsTheResumeAlreadyHasWhenJobFocusIsEnabled() {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = template("resume-structuring", "Estruture: {{resumeText}} | Vaga: {{jobFocus}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("resume-structuring"))
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("resume-structuring"))
 				.thenReturn(Optional.of(template));
 		when(llmCacheRepository.findById(any())).thenReturn(Optional.empty());
 		String json = """
@@ -180,7 +180,7 @@ class LangChain4jAiPortTest {
 	void tellsTheModelNotToReorderWhenJobFocusIsDisabled() {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = template("resume-structuring", "Estruture: {{resumeText}} | Vaga: {{jobFocus}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("resume-structuring"))
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("resume-structuring"))
 				.thenReturn(Optional.of(template));
 		when(llmCacheRepository.findById(any())).thenReturn(Optional.empty());
 		ChatResponse response = ChatResponse.builder()
@@ -201,7 +201,7 @@ class LangChain4jAiPortTest {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template =
 				template("resume-structuring", "Estruture: {{resumeText}} | Correções: {{correctionInstructions}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("resume-structuring"))
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("resume-structuring"))
 				.thenReturn(Optional.of(template));
 		when(llmCacheRepository.findById(any())).thenReturn(Optional.empty());
 		String json = """
@@ -220,7 +220,7 @@ class LangChain4jAiPortTest {
 	void repairsAWrongClosingBracketWithoutSpendingASecondAiCall() {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = template("resume-structuring", "Estruture: {{resumeText}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("resume-structuring"))
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("resume-structuring"))
 				.thenReturn(Optional.of(template));
 		when(llmCacheRepository.findById(any())).thenReturn(Optional.empty());
 		String brokenJson = "{\"name\":\"Ana\",\"headline\":null,"
@@ -241,7 +241,7 @@ class LangChain4jAiPortTest {
 	void retriesOnceWhenTheModelReturnsInvalidJsonThenSucceeds() {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = template("resume-structuring", "Estruture: {{resumeText}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("resume-structuring"))
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("resume-structuring"))
 				.thenReturn(Optional.of(template));
 		when(llmCacheRepository.findById(any())).thenReturn(Optional.empty());
 		String brokenJson = "{\"name\":\"Ana\",\"sections\":[}";
@@ -259,9 +259,9 @@ class LangChain4jAiPortTest {
 
 	private PromptTemplate template(String key, String content) {
 		PromptTemplate template = mock(PromptTemplate.class);
-		when(template.key()).thenReturn(key);
-		when(template.version()).thenReturn(1);
-		when(template.content()).thenReturn(content);
+		when(template.getKey()).thenReturn(key);
+		when(template.getVersion()).thenReturn(1);
+		when(template.getContent()).thenReturn(content);
 		return template;
 	}
 
@@ -273,7 +273,7 @@ class LangChain4jAiPortTest {
 				new ResolvedModel(backup, AiProvider.ANTHROPIC, "claude-sonnet-5-5")));
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = template("job-structuring", "Estruture: {{jobText}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("job-structuring"))
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("job-structuring"))
 				.thenReturn(Optional.of(template));
 		when(llmCacheRepository.findById(any())).thenReturn(Optional.empty());
 		when(chatModel.chat(any(ChatRequest.class))).thenThrow(new RuntimeException("429 rate limit"));
@@ -297,7 +297,7 @@ class LangChain4jAiPortTest {
 				new ResolvedModel(backup, AiProvider.GEMINI, "gemini-2.5-flash")));
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = template("job-structuring", "Estruture: {{jobText}}");
-		when(promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc("job-structuring"))
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("job-structuring"))
 				.thenReturn(Optional.of(template));
 		when(llmCacheRepository.findById(any())).thenReturn(Optional.empty());
 		when(chatModel.chat(any(ChatRequest.class))).thenThrow(new RuntimeException("timeout"));
