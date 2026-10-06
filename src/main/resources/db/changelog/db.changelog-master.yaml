@@ -101,3 +101,5 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000056_selection_process.yaml
   - include:
       file: db/changelog/changes/00000000000057_job_posting_code.yaml
+  - include:
+      file: db/changelog/changes/00000000000058_selection_process_contact_phone.yaml

@@ -20,6 +20,7 @@ record SelectionProcessResponse(
 		LocalDate nextStepOn,
 		String contactName,
 		String contactEmail,
+		String contactPhone,
 		BigDecimal salary,
 		String notes,
 		Instant createdAt,

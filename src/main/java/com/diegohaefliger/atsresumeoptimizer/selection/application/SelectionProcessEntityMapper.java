@@ -24,6 +24,7 @@ interface SelectionProcessEntityMapper {
 	@Mapping(target = "nextStepOn", source = "entity.nextStepOn")
 	@Mapping(target = "contactName", source = "entity.contactName")
 	@Mapping(target = "contactEmail", source = "entity.contactEmail")
+	@Mapping(target = "contactPhone", source = "entity.contactPhone")
 	@Mapping(target = "salary", source = "entity.salary")
 	@Mapping(target = "notes", source = "entity.notes")
 	@Mapping(target = "createdAt", source = "entity.createdAt")

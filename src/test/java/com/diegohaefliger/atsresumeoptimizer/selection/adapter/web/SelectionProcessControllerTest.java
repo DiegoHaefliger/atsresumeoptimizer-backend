@@ -80,6 +80,26 @@ class SelectionProcessControllerTest {
 	}
 
 	@Test
+	void rejectsAContactPhoneWithLetters() throws Exception {
+		mockMvc.perform(post(BASE)
+						.contentType("application/json")
+						.content("{\"jobPostingId\":\"" + JOB_ID + "\",\"contactPhone\":\"ligar depois\"}"))
+				.andExpect(status().isBadRequest());
+
+		verifyNoInteractions(service);
+	}
+
+	@Test
+	void acceptsAFormattedContactPhone() throws Exception {
+		when(service.create(any(), eq(SelectionStage.INTERESTED))).thenReturn(process(SelectionStage.INTERESTED));
+
+		mockMvc.perform(post(BASE)
+						.contentType("application/json")
+						.content("{\"jobPostingId\":\"" + JOB_ID + "\",\"contactPhone\":\"+55 (11) 91234-5678\"}"))
+				.andExpect(status().isCreated());
+	}
+
+	@Test
 	void movesTheStageManually() throws Exception {
 		when(service.moveTo(ID, SelectionStage.SCREENING, "ligaram")).thenReturn(process(SelectionStage.SCREENING));
 
@@ -138,6 +158,6 @@ class SelectionProcessControllerTest {
 	private SelectionProcess process(SelectionStage stage) {
 		Instant now = Instant.now();
 		return new SelectionProcess(ID, JOB_ID, 12L, "Acme", "Dev Java", "https://acme.com/vaga", "https://acme.gupy.io/p/1", stage,
-				null, null, null, null, null, null, now, now, List.of(new StageMovement(UUID.randomUUID(), SelectionStage.APPLIED, null, now)));
+				null, null, null, null, null, null, null, now, now, List.of(new StageMovement(UUID.randomUUID(), SelectionStage.APPLIED, null, now)));
 	}
 }

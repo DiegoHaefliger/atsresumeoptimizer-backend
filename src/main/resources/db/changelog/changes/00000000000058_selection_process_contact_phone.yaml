@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000058-selection-process-contact-phone
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: selection_process
+            columns:
+              - column:
+                  name: contact_phone
+                  type: varchar(30)

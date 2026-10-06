@@ -4,6 +4,7 @@ import com.diegohaefliger.atsresumeoptimizer.HttpUrl;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ record SelectionProcessRequest(
 		LocalDate nextStepOn,
 		@Size(max = 255) String contactName,
 		@Size(max = 255) @Email String contactEmail,
+		@Size(max = 30) @Pattern(regexp = "^[0-9+()\\-.\\s]*$") String contactPhone,
 		@PositiveOrZero BigDecimal salary,
 		@Size(max = 5000) String notes) {
 }

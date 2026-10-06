@@ -40,6 +40,9 @@ class SelectionProcessEntity {
 	@Column(name = "contact_email")
 	private String contactEmail;
 
+	@Column(name = "contact_phone")
+	private String contactPhone;
+
 	private BigDecimal salary;
 
 	private String notes;
@@ -118,6 +121,14 @@ class SelectionProcessEntity {
 
 	public void setContactEmail(String contactEmail) {
 		this.contactEmail = contactEmail;
+	}
+
+	public String getContactPhone() {
+		return contactPhone;
+	}
+
+	public void setContactPhone(String contactPhone) {
+		this.contactPhone = contactPhone;
 	}
 
 	public BigDecimal getSalary() {
