@@ -39,6 +39,9 @@ class SelectionProcessServiceImplTest {
 	private SelectionStageMovementRepository movementRepository;
 
 	@Mock
+	private SelectionScheduleRepository scheduleRepository;
+
+	@Mock
 	private JobStructuringService jobService;
 
 	private static final UUID JOB_ID = UUID.randomUUID();
@@ -50,8 +53,8 @@ class SelectionProcessServiceImplTest {
 			null, null, List.of(), null, null, "texto");
 
 	private SelectionProcessServiceImpl service() {
-		return new SelectionProcessServiceImpl(repository, movementRepository, new SelectionProcessEntityMapperImpl(),
-				jobService);
+		return new SelectionProcessServiceImpl(repository, movementRepository, scheduleRepository,
+				new SelectionScheduleEntityMapperImpl(), new SelectionProcessEntityMapperImpl(), jobService);
 	}
 
 	private void jobExists() {

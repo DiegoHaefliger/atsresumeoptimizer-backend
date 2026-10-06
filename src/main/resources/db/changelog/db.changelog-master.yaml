@@ -103,3 +103,9 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000057_job_posting_code.yaml
   - include:
       file: db/changelog/changes/00000000000058_selection_process_contact_phone.yaml
+  - include:
+      file: db/changelog/changes/00000000000059_selection_schedule.yaml
+  - include:
+      file: db/changelog/changes/00000000000060_notification_settings.yaml
+  - include:
+      file: db/changelog/changes/00000000000061_notification.yaml

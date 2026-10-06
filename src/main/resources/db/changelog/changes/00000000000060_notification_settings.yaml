@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000060-notification-settings
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: notification_settings
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: lead_minutes
+                  type: integer[]
+                  constraints:
+                    nullable: false
+              - column:
+                  name: channels
+                  type: text[]
+                  constraints:
+                    nullable: false
+              - column:
+                  name: timezone
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false

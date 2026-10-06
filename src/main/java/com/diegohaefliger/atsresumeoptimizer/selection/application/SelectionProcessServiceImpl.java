@@ -2,11 +2,13 @@ package com.diegohaefliger.atsresumeoptimizer.selection.application;
 
 import com.diegohaefliger.atsresumeoptimizer.job.JobOffer;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
+import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleStatus;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.InvalidStageMovementException;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcess;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcessData;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcessNotFoundException;
+import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionSchedule;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.StageMovement;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.StageMovementNotFoundException;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.UnknownJobPostingException;
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,14 +27,19 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 
 	private final SelectionProcessRepository repository;
 	private final SelectionStageMovementRepository movementRepository;
+	private final SelectionScheduleRepository scheduleRepository;
+	private final SelectionScheduleEntityMapper scheduleMapper;
 	private final SelectionProcessEntityMapper mapper;
 	private final JobStructuringService jobService;
 
 	SelectionProcessServiceImpl(SelectionProcessRepository repository,
-			SelectionStageMovementRepository movementRepository, SelectionProcessEntityMapper mapper,
+			SelectionStageMovementRepository movementRepository, SelectionScheduleRepository scheduleRepository,
+			SelectionScheduleEntityMapper scheduleMapper, SelectionProcessEntityMapper mapper,
 			JobStructuringService jobService) {
 		this.repository = repository;
 		this.movementRepository = movementRepository;
+		this.scheduleRepository = scheduleRepository;
+		this.scheduleMapper = scheduleMapper;
 		this.mapper = mapper;
 		this.jobService = jobService;
 	}
@@ -44,8 +52,10 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 				.orElseGet(repository::findAllByOrderByUpdatedAtDesc);
 		Map<UUID, JobOffer> offers =
 				jobService.offers(entities.stream().map(SelectionProcessEntity::getJobPostingId).distinct().toList());
+		Map<UUID, SelectionSchedule> nextSchedules = nextSchedules(entities);
 		return entities.stream()
-				.map(entity -> mapper.toDomain(entity, offers.get(entity.getJobPostingId()), List.of()))
+				.map(entity -> mapper.toDomain(entity, offers.get(entity.getJobPostingId()), List.of(), List.of(),
+						nextSchedules.get(entity.getId())))
 				.toList();
 	}
 
@@ -127,7 +137,24 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 		List<StageMovement> history = movementRepository.findByProcessIdOrderByMovedAtAsc(entity.getId()).stream()
 				.map(mapper::toDomain)
 				.toList();
-		return mapper.toDomain(entity, jobService.offer(entity.getJobPostingId()).orElse(null), history);
+		List<SelectionSchedule> schedules = scheduleRepository.findByProcessIdOrderByScheduledAtAsc(entity.getId())
+				.stream()
+				.map(scheduleMapper::toDomain)
+				.toList();
+		SelectionSchedule next = schedules.stream()
+				.filter(schedule -> schedule.status() == ScheduleStatus.SCHEDULED)
+				.findFirst()
+				.orElse(null);
+		return mapper.toDomain(entity, jobService.offer(entity.getJobPostingId()).orElse(null), history, schedules, next);
+	}
+
+	private Map<UUID, SelectionSchedule> nextSchedules(List<SelectionProcessEntity> entities) {
+		return scheduleRepository
+				.findByProcessIdInAndStatusOrderByScheduledAtAsc(
+						entities.stream().map(SelectionProcessEntity::getId).toList(), ScheduleStatus.SCHEDULED)
+				.stream()
+				.map(scheduleMapper::toDomain)
+				.collect(Collectors.toMap(SelectionSchedule::processId, schedule -> schedule, (first, later) -> first));
 	}
 
 	private static String blankToNull(String text) {

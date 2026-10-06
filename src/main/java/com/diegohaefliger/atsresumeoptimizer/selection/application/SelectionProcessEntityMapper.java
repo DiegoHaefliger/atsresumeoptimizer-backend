@@ -3,6 +3,7 @@ package com.diegohaefliger.atsresumeoptimizer.selection.application;
 import com.diegohaefliger.atsresumeoptimizer.job.JobOffer;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcess;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcessData;
+import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionSchedule;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.StageMovement;
 import java.util.List;
 import org.mapstruct.Mapper;
@@ -30,7 +31,10 @@ interface SelectionProcessEntityMapper {
 	@Mapping(target = "createdAt", source = "entity.createdAt")
 	@Mapping(target = "updatedAt", source = "entity.updatedAt")
 	@Mapping(target = "history", source = "history")
-	SelectionProcess toDomain(SelectionProcessEntity entity, JobOffer offer, List<StageMovement> history);
+	@Mapping(target = "schedules", source = "schedules")
+	@Mapping(target = "nextSchedule", source = "nextSchedule")
+	SelectionProcess toDomain(SelectionProcessEntity entity, JobOffer offer, List<StageMovement> history,
+			List<SelectionSchedule> schedules, SelectionSchedule nextSchedule);
 
 	StageMovement toDomain(SelectionStageMovementEntity entity);
 
