@@ -5,9 +5,12 @@ import com.diegohaefliger.atsresumeoptimizer.job.JobOffer;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 import com.diegohaefliger.atsresumeoptimizer.preference.JobPreferenceMatchService;
 import com.diegohaefliger.atsresumeoptimizer.preference.PreferenceMatch;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeService;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeSummary;
 import com.diegohaefliger.atsresumeoptimizer.scoring.domain.AnalysisMode;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,14 +27,17 @@ class RecentJobServiceImpl implements RecentJobService {
 	private final AnalysisRepository analysisRepository;
 	private final JobStructuringService jobStructuringService;
 	private final JobPreferenceMatchService preferenceMatchService;
+	private final ResumeService resumeService;
 
 	RecentJobServiceImpl(
 			AnalysisRepository analysisRepository,
 			JobStructuringService jobStructuringService,
-			JobPreferenceMatchService preferenceMatchService) {
+			JobPreferenceMatchService preferenceMatchService,
+			ResumeService resumeService) {
 		this.analysisRepository = analysisRepository;
 		this.jobStructuringService = jobStructuringService;
 		this.preferenceMatchService = preferenceMatchService;
+		this.resumeService = resumeService;
 	}
 
 	@Override
@@ -42,9 +48,10 @@ class RecentJobServiceImpl implements RecentJobService {
 				.collect(Collectors.toMap(RecentJobInput::jobPostingId, Function.identity(), (first, second) -> first));
 		Map<UUID, PreferenceMatch> matches =
 				preferenceMatchService.matchAll(listings.stream().map(JobListing::offer).toList());
+		Map<UUID, Integer> atsScores = latestAtsScoreByJob();
 		return listings.stream()
 				.map(listing -> view(listing, Optional.ofNullable(lastUses.get(listing.offer().jobPostingId())),
-						matches.get(listing.offer().jobPostingId())))
+						matches.get(listing.offer().jobPostingId()), atsScores.get(listing.offer().jobPostingId())))
 				.sorted(Comparator.comparing(RecentJobServiceImpl::lastActivity).reversed())
 				.toList();
 	}
@@ -54,14 +61,27 @@ class RecentJobServiceImpl implements RecentJobService {
 		jobStructuringService.hideFromRecent(jobPostingId);
 	}
 
-	private RecentJobView view(JobListing listing, Optional<RecentJobInput> lastUse, PreferenceMatch match) {
+	private RecentJobView view(JobListing listing, Optional<RecentJobInput> lastUse, PreferenceMatch match,
+			Integer atsScore) {
 		JobOffer offer = listing.offer();
 		String targetRole = lastUse.map(RecentJobInput::targetRole).orElse(null);
 		return new RecentJobView(offer.jobPostingId(), offer.code(), title(targetRole, offer), targetRole, offer.rawText(),
 				lastUse.map(RecentJobInput::lastUsedAt).orElse(null), listing.registeredAt(), offer.company(),
 				offer.sourceUrl(), offer.workModel(), offer.interviewUrl(),
 				offer.salaryMax() != null ? offer.salaryMax() : offer.salaryMin(), offer.benefits(), offer.seniority(), offer.contractType(),
-				match != null ? match.score() : null);
+				match != null ? match.score() : null, atsScore);
+	}
+
+	private Map<UUID, Integer> latestAtsScoreByJob() {
+		Map<UUID, UUID> jobByAnalysis = analysisRepository.findAllJobRefs().stream()
+				.collect(Collectors.toMap(AnalysisJobRef::analysisId, AnalysisJobRef::jobPostingId));
+		Map<UUID, Integer> scores = new HashMap<>();
+		for (ResumeSummary resume : resumeService.listAdaptedFromAnalyses(jobByAnalysis.keySet())) {
+			if (resume.atsScore() != null) {
+				scores.putIfAbsent(jobByAnalysis.get(resume.sourceAnalysisId()), resume.atsScore());
+			}
+		}
+		return scores;
 	}
 
 	private static Instant lastActivity(RecentJobView view) {

@@ -31,4 +31,11 @@ interface AnalysisRepository extends JpaRepository<AnalysisEntity, UUID> {
 			order by a.createdAt desc
 			""")
 	List<RecentJobInput> findLatestJobInputsByMode(@Param("mode") AnalysisMode mode);
+
+	@Query("""
+			select new com.diegohaefliger.atsresumeoptimizer.analysis.application.AnalysisJobRef(a.id, a.jobPostingId)
+			from AnalysisEntity a
+			where a.jobPostingId is not null
+			""")
+	List<AnalysisJobRef> findAllJobRefs();
 }
