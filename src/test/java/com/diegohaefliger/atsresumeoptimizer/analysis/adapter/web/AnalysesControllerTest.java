@@ -237,11 +237,12 @@ class AnalysesControllerTest {
 		UUID jobId = UUID.randomUUID();
 		UUID resumeId = UUID.randomUUID();
 		when(analysisQueryService.generatedResumes(jobId)).thenReturn(List.of(new ResumeSummary(resumeId,
-				"Currículo - Vaga A", Instant.now(), ResumeOrigin.ADAPTED, UUID.randomUUID(), false, List.of())));
+				"Currículo - Vaga A", Instant.now(), ResumeOrigin.ADAPTED, UUID.randomUUID(), false, 83, List.of())));
 
 		mockMvc.perform(get("/api/v1/jobs/{jobId}/resumes", jobId))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].id").value(resumeId.toString()))
-				.andExpect(jsonPath("$[0].origin").value("ADAPTED"));
+				.andExpect(jsonPath("$[0].origin").value("ADAPTED"))
+				.andExpect(jsonPath("$[0].atsScore").value(83));
 	}
 }

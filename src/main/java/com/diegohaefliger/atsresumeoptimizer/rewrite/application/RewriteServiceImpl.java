@@ -208,6 +208,7 @@ class RewriteServiceImpl implements RewriteService {
 
 		progressTracker.advance(analysisId.value(), RewritePhase.SCORING);
 		Integer scoreAfter = scoreRewrittenResume(documents.docxBytes(), profileLookup, job);
+		resumeService.updateAtsScore(documents.resumeId(), scoreAfter);
 
 		return new RewriteResult(documents.resumeId(), documents.docxVersionId(), documents.pdfVersionId(), views,
 				snapshot.overallScore(), scoreAfter, jobFocus.enabled(), removedSkills(contentModel), contentModel, contact,

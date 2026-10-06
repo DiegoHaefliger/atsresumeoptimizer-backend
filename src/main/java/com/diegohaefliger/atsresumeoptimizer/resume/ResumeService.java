@@ -29,6 +29,9 @@ public interface ResumeService {
 	/** Só currículos adaptados cuja análise está na lista, do mais novo para o mais antigo. */
 	List<ResumeSummary> listAdaptedFromAnalyses(Collection<UUID> analysisIds);
 
+	/** Nota ATS do currículo gerado, calculada ao fim da adaptação. */
+	void updateAtsScore(UUID resumeId, Integer atsScore);
+
 	List<ResumeVersionSummary> listVersions(UUID resumeId);
 
 	byte[] downloadContent(UUID resumeVersionId);

@@ -182,6 +182,7 @@ class RewriteServiceImplTest {
 		assertThat(result.bullets().getFirst().needsConfirmation()).isTrue();
 		assertThat(result.scoreBefore()).isEqualTo(60);
 		assertThat(result.scoreAfter()).isEqualTo(85);
+		verify(resumeService).updateAtsScore(result.resumeId(), 85);
 		assertThat(result.jobHighlighted()).isFalse();
 		verify(rewriteRepository).save(any());
 		verify(resumeService).storeAdapted(eq(sourceVersionId), eq(analysisId.value()), eq("adaptado na avaliação geral"),

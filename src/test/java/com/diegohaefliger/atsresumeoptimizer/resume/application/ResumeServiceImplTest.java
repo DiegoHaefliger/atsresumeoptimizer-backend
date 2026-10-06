@@ -60,10 +60,13 @@ class ResumeServiceImplTest {
 		resumeService.storeAdapted(base.resumeVersionId(), otherAnalysisId, "Vaga B", unique("adaptado B"),
 				"curriculo-adaptado.docx", DOCX_MIME, "texto");
 
+		resumeService.updateAtsScore(adapted.resumeId(), 83);
+
 		List<ResumeSummary> found = resumeService.listAdaptedFromAnalyses(List.of(analysisId));
 
 		assertThat(found).extracting(ResumeSummary::id).containsExactly(adapted.resumeId());
 		assertThat(found.getFirst().origin()).isEqualTo(ResumeOrigin.ADAPTED);
+		assertThat(found.getFirst().atsScore()).isEqualTo(83);
 		assertThat(resumeService.listAdaptedFromAnalyses(List.of())).isEmpty();
 	}
 

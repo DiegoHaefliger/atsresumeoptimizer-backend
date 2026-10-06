@@ -133,6 +133,14 @@ class ResumeServiceImpl implements ResumeService {
 	}
 
 	@Override
+	@Transactional
+	public void updateAtsScore(UUID resumeId, Integer atsScore) {
+		Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> new ResumeNotFoundException(resumeId));
+		resume.updateAtsScore(atsScore);
+		resumeRepository.save(resume);
+	}
+
+	@Override
 	@Transactional(readOnly = true)
 	public List<ResumeSummary> listAdaptedFromAnalyses(Collection<UUID> analysisIds) {
 		if (analysisIds.isEmpty()) {
@@ -151,7 +159,7 @@ class ResumeServiceImpl implements ResumeService {
 		return resumes.stream()
 				.filter(resume -> !versionsByResume.getOrDefault(resume.id(), List.of()).isEmpty())
 				.map(resume -> new ResumeSummary(resume.id(), resume.title(), resume.createdAt(), resume.origin(),
-						resume.sourceAnalysisId(), resume.favorite(), versionsByResume.get(resume.id())))
+						resume.sourceAnalysisId(), resume.favorite(), resume.atsScore(), versionsByResume.get(resume.id())))
 				.toList();
 	}
 
