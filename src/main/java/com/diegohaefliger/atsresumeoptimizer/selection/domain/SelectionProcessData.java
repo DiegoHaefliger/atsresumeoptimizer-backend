@@ -11,6 +11,7 @@ public record SelectionProcessData(
 		LocalDate nextStepOn,
 		String contactName,
 		String contactEmail,
+		String contactPhone,
 		BigDecimal salary,
 		String notes) {
 
@@ -18,6 +19,7 @@ public record SelectionProcessData(
 		processUrl = blankToNull(processUrl);
 		contactName = blankToNull(contactName);
 		contactEmail = blankToNull(contactEmail);
+		contactPhone = blankToNull(contactPhone);
 		notes = blankToNull(notes);
 	}
 

@@ -44,7 +44,7 @@ class SelectionProcessServiceImplTest {
 	private static final UUID JOB_ID = UUID.randomUUID();
 
 	private final SelectionProcessData data =
-			new SelectionProcessData(JOB_ID, "https://acme.gupy.io/p/1", null, null, null, null, null, "  ótima vaga  ");
+			new SelectionProcessData(JOB_ID, "https://acme.gupy.io/p/1", null, null, null, null, null, null, "  ótima vaga  ");
 
 	private final JobOffer offer = new JobOffer(JOB_ID, 12L, "Dev Java", "Acme", "https://acme.com/vaga", null, null, null,
 			null, null, List.of(), null, null, "texto");
