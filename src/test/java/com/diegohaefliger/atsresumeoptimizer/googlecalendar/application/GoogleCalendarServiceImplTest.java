@@ -16,8 +16,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -38,52 +40,50 @@ class GoogleCalendarServiceImplTest {
 	private final OAuthStateStore stateStore =
 			new OAuthStateStore(Clock.fixed(Instant.parse("2026-10-06T12:00:00Z"), ZoneOffset.UTC));
 
-	private GoogleCalendarServiceImpl service() {
+	private GoogleCalendarServiceImpl service(String clientId, String clientSecret) {
 		return new GoogleCalendarServiceImpl(accountStore, gateway, sync, stateStore, new GoogleCalendarProperties(
-				"http://localhost:8080/cb", "http://localhost:5173", "a", "t", "r", "u", "e"));
+				clientId, clientSecret, "http://localhost:8080/cb", "http://localhost:5173", "a", "t", "r", "u", "e"));
 	}
 
-	private GoogleAccountEntity account(String refreshToken) {
-		GoogleAccountEntity account = new GoogleAccountEntity(java.util.UUID.randomUUID());
-		account.setClientId("id");
-		account.setRefreshToken(refreshToken);
-		account.setAccountEmail(refreshToken == null ? null : "eu@example.com");
+	private GoogleCalendarServiceImpl service() {
+		return service("id", "secret");
+	}
+
+	private GoogleAccountEntity account() {
+		GoogleAccountEntity account = new GoogleAccountEntity(UUID.randomUUID());
+		account.setRefreshToken("x");
+		account.setAccountEmail("eu@example.com");
 		return account;
 	}
 
 	@Test
-	void reportsTheConnectionStatus() {
-		when(accountStore.account()).thenReturn(Optional.empty()).thenReturn(Optional.of(account("x")));
+	void reportsWhetherTheServerIsConfiguredAndTheAccountConnected() {
+		when(accountStore.account()).thenReturn(Optional.empty()).thenReturn(Optional.of(account()));
 
-		var empty = service().status();
-		assertThat(empty.configured()).isFalse();
-		assertThat(empty.connected()).isFalse();
+		var disconnected = service().status();
+		assertThat(disconnected.configured()).isTrue();
+		assertThat(disconnected.connected()).isFalse();
 
 		var connected = service().status();
-		assertThat(connected.configured()).isTrue();
 		assertThat(connected.connected()).isTrue();
 		assertThat(connected.accountEmail()).isEqualTo("eu@example.com");
-		assertThat(connected.redirectUri()).isEqualTo("http://localhost:8080/cb");
+		assertThat(service("", "").status().configured()).isFalse();
 	}
 
 	@Test
-	void refusesToAuthorizeWithoutCredentials() {
-		when(accountStore.credentials()).thenReturn(Optional.empty());
-
-		assertThatThrownBy(() -> service().authorizationUrl()).isInstanceOf(GoogleNotConfiguredException.class);
+	void refusesToAuthorizeWhenTheServerHasNoCredentials() {
+		assertThatThrownBy(() -> service("", "").authorizationUrl()).isInstanceOf(GoogleNotConfiguredException.class);
 	}
 
 	@Test
 	void completesTheAuthorizationAndSyncsEverything() {
-		when(accountStore.credentials()).thenReturn(Optional.of(CREDENTIALS));
 		when(gateway.authorizationUrl(any(), any())).thenReturn("https://google/auth");
 		GoogleCalendarServiceImpl service = service();
 		service.authorizationUrl();
-		String state = captureState();
 		when(gateway.exchangeCode(CREDENTIALS, "c0de")).thenReturn(new GoogleTokens("acc", "ref"));
 		when(gateway.accountEmail("acc")).thenReturn("eu@example.com");
 
-		String redirect = service.completeAuthorization("c0de", state);
+		String redirect = service.completeAuthorization("c0de", captureState());
 
 		assertThat(redirect).isEqualTo("http://localhost:5173/settings/notifications?google=connected");
 		verify(accountStore).saveConnection("ref", "eu@example.com");
@@ -92,7 +92,6 @@ class GoogleCalendarServiceImplTest {
 
 	@Test
 	void stillReportsConnectedWhenOnlyTheFirstSyncFails() {
-		when(accountStore.credentials()).thenReturn(Optional.of(CREDENTIALS));
 		when(gateway.authorizationUrl(any(), any())).thenReturn("https://google/auth");
 		GoogleCalendarServiceImpl service = service();
 		service.authorizationUrl();
@@ -103,14 +102,8 @@ class GoogleCalendarServiceImplTest {
 		assertThat(service.completeAuthorization("c0de", captureState())).endsWith("google=connected");
 	}
 
-	private String captureState() {
-		org.mockito.ArgumentCaptor<String> state = org.mockito.ArgumentCaptor.forClass(String.class);
-		verify(gateway).authorizationUrl(any(), state.capture());
-		return state.getValue();
-	}
-
 	@Test
-	void redirectsWithAnErrorForAnUnknownStateOrFailedExchange() {
+	void redirectsWithAnErrorForAnUnknownStateOrMissingCode() {
 		assertThat(service().completeAuthorization("c0de", "forjado")).endsWith("google=error");
 		assertThat(service().completeAuthorization(null, null)).endsWith("google=error");
 		verify(accountStore, never()).saveConnection(any(), any());
@@ -126,13 +119,9 @@ class GoogleCalendarServiceImplTest {
 		verify(accountStore).clearConnection();
 	}
 
-	@Test
-	void removingCredentialsAlsoDisconnects() {
-		when(accountStore.refreshToken()).thenReturn(Optional.empty());
-
-		service().removeCredentials();
-
-		verify(accountStore).clearConnection();
-		verify(accountStore).clearAll();
+	private String captureState() {
+		ArgumentCaptor<String> state = ArgumentCaptor.forClass(String.class);
+		verify(gateway).authorizationUrl(any(), state.capture());
+		return state.getValue();
 	}
 }

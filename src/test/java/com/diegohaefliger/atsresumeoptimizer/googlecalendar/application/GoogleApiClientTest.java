@@ -33,7 +33,7 @@ class GoogleApiClientTest {
 	private final RestClient.Builder builder = RestClient.builder();
 	private final MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
 	private final GoogleApiClient client = new GoogleApiClient(new GoogleCalendarProperties(
-			"http://localhost:8080/cb", "http://localhost:5173", "https://auth.test/authorize", "https://auth.test/token",
+			"id-123", "segredo", "http://localhost:8080/cb", "http://localhost:5173", "https://auth.test/authorize", "https://auth.test/token",
 			"https://auth.test/revoke", "https://auth.test/userinfo", EVENTS), builder);
 
 	@Test

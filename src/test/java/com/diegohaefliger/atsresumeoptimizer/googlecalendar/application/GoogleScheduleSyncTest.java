@@ -14,7 +14,6 @@ import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleStatus;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionCalendar;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleAuthRevokedException;
-import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCredentials;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -48,15 +47,15 @@ class GoogleScheduleSyncTest {
 	@Mock
 	private ReminderLeadTimes leadTimes;
 
+	private GoogleCalendarProperties properties = new GoogleCalendarProperties("id", "secret", "http://localhost:8080/cb",
+			"http://localhost:5173", "a", "t", "r", "u", "e");
+
 	private GoogleScheduleSync sync() {
-		GoogleCalendarProperties properties = new GoogleCalendarProperties("http://localhost:8080/cb",
-				"http://localhost:5173", "a", "t", "r", "u", "e");
-		return new GoogleScheduleSync(accountStore, gateway, linkRepository, new GoogleEventPayloads(properties), calendar,
+		return new GoogleScheduleSync(accountStore, properties, gateway, linkRepository, new GoogleEventPayloads(properties), calendar,
 				leadTimes, Clock.fixed(NOW, ZoneOffset.UTC));
 	}
 
 	private void connected() {
-		when(accountStore.credentials()).thenReturn(Optional.of(new GoogleCredentials("id", "secret")));
 		when(accountStore.refreshToken()).thenReturn(Optional.of("ref"));
 		when(gateway.refreshAccessToken(any(), eq("ref"))).thenReturn("acc");
 	}
@@ -68,7 +67,17 @@ class GoogleScheduleSyncTest {
 
 	@Test
 	void doesNothingWhenNoGoogleAccountIsConnected() {
-		when(accountStore.credentials()).thenReturn(Optional.empty());
+		when(accountStore.refreshToken()).thenReturn(Optional.empty());
+
+		sync().syncOne(SCHEDULE_ID);
+
+		verifyNoInteractions(gateway, calendar, linkRepository);
+	}
+
+	@Test
+	void doesNothingWhenTheServerHasNoGoogleCredentials() {
+		properties = new GoogleCalendarProperties("", "", "uri", "front", "a", "t", "r", "u", "e");
+		when(accountStore.refreshToken()).thenReturn(Optional.of("ref"));
 
 		sync().syncOne(SCHEDULE_ID);
 
@@ -134,7 +143,6 @@ class GoogleScheduleSyncTest {
 
 	@Test
 	void disconnectsWhenGoogleRevokedTheAccess() {
-		when(accountStore.credentials()).thenReturn(Optional.of(new GoogleCredentials("id", "secret")));
 		when(accountStore.refreshToken()).thenReturn(Optional.of("ref"));
 		when(gateway.refreshAccessToken(any(), any())).thenThrow(new GoogleAuthRevokedException());
 

@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 public class GoogleNotConfiguredException extends BusinessException {
 
 	public GoogleNotConfiguredException() {
-		super("Cadastre o client ID e o client secret do Google antes de conectar.");
+		super("Integração com o Google não configurada no servidor.");
 	}
 
 	@Override

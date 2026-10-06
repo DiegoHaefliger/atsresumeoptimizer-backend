@@ -1,12 +1,10 @@
 package com.diegohaefliger.atsresumeoptimizer.googlecalendar.adapter.web;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -34,27 +32,14 @@ class GoogleCalendarControllerTest {
 	private GoogleCalendarService service;
 
 	@Test
-	void returnsTheStatusWithoutAnySecret() throws Exception {
-		when(service.status()).thenReturn(new GoogleConnectionStatus(true, true, "id", "eu@example.com", "http://localhost:8080/cb"));
+	void returnsTheStatus() throws Exception {
+		when(service.status()).thenReturn(new GoogleConnectionStatus(true, true, "eu@example.com"));
 
 		mockMvc.perform(get(BASE))
 				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.configured").value(true))
 				.andExpect(jsonPath("$.connected").value(true))
-				.andExpect(jsonPath("$.accountEmail").value("eu@example.com"))
-				.andExpect(jsonPath("$.clientSecret").doesNotExist());
-	}
-
-	@Test
-	void savesCredentialsAndRejectsBlankOnes() throws Exception {
-		when(service.saveCredentials(any())).thenReturn(new GoogleConnectionStatus(true, false, "id", null, "uri"));
-
-		mockMvc.perform(put(BASE + "/credentials")
-						.contentType("application/json")
-						.content("{\"clientId\":\"id\",\"clientSecret\":\"secret\"}"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.configured").value(true));
-		mockMvc.perform(put(BASE + "/credentials").contentType("application/json").content("{\"clientId\":\" \",\"clientSecret\":\"\"}"))
-				.andExpect(status().isBadRequest());
+				.andExpect(jsonPath("$.accountEmail").value("eu@example.com"));
 	}
 
 	@Test
@@ -82,8 +67,6 @@ class GoogleCalendarControllerTest {
 
 		mockMvc.perform(post(BASE + "/sync")).andExpect(status().isOk()).andExpect(jsonPath("$.synced").value(3));
 		mockMvc.perform(delete(BASE + "/connection")).andExpect(status().isNoContent());
-		mockMvc.perform(delete(BASE + "/credentials")).andExpect(status().isNoContent());
 		verify(service).disconnect();
-		verify(service).removeCredentials();
 	}
 }

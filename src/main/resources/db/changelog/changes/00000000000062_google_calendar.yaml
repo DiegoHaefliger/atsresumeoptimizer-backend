@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 00000000000063-google-calendar
+      id: 00000000000062-google-calendar
       author: DiegoHaefliger
       changes:
         - createTable:
@@ -13,18 +13,10 @@ databaseChangeLog:
                     primaryKey: true
                     nullable: false
               - column:
-                  name: client_id
-                  type: varchar(255)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: client_secret
-                  type: text
-                  constraints:
-                    nullable: false
-              - column:
                   name: refresh_token
                   type: text
+                  constraints:
+                    nullable: false
               - column:
                   name: account_email
                   type: varchar(255)

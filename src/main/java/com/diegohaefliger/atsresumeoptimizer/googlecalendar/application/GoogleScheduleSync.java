@@ -26,6 +26,7 @@ class GoogleScheduleSync {
 	private static final Duration SYNC_WINDOW = Duration.ofDays(365);
 
 	private final GoogleAccountStore accountStore;
+	private final GoogleCalendarProperties properties;
 	private final GoogleCalendarGateway gateway;
 	private final GoogleEventLinkRepository linkRepository;
 	private final GoogleEventPayloads payloads;
@@ -33,10 +34,11 @@ class GoogleScheduleSync {
 	private final ReminderLeadTimes leadTimes;
 	private final Clock clock;
 
-	GoogleScheduleSync(GoogleAccountStore accountStore, GoogleCalendarGateway gateway,
+	GoogleScheduleSync(GoogleAccountStore accountStore, GoogleCalendarProperties properties, GoogleCalendarGateway gateway,
 			GoogleEventLinkRepository linkRepository, GoogleEventPayloads payloads, SelectionCalendar calendar,
 			ReminderLeadTimes leadTimes, Clock clock) {
 		this.accountStore = accountStore;
+		this.properties = properties;
 		this.gateway = gateway;
 		this.linkRepository = linkRepository;
 		this.payloads = payloads;
@@ -102,13 +104,13 @@ class GoogleScheduleSync {
 	}
 
 	private Optional<String> accessToken() {
-		Optional<GoogleCredentials> credentials = accountStore.credentials();
 		Optional<String> refreshToken = accountStore.refreshToken();
-		if (credentials.isEmpty() || refreshToken.isEmpty()) {
+		if (!properties.configured() || refreshToken.isEmpty()) {
 			return Optional.empty();
 		}
 		try {
-			return Optional.of(gateway.refreshAccessToken(credentials.get(), refreshToken.get()));
+			GoogleCredentials credentials = new GoogleCredentials(properties.clientId(), properties.clientSecret());
+			return Optional.of(gateway.refreshAccessToken(credentials, refreshToken.get()));
 		} catch (GoogleAuthRevokedException exception) {
 			LOGGER.warn("Acesso ao Google revogado; conta desconectada.");
 			accountStore.clearConnection();

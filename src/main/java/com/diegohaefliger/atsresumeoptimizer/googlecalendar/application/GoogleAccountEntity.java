@@ -14,12 +14,6 @@ class GoogleAccountEntity {
 	@Id
 	private UUID id;
 
-	@Column(name = "client_id")
-	private String clientId;
-
-	@Column(name = "client_secret")
-	private String clientSecret;
-
 	@Column(name = "refresh_token")
 	private String refreshToken;
 
@@ -34,22 +28,6 @@ class GoogleAccountEntity {
 
 	GoogleAccountEntity(UUID id) {
 		this.id = id;
-	}
-
-	public String getClientId() {
-		return clientId;
-	}
-
-	public void setClientId(String clientId) {
-		this.clientId = clientId;
-	}
-
-	public String getClientSecret() {
-		return clientSecret;
-	}
-
-	public void setClientSecret(String clientSecret) {
-		this.clientSecret = clientSecret;
 	}
 
 	public String getRefreshToken() {

@@ -36,29 +36,12 @@ class GoogleCalendarServiceImpl implements GoogleCalendarService {
 	public GoogleConnectionStatus status() {
 		Optional<GoogleAccountEntity> account = accountStore.account();
 		return new GoogleConnectionStatus(
-				account.isPresent(),
-				account.map(found -> found.getRefreshToken() != null).orElse(false),
-				account.map(GoogleAccountEntity::getClientId).orElse(null),
-				account.map(GoogleAccountEntity::getAccountEmail).orElse(null),
-				properties.redirectUri());
-	}
-
-	@Override
-	public GoogleConnectionStatus saveCredentials(GoogleCredentials credentials) {
-		accountStore.saveCredentials(credentials);
-		return status();
-	}
-
-	@Override
-	public void removeCredentials() {
-		disconnect();
-		accountStore.clearAll();
+				properties.configured(), account.isPresent(), account.map(GoogleAccountEntity::getAccountEmail).orElse(null));
 	}
 
 	@Override
 	public String authorizationUrl() {
-		GoogleCredentials credentials = accountStore.credentials().orElseThrow(GoogleNotConfiguredException::new);
-		return gateway.authorizationUrl(credentials, stateStore.issue());
+		return gateway.authorizationUrl(credentials(), stateStore.issue());
 	}
 
 	@Override
@@ -67,8 +50,7 @@ class GoogleCalendarServiceImpl implements GoogleCalendarService {
 			if (!stateStore.consume(state)) {
 				throw new GoogleAuthorizationException("Pedido de autorização inválido ou expirado.");
 			}
-			GoogleCredentials credentials = accountStore.credentials().orElseThrow(GoogleNotConfiguredException::new);
-			GoogleTokens tokens = gateway.exchangeCode(credentials, code);
+			GoogleTokens tokens = gateway.exchangeCode(credentials(), code);
 			accountStore.saveConnection(tokens.refreshToken(), gateway.accountEmail(tokens.accessToken()));
 			syncAfterConnecting();
 			return redirect("connected");
@@ -87,6 +69,13 @@ class GoogleCalendarServiceImpl implements GoogleCalendarService {
 	public void disconnect() {
 		accountStore.refreshToken().ifPresent(gateway::revoke);
 		accountStore.clearConnection();
+	}
+
+	private GoogleCredentials credentials() {
+		if (!properties.configured()) {
+			throw new GoogleNotConfiguredException();
+		}
+		return new GoogleCredentials(properties.clientId(), properties.clientSecret());
 	}
 
 	private void syncAfterConnecting() {
