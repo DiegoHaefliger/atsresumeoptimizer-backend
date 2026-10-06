@@ -57,7 +57,7 @@ class RecentJobServiceImpl implements RecentJobService {
 	private RecentJobView view(JobListing listing, Optional<RecentJobInput> lastUse, PreferenceMatch match) {
 		JobOffer offer = listing.offer();
 		String targetRole = lastUse.map(RecentJobInput::targetRole).orElse(null);
-		return new RecentJobView(offer.jobPostingId(), title(targetRole, offer), targetRole, offer.rawText(),
+		return new RecentJobView(offer.jobPostingId(), offer.code(), title(targetRole, offer), targetRole, offer.rawText(),
 				lastUse.map(RecentJobInput::lastUsedAt).orElse(null), listing.registeredAt(), offer.company(),
 				offer.sourceUrl(), offer.workModel(), offer.interviewUrl(),
 				offer.salaryMax() != null ? offer.salaryMax() : offer.salaryMin(), offer.benefits(), offer.seniority(), offer.contractType(),

@@ -48,6 +48,7 @@ class SelectionProcessControllerTest {
 
 		mockMvc.perform(get(BASE).param("stage", "OFFER"))
 				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].jobCode").value(12))
 				.andExpect(jsonPath("$[0].company").value("Acme"))
 				.andExpect(jsonPath("$[0].jobUrl").value("https://acme.com/vaga"))
 				.andExpect(jsonPath("$[0].processUrl").value("https://acme.gupy.io/p/1"))
@@ -115,7 +116,7 @@ class SelectionProcessControllerTest {
 
 	private SelectionProcess process(SelectionStage stage) {
 		Instant now = Instant.now();
-		return new SelectionProcess(ID, JOB_ID, "Acme", "Dev Java", "https://acme.com/vaga", "https://acme.gupy.io/p/1", stage,
+		return new SelectionProcess(ID, JOB_ID, 12L, "Acme", "Dev Java", "https://acme.com/vaga", "https://acme.gupy.io/p/1", stage,
 				null, null, null, null, null, null, now, now, List.of(new StageMovement(SelectionStage.APPLIED, null, now)));
 	}
 }

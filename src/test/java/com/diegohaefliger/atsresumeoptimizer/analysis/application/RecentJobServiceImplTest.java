@@ -73,6 +73,6 @@ class RecentJobServiceImplTest {
 	}
 
 	private JobOffer offer(UUID id, String title, String company, WorkModel workModel) {
-		return new JobOffer(id, title, company, null, null, workModel, null, null, null, List.of(), null, null, "vaga");
+		return new JobOffer(id, 1L, title, company, null, null, workModel, null, null, null, List.of(), null, null, "vaga");
 	}
 }

@@ -236,7 +236,7 @@ class JobStructuringServiceImpl implements JobStructuringService {
 		ContractType contractType = posting.contractType() != null
 				? posting.contractType()
 				: ContractType.fromCode(conditions.contractType()).orElse(null);
-		return new JobOffer(posting.id(), title, company, posting.sourceUrl(), posting.interviewUrl(), workModel,
+		return new JobOffer(posting.id(), posting.code(), title, company, posting.sourceUrl(), posting.interviewUrl(), workModel,
 				contractType, salaryMin, salaryMax, benefits,
 				conditions.location(),
 				seniority, posting.rawText());

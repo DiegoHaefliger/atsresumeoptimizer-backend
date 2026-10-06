@@ -45,7 +45,7 @@ class SelectionProcessServiceImplTest {
 	private final SelectionProcessData data =
 			new SelectionProcessData(JOB_ID, "https://acme.gupy.io/p/1", null, null, null, null, null, "  ótima vaga  ");
 
-	private final JobOffer offer = new JobOffer(JOB_ID, "Dev Java", "Acme", "https://acme.com/vaga", null, null, null,
+	private final JobOffer offer = new JobOffer(JOB_ID, 12L, "Dev Java", "Acme", "https://acme.com/vaga", null, null, null,
 			null, null, List.of(), null, null, "texto");
 
 	private SelectionProcessServiceImpl service() {
@@ -160,6 +160,7 @@ class SelectionProcessServiceImplTest {
 
 		assertThat(listed).hasSize(1);
 		assertThat(listed.get(0).jobTitle()).isEqualTo("Dev Java");
+		assertThat(listed.get(0).jobCode()).isEqualTo(12L);
 		verify(repository, never()).findAllByOrderByUpdatedAtDesc();
 	}
 

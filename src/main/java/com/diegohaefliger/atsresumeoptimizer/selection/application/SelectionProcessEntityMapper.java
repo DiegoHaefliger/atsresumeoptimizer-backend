@@ -14,6 +14,7 @@ interface SelectionProcessEntityMapper {
 
 	@Mapping(target = "id", source = "entity.id")
 	@Mapping(target = "jobPostingId", source = "entity.jobPostingId")
+	@Mapping(target = "jobCode", source = "offer.code")
 	@Mapping(target = "company", source = "offer.company")
 	@Mapping(target = "jobTitle", source = "offer.title")
 	@Mapping(target = "jobUrl", source = "offer.sourceUrl")

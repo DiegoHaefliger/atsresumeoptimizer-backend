@@ -10,6 +10,7 @@ import java.util.UUID;
 public record SelectionProcess(
 		UUID id,
 		UUID jobPostingId,
+		Long jobCode,
 		String company,
 		String jobTitle,
 		String jobUrl,

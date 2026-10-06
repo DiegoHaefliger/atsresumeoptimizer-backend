@@ -70,6 +70,9 @@ class JobPosting {
 	@Column(name = "selected_keywords")
 	private String selectedKeywords;
 
+	@Column(name = "code", insertable = false, updatable = false)
+	private Long code;
+
 	@Column(name = "created_at")
 	private Instant createdAt;
 
@@ -195,6 +198,10 @@ class JobPosting {
 
 	UUID id() {
 		return id;
+	}
+
+	Long code() {
+		return code;
 	}
 
 	String title() {

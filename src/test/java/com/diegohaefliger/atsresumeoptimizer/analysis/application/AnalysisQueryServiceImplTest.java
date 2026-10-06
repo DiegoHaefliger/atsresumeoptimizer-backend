@@ -63,7 +63,7 @@ class AnalysisQueryServiceImplTest {
 		when(analysis.mode()).thenReturn(AnalysisMode.JOB_MATCH);
 		when(analysis.jobPostingId()).thenReturn(jobPostingId);
 		when(analysisRepository.findById(id.value())).thenReturn(Optional.of(analysis));
-		JobOffer offer = new JobOffer(jobPostingId, "Backend Java", "Acme", "https://acme.com/vaga", null, WorkModel.REMOTE,
+		JobOffer offer = new JobOffer(jobPostingId, 1L, "Backend Java", "Acme", "https://acme.com/vaga", null, WorkModel.REMOTE,
 				null, null, null, List.of(), null, null, "vaga");
 		when(jobStructuringService.offer(jobPostingId)).thenReturn(Optional.of(offer));
 		var match = new PreferenceMatch(100,

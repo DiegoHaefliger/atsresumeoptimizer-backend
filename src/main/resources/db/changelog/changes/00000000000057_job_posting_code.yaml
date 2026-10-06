@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000057-job-posting-code
+      author: DiegoHaefliger
+      changes:
+        - createSequence:
+            sequenceName: job_posting_code_seq
+            startValue: 1
+        - addColumn:
+            tableName: job_posting
+            columns:
+              - column:
+                  name: code
+                  type: bigint
+        - sql:
+            sql: >-
+              update job_posting set code = numbered.position
+              from (select id, row_number() over (order by created_at, id) as position from job_posting) numbered
+              where job_posting.id = numbered.id
+        - sql:
+            sql: select setval('job_posting_code_seq', coalesce((select max(code) from job_posting), 0) + 1, false)
+        - addDefaultValue:
+            tableName: job_posting
+            columnName: code
+            defaultValueComputed: nextval('job_posting_code_seq')
+        - addNotNullConstraint:
+            tableName: job_posting
+            columnName: code
+        - addUniqueConstraint:
+            tableName: job_posting
+            columnNames: code
+            constraintName: uq_job_posting_code
