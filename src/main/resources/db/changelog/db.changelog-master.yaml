@@ -109,3 +109,5 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000060_notification_settings.yaml
   - include:
       file: db/changelog/changes/00000000000061_notification.yaml
+  - include:
+      file: db/changelog/changes/00000000000062_calendar_feed.yaml

@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000062-calendar-feed
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: calendar_feed
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: token
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
