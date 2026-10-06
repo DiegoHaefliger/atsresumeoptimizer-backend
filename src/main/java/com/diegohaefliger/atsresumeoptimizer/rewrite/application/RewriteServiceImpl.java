@@ -6,6 +6,7 @@ import com.diegohaefliger.atsresumeoptimizer.ai.AiResult;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiUsage;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobFocus;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobStructured;
+import com.diegohaefliger.atsresumeoptimizer.ai.PrioritySkill;
 import com.diegohaefliger.atsresumeoptimizer.ai.RequirementEvidence;
 import com.diegohaefliger.atsresumeoptimizer.ai.ResumeEntry;
 import com.diegohaefliger.atsresumeoptimizer.ai.ResumeSection;
@@ -21,7 +22,6 @@ import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 import com.diegohaefliger.atsresumeoptimizer.parsing.application.BulletTextExtractor;
 import com.diegohaefliger.atsresumeoptimizer.parsing.application.ResumeAnalysisPipeline;
 import com.diegohaefliger.atsresumeoptimizer.parsing.application.SensitiveDataDetector;
-import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ContactInfo;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ParsingResult;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.Section;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeService;
@@ -51,6 +51,7 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -66,6 +67,12 @@ class RewriteServiceImpl implements RewriteService {
 
 			- ATENÇÃO: a resposta anterior foi rejeitada porque %s. Devolva TODOS os cargos, projetos e bullets do \
 			currículo original, cada bullet no seu cargo; destacar pra vaga é só reordenar, nunca cortar.
+			""";
+	private static final String UNCOVERED_SKILLS_RETRY_INSTRUCTION = """
+
+			- ATENÇÃO: a resposta anterior não citou %s em nenhum bullet de experiência. O candidato JÁ usou isso \
+			nesses cargos: reescreva o bullet em que aparece (ou o contexto do cargo que já cita) deixando a competência \
+			explícita, sem inventar fato nem levá-la pra outro cargo.
 			""";
 	private static final String UNTITLED_JOB = "Vaga informada pelo candidato";
 	private static final Set<FindingCode> CORRECTABLE_BY_REWRITE =
@@ -171,13 +178,25 @@ class RewriteServiceImpl implements RewriteService {
 				throw new RewriteFailedException(secondAttempt.getMessage());
 			}
 		}
+		List<PrioritySkill> uncovered = PrioritySkillCoverage.missing(guarded, jobFocus.prioritySkills());
+		if (!uncovered.isEmpty()) {
+			LOGGER.info("Reescrita: competências prioritárias fora dos bullets, pedindo de novo à IA: {}", uncovered);
+			extraUsages.add(structureResult.usage());
+			structureResult = structure(originalText,
+					correctionInstructions + UNCOVERED_SKILLS_RETRY_INSTRUCTION.formatted(skillNames(uncovered)), jobFocus);
+			try {
+				guarded = enforceGuardRails(structureResult, originalText, parsingResult, job, jobFocus);
+			} catch (DroppedContentException retryFailure) {
+				LOGGER.warn("Reescrita: segunda tentativa de destacar competências foi rejeitada: {}", retryFailure.getMessage());
+			}
+		}
 		StructuredResume ordered =
 				new JobRelevanceOrdering(relevanceKeywords(jobFocus)).apply(RedundantParentheticalCleaner.apply(guarded));
 		StructuredResume contentModel = StructuredResumeSanitizer.sanitizeGrammar(
 				CanonicalSections.apply(ordered).withName(header.resolveName(ordered.name(), originalText)));
 		List<BulletRewriteView> views = buildBulletViews(parsingResult, contentModel);
 
-		ResumeContact contact = contact(parsingResult.contact());
+		ResumeContact contact = ParsedResumeImporter.contact(parsingResult);
 		progressTracker.advance(analysisId.value(), RewritePhase.EXPORTING);
 		StoredResumeDocuments documents = documentWriter.writeAdapted(snapshot.resumeVersionId(), analysisId.value(),
 				AdaptedResumeTitle.suffix(job, snapshot), template, contentModel, contact);
@@ -199,13 +218,6 @@ class RewriteServiceImpl implements RewriteService {
 			ParsingResult parsingResult, JobStructured job, JobFocus jobFocus) {
 		return guardRails.enforce(structureResult.value(), originalText, parsingResult.sections(), job, jobFocus.enabled(),
 				jobFocus.evidencedRequirements());
-	}
-
-	private static ResumeContact contact(ContactInfo contact) {
-		return new ResumeContact(contact.email().orElse(null), contact.phone().orElse(null),
-				contact.linkedInProfile().orElse(null), GrammarSanitizer.sanitize(contact.githubProfile().orElse("")),
-				GrammarSanitizer.sanitize(contact.portfolio().orElse("")),
-				GrammarSanitizer.sanitize(contact.location().orElse("")));
 	}
 
 	private AiResult<StructuredResume> structure(String originalText, String correctionInstructions, JobFocus jobFocus) {
@@ -233,7 +245,12 @@ class RewriteServiceImpl implements RewriteService {
 					return result.value();
 				})
 				.orElse(List.of());
-		return new JobFocus(jobTitle(job, snapshot), job.seniority(), matchedKeywords, evidences);
+		return new JobFocus(jobTitle(job, snapshot), job.seniority(), matchedKeywords, evidences,
+				PrioritySkillSelector.select(matches, job.priorityKeywords(), evidences, parsingResult.sections()));
+	}
+
+	private static String skillNames(List<PrioritySkill> skills) {
+		return skills.stream().map(PrioritySkill::term).collect(Collectors.joining(", "));
 	}
 
 	private String jobTitle(JobStructured job, AnalysisSnapshot snapshot) {

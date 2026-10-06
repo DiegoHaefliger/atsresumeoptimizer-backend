@@ -96,10 +96,8 @@ class ResumeDocumentWriter {
 		StringBuilder builder = new StringBuilder();
 		appendLine(builder, content.name());
 		appendLine(builder, content.headline());
-		appendLine(builder, contactLine);
-		appendLine(builder, contact.github());
-		appendLine(builder, contact.portfolio());
-		appendLine(builder, contact.location());
+		appendLine(builder, Stream.of(contactLine, contact.github(), contact.portfolio(), contact.location())
+				.filter(StringUtils::hasText).collect(Collectors.joining(CONTACT_SEPARATOR)));
 		for (ResumeSection section : content.sections()) {
 			builder.append(section.title()).append('\n');
 			switch (section.kind()) {
@@ -109,9 +107,13 @@ class ResumeDocumentWriter {
 						builder.append(line.label()).append(": ").append(line.value()).append('\n');
 					}
 				}
-				case RICH_LINES -> section.richLines().forEach(line -> appendLine(builder, TextSpan.plainText(line)));
-				case ENTRIES -> section.entries().forEach(entry -> appendEntry(builder, entry,
-						section.semanticType()));
+				case RICH_LINES -> section.richLines().forEach(line -> appendLine(builder, TextSpan.plainText(
+						section.semanticType() == ResumeSectionSemanticType.CERTIFICATIONS
+								? CertificationLineFormatter.format(line) : line)));
+				case ENTRIES -> section.entries().forEach(entry -> {
+					appendEntry(builder, entry, section.semanticType());
+					builder.append('\n');
+				});
 			}
 		}
 		return builder.toString();

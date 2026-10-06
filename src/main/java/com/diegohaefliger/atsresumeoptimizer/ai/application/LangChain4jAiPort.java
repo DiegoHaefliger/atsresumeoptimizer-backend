@@ -62,7 +62,7 @@ class LangChain4jAiPort implements AiPort {
 	@Override
 	public AiResult<JobStructured> structureJob(String jobText) {
 		PromptTemplate template = activeTemplate(JOB_STRUCTURING_KEY);
-		String prompt = template.content().replace("{{jobText}}", jobText);
+		String prompt = template.getContent().replace("{{jobText}}", jobText);
 		return call(template, prompt, JobStructured.class);
 	}
 
@@ -70,7 +70,7 @@ class LangChain4jAiPort implements AiPort {
 	public AiResult<List<BulletReview>> reviewBullets(List<String> bullets) {
 		PromptTemplate template = activeTemplate(BULLET_REVIEW_KEY);
 		String bulletList = bullets.stream().map(bullet -> "- " + bullet + "\n").collect(Collectors.joining());
-		String prompt = template.content().replace("{{bullets}}", bulletList);
+		String prompt = template.getContent().replace("{{bullets}}", bulletList);
 		AiResult<BulletReview[]> result = call(template, prompt, BulletReview[].class);
 		return new AiResult<>(List.of(result.value()), result.usage());
 	}
@@ -79,7 +79,7 @@ class LangChain4jAiPort implements AiPort {
 	public AiResult<List<RequirementEvidence>> findRequirementEvidence(String resumeText, List<String> requirements) {
 		PromptTemplate template = activeTemplate(REQUIREMENT_EVIDENCE_KEY);
 		String requirementList = requirements.stream().map(requirement -> "- " + requirement).collect(Collectors.joining("\n"));
-		String prompt = template.content()
+		String prompt = template.getContent()
 				.replace("{{requirements}}", requirementList)
 				.replace("{{resumeText}}", resumeText);
 		AiResult<RequirementEvidence[]> result = call(template, prompt, RequirementEvidence[].class);
@@ -89,7 +89,7 @@ class LangChain4jAiPort implements AiPort {
 	@Override
 	public AiResult<StructuredResume> structureResume(String resumeText, String correctionInstructions, JobFocus jobFocus) {
 		PromptTemplate template = activeTemplate(RESUME_STRUCTURING_KEY);
-		String prompt = template.content()
+		String prompt = template.getContent()
 				.replace("{{resumeText}}", resumeText)
 				.replace("{{correctionInstructions}}",
 						StringUtils.hasText(correctionInstructions) ? correctionInstructions : NO_CORRECTIONS_PLACEHOLDER)
@@ -112,12 +112,25 @@ class LangChain4jAiPort implements AiPort {
 				Senioridade: %s
 				Competências da vaga que o candidato JÁ TEM no currículo original: %s
 				Termos da vaga que o candidato tem com outro nome (use o termo da vaga junto da evidência):
+				%s
+				Principais competências da vaga que o candidato tem:
 				%s"""
-				.formatted(jobFocus.jobTitle(), seniority, keywords, evidences);
+				.formatted(jobFocus.jobTitle(), seniority, keywords, evidences, prioritySkills(jobFocus));
+	}
+
+	private static String prioritySkills(JobFocus jobFocus) {
+		if (jobFocus.prioritySkills().isEmpty()) {
+			return NO_EVIDENCED_REQUIREMENTS;
+		}
+		return jobFocus.prioritySkills().stream()
+				.map(skill -> skill.usedInExperience()
+						? "- %s — JÁ USADA em cargo/projeto: destaque no bullet dele".formatted(skill.term())
+						: "- %s — só consta em Competências: cite no resumo e na lista, nunca num cargo".formatted(skill.term()))
+				.collect(Collectors.joining("\n"));
 	}
 
 	private <T> AiResult<T> call(PromptTemplate template, String prompt, Class<T> responseType) {
-		List<ResolvedModel> chain = modelGateway.resolveChain(template.key());
+		List<ResolvedModel> chain = modelGateway.resolveChain(template.getKey());
 		if (chain.isEmpty()) {
 			throw new AiCallException(NO_PROVIDER_CONFIGURED, null);
 		}
@@ -128,7 +141,7 @@ class LangChain4jAiPort implements AiPort {
 			} catch (AiCallException failure) {
 				lastFailure = failure;
 				LOGGER.warn("Provedor {} ({}) falhou para {}, tentando o próximo da fila", resolved.provider(),
-						resolved.modelName(), template.key());
+						resolved.modelName(), template.getKey());
 			}
 		}
 		throw lastFailure;
@@ -138,7 +151,7 @@ class LangChain4jAiPort implements AiPort {
 			ResolvedModel resolved, PromptTemplate template, String prompt, Class<T> responseType) {
 		String model = resolved.modelName();
 		String keyHash = Sha256.hex(
-				template.key() + ":" + template.version() + ":" + resolved.provider() + ":" + model + ":" + prompt);
+				template.getKey() + ":" + template.getVersion() + ":" + resolved.provider() + ":" + model + ":" + prompt);
 		Optional<LlmCacheEntry> cached = llmCacheRepository.findById(keyHash);
 		if (cached.isPresent()) {
 			return new AiResult<>(parse(cached.get().response(), responseType), AiUsage.cached(resolved.provider().label(), model));
@@ -150,8 +163,8 @@ class LangChain4jAiPort implements AiPort {
 			try {
 				response = resolved.chatModel().chat(ChatRequest.builder().messages(UserMessage.from(prompt)).build());
 			} catch (RuntimeException exception) {
-				LOGGER.warn("Falha ao chamar {} para {}", resolved.provider(), template.key(), exception);
-				throw new AiCallException("Falha ao chamar " + resolved.provider().label() + " para " + template.key(), exception);
+				LOGGER.warn("Falha ao chamar {} para {}", resolved.provider(), template.getKey(), exception);
+				throw new AiCallException("Falha ao chamar " + resolved.provider().label() + " para " + template.getKey(), exception);
 			}
 
 			String rawText = stripMarkdownFences(response.aiMessage().text());
@@ -164,16 +177,16 @@ class LangChain4jAiPort implements AiPort {
 					parsedText = JsonBracketRepair.repair(rawText);
 					value = parse(parsedText, responseType);
 					LOGGER.info("JSON da IA pra {} tinha colchete/chave de fechamento trocado, corrigido automaticamente",
-							template.key());
+							template.getKey());
 				} catch (AiCallException stillBroken) {
 					lastParseFailure = stillBroken;
-					LOGGER.warn("JSON inválido da IA pra {} na tentativa {}/{}, tentando de novo", template.key(), attempt,
+					LOGGER.warn("JSON inválido da IA pra {} na tentativa {}/{}, tentando de novo", template.getKey(), attempt,
 							MAX_PARSE_ATTEMPTS);
 					continue;
 				}
 			}
 
-			llmCacheRepository.save(new LlmCacheEntry(keyHash, template.key(), template.version(), parsedText));
+			llmCacheRepository.save(new LlmCacheEntry(keyHash, template.getKey(), template.getVersion(), parsedText));
 
 			TokenUsage tokenUsage = response.tokenUsage();
 			int tokensIn = tokenUsage != null && tokenUsage.inputTokenCount() != null ? tokenUsage.inputTokenCount() : 0;
@@ -194,7 +207,7 @@ class LangChain4jAiPort implements AiPort {
 	}
 
 	private PromptTemplate activeTemplate(String key) {
-		return promptTemplateRepository.findFirstByKeyAndActiveTrueOrderByVersionDesc(key)
+		return promptTemplateRepository.findFirstByKeyOrderByVersionDesc(key)
 				.orElseThrow(() -> new AiCallException("Nenhum prompt_template ativo para a chave " + key, null));
 	}
 

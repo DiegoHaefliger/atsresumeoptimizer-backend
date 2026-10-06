@@ -118,6 +118,10 @@ class AnalysisEntity {
 		this.finishedAt = Instant.now();
 	}
 
+	void updateScore(Integer overallScore) {
+		this.overallScore = overallScore;
+	}
+
 	UUID id() {
 		return id;
 	}

@@ -71,6 +71,10 @@ class RewriteGuardRails {
 				.toList();
 	}
 
+	static boolean isExperienceSection(Section section) {
+		return EXPERIENCE_SECTION_TITLES.contains(normalizedTitle(section));
+	}
+
 	private List<Section> experienceSections(List<Section> sections) {
 		return sections.stream().filter(section -> EXPERIENCE_SECTION_TITLES.contains(normalizedTitle(section))).toList();
 	}
@@ -91,7 +95,7 @@ class RewriteGuardRails {
 		}
 	}
 
-	private static String normalizedTitle(Section section) {
+	static String normalizedTitle(Section section) {
 		return TRAILING_DECORATION.matcher(NormalizedText.of(section.title())).replaceFirst("");
 	}
 
