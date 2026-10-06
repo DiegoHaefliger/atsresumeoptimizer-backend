@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public record JobOffer(
 		UUID jobPostingId,
+		Long code,
 		String title,
 		String company,
 		String sourceUrl,

@@ -263,7 +263,7 @@ class PreferenceMatcherTest {
 		}
 
 		JobOffer build() {
-			return new JobOffer(UUID.randomUUID(), "Backend Java", company, null, null, workModel, contractType, salaryMin,
+			return new JobOffer(UUID.randomUUID(), 1L, "Backend Java", company, null, null, workModel, contractType, salaryMin,
 					salaryMax, benefits, location, seniority, rawText);
 		}
 	}

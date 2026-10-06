@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public record RecentJobView(
 		UUID id,
+		Long code,
 		String title,
 		String targetRole,
 		String jobDescription,

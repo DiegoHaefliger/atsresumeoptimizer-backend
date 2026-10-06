@@ -97,3 +97,7 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000054_job_posting_selected_keywords.yaml
   - include:
       file: db/changelog/changes/00000000000055_resume_ats_score.yaml
+  - include:
+      file: db/changelog/changes/00000000000056_selection_process.yaml
+  - include:
+      file: db/changelog/changes/00000000000057_job_posting_code.yaml
