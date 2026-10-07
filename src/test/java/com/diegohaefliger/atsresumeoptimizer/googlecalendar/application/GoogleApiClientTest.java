@@ -136,7 +136,7 @@ class GoogleApiClientTest {
 	}
 
 	@Test
-	void listsEventsSkippingCanceledOnesAndKeepingAllDayDates() {
+	void listsEventsSkippingCanceledOnesAndBirthdaysAndKeepingAllDayDates() {
 		server.expect(requestTo(startsWith(EVENTS + "?timeMin=2026-10-01T00:00:00Z")))
 				.andExpect(method(HttpMethod.GET))
 				.andExpect(header("Authorization", "Bearer acc"))
@@ -145,7 +145,8 @@ class GoogleApiClientTest {
 						  {"id":"a","summary":"Dentista","status":"confirmed","htmlLink":"https://g/a",
 						   "start":{"dateTime":"2026-10-08T14:00:00-03:00"},"end":{"dateTime":"2026-10-08T15:00:00-03:00"}},
 						  {"id":"b","summary":"Feriado","start":{"date":"2026-10-12"},"end":{"date":"2026-10-13"}},
-						  {"id":"c","status":"cancelled","start":{"dateTime":"2026-10-09T10:00:00Z"},"end":{"dateTime":"2026-10-09T11:00:00Z"}}
+						  {"id":"c","status":"cancelled","start":{"dateTime":"2026-10-09T10:00:00Z"},"end":{"dateTime":"2026-10-09T11:00:00Z"}},
+						  {"id":"d","summary":"Aniversário da Ana","eventType":"birthday","start":{"date":"2026-10-15"},"end":{"date":"2026-10-16"}}
 						]}""", MediaType.APPLICATION_JSON));
 
 		List<GoogleCalendarItem> items =

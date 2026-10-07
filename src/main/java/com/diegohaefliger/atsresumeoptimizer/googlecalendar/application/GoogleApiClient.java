@@ -30,6 +30,7 @@ class GoogleApiClient implements GoogleCalendarGateway {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(GoogleApiClient.class);
 	private static final int MAX_LISTED_EVENTS = 250;
+	private static final String BIRTHDAY_EVENT_TYPE = "birthday";
 	private static final String SCOPES = "openid email https://www.googleapis.com/auth/calendar.events";
 	private static final ParameterizedTypeReference<Map<String, Object>> JSON_OBJECT = new ParameterizedTypeReference<>() {
 	};
@@ -169,6 +170,7 @@ class GoogleApiClient implements GoogleCalendarGateway {
 					.filter(Map.class::isInstance)
 					.map(item -> (Map<?, ?>) item)
 					.filter(item -> !"cancelled".equals(item.get("status")))
+					.filter(item -> !BIRTHDAY_EVENT_TYPE.equals(item.get("eventType")))
 					.map(GoogleApiClient::toItem)
 					.filter(Objects::nonNull)
 					.toList();
