@@ -33,7 +33,7 @@ class CalendarControllerTest {
 
 	private CalendarEvent event() {
 		return new CalendarEvent(UUID.randomUUID(), UUID.randomUUID(), "Acme", "Dev Java", SelectionStage.SCREENING,
-				ScheduleStatus.SCHEDULED, Instant.parse("2026-10-08T17:00:00Z"), 60, null, null);
+				ScheduleStatus.SCHEDULED, Instant.parse("2026-10-08T17:00:00Z"), 60, null, null, null);
 	}
 
 	@Test

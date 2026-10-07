@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.diegohaefliger.atsresumeoptimizer.job.JobOffer;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 import com.diegohaefliger.atsresumeoptimizer.selection.CalendarEvent;
+import com.diegohaefliger.atsresumeoptimizer.selection.RecruiterContact;
 import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleStatus;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.InvalidScheduleException;
@@ -47,6 +48,8 @@ class SelectionCalendarImplTest {
 		schedule.setScheduledAt(FROM.plusSeconds(86_400));
 		SelectionProcessEntity process = new SelectionProcessEntity(PROCESS_ID, SelectionStage.SCREENING, FROM);
 		process.setJobPostingId(JOB_ID);
+		process.setContactName("Joana");
+		process.setContactEmail("joana@acme.com");
 		JobOffer offer = new JobOffer(JOB_ID, 12L, "Dev Java", "Acme", null, null, null, null, null, null, List.of(), null,
 				null, "texto");
 		when(scheduleRepository.findByScheduledAtBetweenOrderByScheduledAtAsc(FROM, TO)).thenReturn(List.of(schedule));
@@ -59,6 +62,7 @@ class SelectionCalendarImplTest {
 			assertThat(event.company()).isEqualTo("Acme");
 			assertThat(event.jobTitle()).isEqualTo("Dev Java");
 			assertThat(event.status()).isEqualTo(ScheduleStatus.SCHEDULED);
+			assertThat(event.recruiter()).isEqualTo(new RecruiterContact("Joana", "joana@acme.com", null));
 			assertThat(event.scheduledAt()).isEqualTo(FROM.plusSeconds(86_400));
 		});
 	}

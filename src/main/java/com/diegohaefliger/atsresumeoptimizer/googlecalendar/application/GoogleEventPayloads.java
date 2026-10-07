@@ -1,10 +1,13 @@
 package com.diegohaefliger.atsresumeoptimizer.googlecalendar.application;
 
 import com.diegohaefliger.atsresumeoptimizer.selection.CalendarEvent;
+import com.diegohaefliger.atsresumeoptimizer.selection.RecruiterContact;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Component;
 
@@ -37,11 +40,33 @@ class GoogleEventPayloads {
 	}
 
 	private String description(CalendarEvent event) {
-		String link = properties.frontendUrl() + "/processes/" + event.processId();
-		return Stream.of(event.notes(), "Processo: " + link)
-				.filter(part -> part != null && !part.isBlank())
-				.reduce((first, second) -> first + "\n\n" + second)
-				.orElse(link);
+		String vacancy = Stream.of(event.company(), event.jobTitle())
+				.filter(GoogleEventPayloads::hasText)
+				.collect(Collectors.joining(" - "));
+		List<String> blocks = new ArrayList<>();
+		blocks.add(lines(labeled("Etapa", event.stage().label()), labeled("Vaga", vacancy)));
+		RecruiterContact recruiter = event.recruiter();
+		if (recruiter != null) {
+			blocks.add(lines(labeled("Recrutador", recruiter.name()), labeled("E-mail", recruiter.email()),
+					labeled("Telefone", recruiter.phone())));
+		}
+		if (hasText(event.notes())) {
+			blocks.add("Descrição da etapa:\n" + event.notes());
+		}
+		blocks.add("Processo: " + properties.frontendUrl() + "/processes/" + event.processId());
+		return blocks.stream().filter(GoogleEventPayloads::hasText).collect(Collectors.joining("\n\n"));
+	}
+
+	private static String labeled(String label, String value) {
+		return hasText(value) ? label + ": " + value : null;
+	}
+
+	private static String lines(String... values) {
+		return Stream.of(values).filter(GoogleEventPayloads::hasText).collect(Collectors.joining("\n"));
+	}
+
+	private static boolean hasText(String value) {
+		return value != null && !value.isBlank();
 	}
 
 	private static String summary(CalendarEvent event) {

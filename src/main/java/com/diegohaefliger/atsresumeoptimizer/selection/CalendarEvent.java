@@ -13,5 +13,6 @@ public record CalendarEvent(
 		Instant scheduledAt,
 		Integer durationMinutes,
 		String location,
-		String notes) {
+		String notes,
+		RecruiterContact recruiter) {
 }

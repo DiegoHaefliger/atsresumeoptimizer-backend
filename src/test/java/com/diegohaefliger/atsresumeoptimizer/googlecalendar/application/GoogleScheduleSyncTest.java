@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.diegohaefliger.atsresumeoptimizer.notification.ReminderLeadTimes;
 import com.diegohaefliger.atsresumeoptimizer.selection.CalendarEvent;
+import com.diegohaefliger.atsresumeoptimizer.selection.RecruiterContact;
 import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleStatus;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionCalendar;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
@@ -30,6 +31,7 @@ class GoogleScheduleSyncTest {
 
 	private static final Instant NOW = Instant.parse("2026-10-06T12:00:00Z");
 	private static final UUID SCHEDULE_ID = UUID.randomUUID();
+	private static final UUID PROCESS_ID = UUID.randomUUID();
 
 	@Mock
 	private GoogleAccessTokens accessTokens;
@@ -59,8 +61,9 @@ class GoogleScheduleSyncTest {
 	}
 
 	private CalendarEvent event(ScheduleStatus status) {
-		return new CalendarEvent(SCHEDULE_ID, UUID.randomUUID(), "Acme", "Dev Java", SelectionStage.TECHNICAL_INTERVIEW,
-				status, NOW.plusSeconds(3600), 30, "Sala 3", "levar RG");
+		return new CalendarEvent(SCHEDULE_ID, PROCESS_ID, "Acme", "Dev Java", SelectionStage.TECHNICAL_INTERVIEW,
+				status, NOW.plusSeconds(3600), 30, "Sala 3", "levar RG",
+				new RecruiterContact("Joana", "joana@acme.com", "11 99999-0000"));
 	}
 
 	@Test
@@ -87,7 +90,18 @@ class GoogleScheduleSyncTest {
 		verify(gateway).saveEvent(eq("acc"), eq(null), body.capture());
 		assertThat(body.getValue()).containsEntry("summary", "Entrevista técnica: Acme - Dev Java")
 				.containsEntry("location", "Sala 3");
-		assertThat(body.getValue().get("description").toString()).contains("levar RG", "http://localhost:5173/processes/");
+		assertThat(body.getValue().get("description").toString()).isEqualTo("""
+				Etapa: Entrevista técnica
+				Vaga: Acme - Dev Java
+
+				Recrutador: Joana
+				E-mail: joana@acme.com
+				Telefone: 11 99999-0000
+
+				Descrição da etapa:
+				levar RG
+
+				Processo: http://localhost:5173/processes/%s""".formatted(PROCESS_ID));
 		assertThat(body.getValue().get("end")).isEqualTo(Map.of("dateTime", NOW.plusSeconds(3600 + 1800).toString()));
 		assertThat(body.getValue().get("reminders").toString()).contains("minutes=60", "minutes=1440");
 		verify(linkRepository).save(any());

@@ -57,7 +57,7 @@ class ScheduleReminderJobTest {
 	private CalendarEvent eventIn(long minutes) {
 		return new CalendarEvent(UUID.randomUUID(), UUID.randomUUID(), "Acme", "Dev Java",
 				SelectionStage.TECHNICAL_INTERVIEW, ScheduleStatus.SCHEDULED, NOW.plusSeconds(minutes * 60), 60,
-				"https://meet.example/abc", null);
+				"https://meet.example/abc", null, null);
 	}
 
 	private void pending(CalendarEvent... events) {

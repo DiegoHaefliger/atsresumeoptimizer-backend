@@ -3,6 +3,7 @@ package com.diegohaefliger.atsresumeoptimizer.selection.application;
 import com.diegohaefliger.atsresumeoptimizer.job.JobOffer;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 import com.diegohaefliger.atsresumeoptimizer.selection.CalendarEvent;
+import com.diegohaefliger.atsresumeoptimizer.selection.RecruiterContact;
 import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleStatus;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionCalendar;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.InvalidScheduleException;
@@ -78,9 +79,11 @@ class SelectionCalendarImpl implements SelectionCalendar {
 
 	private static CalendarEvent toEvent(SelectionScheduleEntity schedule, Map<UUID, SelectionProcessEntity> processes,
 			Map<UUID, JobOffer> offers) {
-		JobOffer offer = offers.get(processes.get(schedule.getProcessId()).getJobPostingId());
+		SelectionProcessEntity process = processes.get(schedule.getProcessId());
+		JobOffer offer = offers.get(process.getJobPostingId());
 		return new CalendarEvent(schedule.getId(), schedule.getProcessId(), offer == null ? null : offer.company(),
 				offer == null ? null : offer.title(), schedule.getStage(), schedule.getStatus(),
-				schedule.getScheduledAt(), schedule.getDurationMinutes(), schedule.getLocation(), schedule.getNotes());
+				schedule.getScheduledAt(), schedule.getDurationMinutes(), schedule.getLocation(), schedule.getNotes(),
+				new RecruiterContact(process.getContactName(), process.getContactEmail(), process.getContactPhone()));
 	}
 }
