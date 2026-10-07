@@ -20,6 +20,7 @@ import com.diegohaefliger.atsresumeoptimizer.rewrite.RewriteEditService;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.RewriteResult;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.RewritePhase;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.RewriteProgressService;
+import com.diegohaefliger.atsresumeoptimizer.rewrite.RewriteQueryService;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.RewriteService;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.domain.JobHighlight;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.domain.ResumeTemplate;
@@ -50,6 +51,9 @@ class RewriteControllerTest {
 	@MockitoBean
 	private RewriteProgressService rewriteProgressService;
 
+	@MockitoBean
+	private RewriteQueryService rewriteQueryService;
+
 	@Test
 	void reportsTheCurrentPhaseOfARewriteInProgress() throws Exception {
 		AnalysisId analysisId = AnalysisId.generate();
@@ -75,7 +79,7 @@ class RewriteControllerTest {
 						new ResumeContact("ana@email.com", null, null, null, null, "Panambi, RS"),
 						List.of(new OriginalSection("RESUMO", "Desenvolvedora backend.")),
 						List.of(new RequirementEvidence("mensageria", "Kafka")),
-						"OpenAI", "gpt-4o-mini"));
+						"OpenAI", "gpt-4o-mini", ResumeTemplate.CLASSIC));
 
 		mockMvc.perform(post("/api/v1/analyses/{id}/rewrite", analysisId.value()))
 				.andExpect(status().isOk())
@@ -102,7 +106,7 @@ class RewriteControllerTest {
 	void usesTheTemplateChosenInTheRequestBody() throws Exception {
 		AnalysisId analysisId = AnalysisId.generate();
 		when(rewriteService.rewrite(eq(analysisId), eq(ResumeTemplate.MODERN_BLUE), eq(JobHighlight.AUTO))).thenReturn(
-				new RewriteResult(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), List.of(), null, null, false, List.of(), null, null, List.of(), List.of(), null, null));
+				new RewriteResult(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), List.of(), null, null, false, List.of(), null, null, List.of(), List.of(), null, null, null));
 
 		mockMvc.perform(post("/api/v1/analyses/{id}/rewrite", analysisId.value())
 						.contentType("application/json")
@@ -114,7 +118,7 @@ class RewriteControllerTest {
 	void turnsTheJobHighlightOffWhenTheRequestAsksForIt() throws Exception {
 		AnalysisId analysisId = AnalysisId.generate();
 		when(rewriteService.rewrite(eq(analysisId), eq(ResumeTemplate.CLASSIC), eq(JobHighlight.DISABLED))).thenReturn(
-				new RewriteResult(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), List.of(), null, null, false, List.of(), null, null, List.of(), List.of(), null, null));
+				new RewriteResult(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), List.of(), null, null, false, List.of(), null, null, List.of(), List.of(), null, null, null));
 
 		mockMvc.perform(post("/api/v1/analyses/{id}/rewrite", analysisId.value())
 						.contentType("application/json")
@@ -159,5 +163,29 @@ class RewriteControllerTest {
 						.contentType("application/json")
 						.content("{\"template\":\"CLASSIC\",\"contact\":{}}"))
 				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void returnsTheSavedAdaptationWithItsTemplate() throws Exception {
+		AnalysisId analysisId = new AnalysisId(UUID.randomUUID());
+		UUID resumeId = UUID.randomUUID();
+		when(rewriteQueryService.latest(analysisId)).thenReturn(Optional.of(new RewriteResult(resumeId, UUID.randomUUID(),
+				UUID.randomUUID(), List.of(), 60, 85, true, List.of(), new StructuredResume("Ana Silva", null, List.of()),
+				null, List.of(), List.of(), null, "gpt-4o-mini", ResumeTemplate.MODERN_BLUE)));
+
+		mockMvc.perform(get("/api/v1/analyses/{id}/rewrite", analysisId.value()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.resumeId").value(resumeId.toString()))
+				.andExpect(jsonPath("$.template").value("MODERN_BLUE"))
+				.andExpect(jsonPath("$.content.name").value("Ana Silva"))
+				.andExpect(jsonPath("$.scoreComparison.after").value(85));
+	}
+
+	@Test
+	void answersNoContentWhenTheResumeWasNotAdaptedYet() throws Exception {
+		AnalysisId analysisId = new AnalysisId(UUID.randomUUID());
+		when(rewriteQueryService.latest(analysisId)).thenReturn(Optional.empty());
+
+		mockMvc.perform(get("/api/v1/analyses/{id}/rewrite", analysisId.value())).andExpect(status().isNoContent());
 	}
 }

@@ -4,6 +4,7 @@ import com.diegohaefliger.atsresumeoptimizer.ai.RequirementEvidence;
 import com.diegohaefliger.atsresumeoptimizer.ai.StructuredResume;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.OriginalSection;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.ResumeContact;
+import com.diegohaefliger.atsresumeoptimizer.rewrite.domain.ResumeTemplate;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,5 +20,6 @@ public record RewriteResultView(
 		List<OriginalSection> originalSections,
 		List<RequirementEvidence> evidencedRequirements,
 		String aiProvider,
-		String aiModel) {
+		String aiModel,
+		ResumeTemplate template) {
 }

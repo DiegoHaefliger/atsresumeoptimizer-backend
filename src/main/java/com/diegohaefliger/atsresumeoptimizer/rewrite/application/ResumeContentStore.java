@@ -28,9 +28,18 @@ class ResumeContentStore {
 	}
 
 	Optional<EditableResume> find(UUID resumeVersionId) {
-		return repository.findFirstByDocxVersionIdOrPdfVersionId(resumeVersionId, resumeVersionId).map(entity -> {
-			ResumeContentDocument document = objectMapper.readValue(entity.document(), ResumeContentDocument.class);
-			return new EditableResume(null, entity.template(), document.content(), document.contact(), false);
-		});
+		return repository.findFirstByDocxVersionIdOrPdfVersionId(resumeVersionId, resumeVersionId).map(this::editable);
+	}
+
+	Optional<SavedResumeContent> findSaved(UUID resumeVersionId) {
+		return repository.findFirstByDocxVersionIdOrPdfVersionId(resumeVersionId, resumeVersionId)
+				.map(entity -> new SavedResumeContent(
+						new StoredResumeDocuments(entity.resumeId(), entity.docxVersionId(), entity.pdfVersionId(), null),
+						editable(entity)));
+	}
+
+	private EditableResume editable(ResumeContentEntity entity) {
+		ResumeContentDocument document = objectMapper.readValue(entity.document(), ResumeContentDocument.class);
+		return new EditableResume(null, entity.template(), document.content(), document.contact(), false);
 	}
 }

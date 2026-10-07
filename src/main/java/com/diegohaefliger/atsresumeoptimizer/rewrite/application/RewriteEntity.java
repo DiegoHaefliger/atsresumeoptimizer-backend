@@ -66,4 +66,12 @@ class RewriteEntity {
 		this.jobHighlighted = jobHighlighted;
 		this.createdAt = Instant.now();
 	}
+
+	String aiModel() {
+		return aiModel;
+	}
+
+	boolean jobHighlighted() {
+		return jobHighlighted;
+	}
 }

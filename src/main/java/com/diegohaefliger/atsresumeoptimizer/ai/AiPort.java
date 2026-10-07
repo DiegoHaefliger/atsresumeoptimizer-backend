@@ -11,4 +11,7 @@ public interface AiPort {
 	AiResult<StructuredResume> structureResume(String resumeText, String correctionInstructions, JobFocus jobFocus);
 
 	AiResult<List<RequirementEvidence>> findRequirementEvidence(String resumeText, List<String> requirements);
+
+	/** Sem cache: gerar de novo tem que trazer outro texto. */
+	AiResult<CoverLetterDraft> writeCoverLetter(CoverLetterBrief brief);
 }

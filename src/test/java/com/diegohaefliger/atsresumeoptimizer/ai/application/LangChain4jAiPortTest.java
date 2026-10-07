@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.diegohaefliger.atsresumeoptimizer.ai.AiResult;
+import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterBrief;
+import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobFocus;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobStructured;
 import com.diegohaefliger.atsresumeoptimizer.ai.RemovedSkill;
@@ -306,5 +308,28 @@ class LangChain4jAiPortTest {
 		org.assertj.core.api.Assertions.assertThatThrownBy(() -> aiPort.structureJob("vaga"))
 				.isInstanceOf(com.diegohaefliger.atsresumeoptimizer.ai.AiCallException.class)
 				.hasMessageContaining("Google Gemini");
+	}
+
+	@Test
+	void writesTheCoverLetterFromTheJobAndTheResumeWithoutTouchingTheCache() {
+		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
+		PromptTemplate template = template("cover-letter",
+				"Vaga: {{jobTitle}} | Empresa: {{company}} | Principais: {{priorityKeywords}} | {{jobText}} | {{resumeText}}");
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("cover-letter")).thenReturn(Optional.of(template));
+		ChatResponse response = ChatResponse.builder()
+				.aiMessage(AiMessage.from("{\"text\":\"Desenvolvo APIs em Java.\\n\\nQuero conversar.\"}"))
+				.tokenUsage(new TokenUsage(300, 120))
+				.build();
+		org.mockito.ArgumentCaptor<ChatRequest> requestCaptor = org.mockito.ArgumentCaptor.forClass(ChatRequest.class);
+		when(chatModel.chat(requestCaptor.capture())).thenReturn(response);
+
+		AiResult<CoverLetterDraft> result = aiPort.writeCoverLetter(
+				new CoverLetterBrief("Backend Java", null, "texto da vaga", List.of("Java", "Kafka"), "texto do currículo"));
+
+		assertThat(result.value().text()).isEqualTo("Desenvolvo APIs em Java.\n\nQuero conversar.");
+		String sentPrompt = ((dev.langchain4j.data.message.UserMessage) requestCaptor.getValue().messages().get(0)).singleText();
+		assertThat(sentPrompt).isEqualTo(
+				"Vaga: Backend Java | Empresa: não informada | Principais: Java, Kafka | texto da vaga | texto do currículo");
+		verifyNoInteractions(llmCacheRepository);
 	}
 }
