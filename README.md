@@ -55,12 +55,15 @@ uma única vez (o Google não oferece API para isso):
 1. Acesse o [Google Cloud Console](https://console.cloud.google.com) e crie um projeto (ou use um existente).
 2. Em **APIs e serviços > Biblioteca**, ative a **Google Calendar API**.
 3. Em **APIs e serviços > Tela de consentimento OAuth** (ou **Google Auth Platform**), escolha o tipo
-   **Externo**, informe nome do app e e-mail de suporte. Em **Público-alvo**, adicione como usuários de teste
-   os e-mails que vão conectar a agenda.
-4. Em **APIs e serviços > Credenciais > Criar credenciais > ID do cliente OAuth**, escolha
-   **Aplicativo da Web** e, em **URIs de redirecionamento autorizados**, cadastre o endereço do backend
-   seguido de `/api/v1/google-calendar/callback` (local: `http://localhost:8080/api/v1/google-calendar/callback`).
-5. Copie o ID do cliente e a chave secreta para o `.env` do backend e reinicie:
+   **Externo** e informe nome do app e e-mail de suporte.
+4. Ainda na tela de consentimento, em **Público-alvo > Usuários de teste**, clique em **+ Adicionar usuários** e
+   inclua o e-mail de cada conta que vai conectar a agenda. Sem isso o login falha com `403: access_denied`.
+5. Em **APIs e serviços > Credenciais > Criar credenciais > ID do cliente OAuth**, escolha **Aplicativo da Web**.
+6. No mesmo formulário, na seção **URIs de redirecionamento autorizados** (não em "Origens JavaScript
+   autorizadas"), adicione o endereço do backend seguido de `/api/v1/google-calendar/callback`
+   (local: `http://localhost:8080/api/v1/google-calendar/callback`) e salve. Endereço diferente gera
+   `400: redirect_uri_mismatch`; a mudança pode levar alguns minutos para valer.
+7. Copie o ID do cliente e a chave secreta para o `.env` do backend e reinicie:
 
 ```properties
 GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
