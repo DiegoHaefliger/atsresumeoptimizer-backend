@@ -9,6 +9,7 @@ import com.diegohaefliger.atsresumeoptimizer.resume.ResumeSummary;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeUploadLimits;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionCreated;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionInfo;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionOrigin;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionSummary;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionText;
 import com.diegohaefliger.atsresumeoptimizer.resume.domain.FavoriteResumeMustBeBaseException;
@@ -222,6 +223,15 @@ class ResumeServiceImpl implements ResumeService {
 	@Override
 	public void assertExists(UUID resumeId, UUID resumeVersionId) {
 		ownedVersion(resumeId, resumeVersionId);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public ResumeVersionOrigin origin(UUID resumeId, UUID resumeVersionId) {
+		ResumeVersion version = ownedVersion(resumeId, resumeVersionId);
+		Resume resume = resumeRepository.findById(resumeId).orElseThrow(() -> new ResumeNotFoundException(resumeId));
+		long number = resumeVersionRepository.countByResumeIdAndCreatedAtLessThanEqual(resumeId, version.createdAt());
+		return new ResumeVersionOrigin(Math.toIntExact(number), Optional.ofNullable(resume.sourceAnalysisId()));
 	}
 
 	@Override
