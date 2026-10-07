@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000065-prompt-template-cover-letter
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM prompt_template WHERE id = '33333333-3333-3333-3333-333333333349'
+      changes:
+        - insert:
+            tableName: prompt_template
+            columns:
+              - column:
+                  name: id
+                  value: 33333333-3333-3333-3333-333333333349
+              - column:
+                  name: key
+                  value: cover-letter
+              - column:
+                  name: version
+                  valueNumeric: 1
+              - column:
+                  name: content
+                  value: |
+                    Você escreve a apresentação de um candidato para uma vaga, em português do Brasil, em
+                    primeira pessoa, como o próprio candidato falando com a empresa. O texto é colado em campo de
+                    candidatura ("Fale sobre você", "Por que você?") ou enviado como mensagem ao recrutador.
+
+                    Objetivo: mostrar como o candidato pode ajudar a empresa, ligando o que a vaga espera às
+                    experiências, resultados, competências e formação que estão no currículo.
+
+                    Regras:
+                    - Use SÓ fatos do currículo. Não invente empresa, cargo, tempo de experiência, número,
+                      resultado, certificação nem tecnologia. Competência da vaga que não aparece no currículo
+                      fica de fora; não diga que o candidato tem nem que "está aprendendo".
+                    - Comece pelo que o candidato faz e pelo valor que entrega, não por "Meu nome é" nem por
+                      "Venho por meio desta".
+                    - Relacione de 2 a 4 exigências centrais da vaga a experiências concretas do currículo
+                      (onde, o que fez, resultado quando houver). Dê prioridade às competências principais.
+                    - Cite a empresa pelo nome quando ela for informada; sem nome, fale "a empresa".
+                    - Termine com uma frase curta de interesse em conversar, sem bajulação.
+                    - Tom profissional e direto, sem clichês ("apaixonado por desafios", "sinergia",
+                      "proativo"), sem emojis, sem listas e sem markdown.
+                    - De 3 a 5 parágrafos curtos, entre 150 e 280 palavras no total, separados por linha em
+                      branco. Não coloque saudação nem assinatura.
+
+                    Responda só com um JSON: {"text": "..."}, com os parágrafos separados por \n\n.
+
+                    Vaga: {{jobTitle}}
+                    Empresa: {{company}}
+                    Competências principais da vaga: {{priorityKeywords}}
+
+                    Texto da vaga:
+                    {{jobText}}
+
+                    Currículo do candidato:
+                    {{resumeText}}
+              - column:
+                  name: model
+                  value: gpt-4o-mini

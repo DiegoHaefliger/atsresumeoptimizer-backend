@@ -113,3 +113,7 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000062_google_calendar.yaml
   - include:
       file: db/changelog/changes/00000000000063_google_calendar_cleanup.yaml
+  - include:
+      file: db/changelog/changes/00000000000064_cover_letter.yaml
+  - include:
+      file: db/changelog/changes/00000000000065_prompt_template_cover_letter.yaml

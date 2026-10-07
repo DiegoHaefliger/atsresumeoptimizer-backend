@@ -6,6 +6,8 @@ import com.diegohaefliger.atsresumeoptimizer.ai.AiPort;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiResult;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiUsage;
 import com.diegohaefliger.atsresumeoptimizer.ai.BulletReview;
+import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterBrief;
+import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobFocus;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobStructured;
 import com.diegohaefliger.atsresumeoptimizer.ai.RequirementEvidence;
@@ -31,6 +33,7 @@ class LangChain4jAiPort implements AiPort {
 	private static final String JOB_STRUCTURING_KEY = "job-structuring";
 	private static final String BULLET_REVIEW_KEY = "bullet-review";
 	private static final String REQUIREMENT_EVIDENCE_KEY = "requirement-evidence";
+	private static final String COVER_LETTER_KEY = "cover-letter";
 	static final String RESUME_STRUCTURING_KEY = "resume-structuring";
 	private static final int MAX_PARSE_ATTEMPTS = 2;
 	private static final String NO_PROVIDER_CONFIGURED =
@@ -42,6 +45,8 @@ class LangChain4jAiPort implements AiPort {
 	private static final String UNKNOWN_SENIORITY = "não informada";
 	private static final String NO_MATCHED_KEYWORDS = "nenhuma";
 	private static final String NO_EVIDENCED_REQUIREMENTS = "- nenhum";
+	private static final String UNKNOWN_COMPANY = "não informada";
+	private static final String UNKNOWN_JOB_TITLE = "não informado";
 
 	private final AiModelGateway modelGateway;
 	private final PromptTemplateRepository promptTemplateRepository;
@@ -84,6 +89,19 @@ class LangChain4jAiPort implements AiPort {
 				.replace("{{resumeText}}", resumeText);
 		AiResult<RequirementEvidence[]> result = call(template, prompt, RequirementEvidence[].class);
 		return new AiResult<>(List.of(result.value()), result.usage());
+	}
+
+	@Override
+	public AiResult<CoverLetterDraft> writeCoverLetter(CoverLetterBrief brief) {
+		PromptTemplate template = activeTemplate(COVER_LETTER_KEY);
+		String prompt = template.getContent()
+				.replace("{{jobTitle}}", StringUtils.hasText(brief.jobTitle()) ? brief.jobTitle() : UNKNOWN_JOB_TITLE)
+				.replace("{{company}}", StringUtils.hasText(brief.company()) ? brief.company() : UNKNOWN_COMPANY)
+				.replace("{{priorityKeywords}}",
+						brief.priorityKeywords().isEmpty() ? NO_MATCHED_KEYWORDS : String.join(", ", brief.priorityKeywords()))
+				.replace("{{jobText}}", brief.jobText())
+				.replace("{{resumeText}}", brief.resumeText());
+		return call(template, prompt, CoverLetterDraft.class, false);
 	}
 
 	@Override
@@ -130,6 +148,10 @@ class LangChain4jAiPort implements AiPort {
 	}
 
 	private <T> AiResult<T> call(PromptTemplate template, String prompt, Class<T> responseType) {
+		return call(template, prompt, responseType, true);
+	}
+
+	private <T> AiResult<T> call(PromptTemplate template, String prompt, Class<T> responseType, boolean cacheable) {
 		List<ResolvedModel> chain = modelGateway.resolveChain(template.getKey());
 		if (chain.isEmpty()) {
 			throw new AiCallException(NO_PROVIDER_CONFIGURED, null);
@@ -137,7 +159,7 @@ class LangChain4jAiPort implements AiPort {
 		AiCallException lastFailure = null;
 		for (ResolvedModel resolved : chain) {
 			try {
-				return callProvider(resolved, template, prompt, responseType);
+				return callProvider(resolved, template, prompt, responseType, cacheable);
 			} catch (AiCallException failure) {
 				lastFailure = failure;
 				LOGGER.warn("Provedor {} ({}) falhou para {}, tentando o próximo da fila", resolved.provider(),
@@ -148,11 +170,11 @@ class LangChain4jAiPort implements AiPort {
 	}
 
 	private <T> AiResult<T> callProvider(
-			ResolvedModel resolved, PromptTemplate template, String prompt, Class<T> responseType) {
+			ResolvedModel resolved, PromptTemplate template, String prompt, Class<T> responseType, boolean cacheable) {
 		String model = resolved.modelName();
 		String keyHash = Sha256.hex(
 				template.getKey() + ":" + template.getVersion() + ":" + resolved.provider() + ":" + model + ":" + prompt);
-		Optional<LlmCacheEntry> cached = llmCacheRepository.findById(keyHash);
+		Optional<LlmCacheEntry> cached = cacheable ? llmCacheRepository.findById(keyHash) : Optional.empty();
 		if (cached.isPresent()) {
 			return new AiResult<>(parse(cached.get().response(), responseType), AiUsage.cached(resolved.provider().label(), model));
 		}
@@ -186,7 +208,9 @@ class LangChain4jAiPort implements AiPort {
 				}
 			}
 
-			llmCacheRepository.save(new LlmCacheEntry(keyHash, template.getKey(), template.getVersion(), parsedText));
+			if (cacheable) {
+				llmCacheRepository.save(new LlmCacheEntry(keyHash, template.getKey(), template.getVersion(), parsedText));
+			}
 
 			TokenUsage tokenUsage = response.tokenUsage();
 			int tokensIn = tokenUsage != null && tokenUsage.inputTokenCount() != null ? tokenUsage.inputTokenCount() : 0;
