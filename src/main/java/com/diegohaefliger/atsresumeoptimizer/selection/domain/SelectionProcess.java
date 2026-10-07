@@ -25,9 +25,12 @@ public record SelectionProcess(
 		String notes,
 		Instant createdAt,
 		Instant updatedAt,
-		List<StageMovement> history) {
+		List<StageMovement> history,
+		List<SelectionSchedule> schedules,
+		SelectionSchedule nextSchedule) {
 
 	public SelectionProcess {
 		history = history == null ? List.of() : List.copyOf(history);
+		schedules = schedules == null ? List.of() : List.copyOf(schedules);
 	}
 }

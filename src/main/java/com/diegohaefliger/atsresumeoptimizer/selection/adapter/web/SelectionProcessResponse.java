@@ -25,5 +25,7 @@ record SelectionProcessResponse(
 		String notes,
 		Instant createdAt,
 		Instant updatedAt,
-		List<StageMovementResponse> history) {
+		List<StageMovementResponse> history,
+		List<SelectionScheduleResponse> schedules,
+		SelectionScheduleResponse nextSchedule) {
 }

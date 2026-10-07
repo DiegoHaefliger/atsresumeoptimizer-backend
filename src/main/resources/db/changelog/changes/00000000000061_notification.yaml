@@ -1,0 +1,64 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000061-notification
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: notification
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: type
+                  type: varchar(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: message
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: process_id
+                  type: uuid
+              - column:
+                  name: schedule_id
+                  type: uuid
+              - column:
+                  name: lead_minutes
+                  type: integer
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: read_at
+                  type: timestamptz
+        - createIndex:
+            indexName: idx_notification_created_at
+            tableName: notification
+            columns:
+              - column:
+                  name: created_at
+        - createIndex:
+            indexName: uq_notification_schedule_lead
+            tableName: notification
+            unique: true
+            columns:
+              - column:
+                  name: schedule_id
+              - column:
+                  name: lead_minutes
+        - sql:
+            comment: índice parcial para o contador de não lidas; Liquibase não expressa WHERE em createIndex
+            sql: CREATE INDEX idx_notification_unread ON notification (created_at) WHERE read_at IS NULL

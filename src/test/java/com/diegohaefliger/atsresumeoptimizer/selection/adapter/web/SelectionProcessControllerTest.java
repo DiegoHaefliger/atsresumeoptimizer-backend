@@ -158,6 +158,6 @@ class SelectionProcessControllerTest {
 	private SelectionProcess process(SelectionStage stage) {
 		Instant now = Instant.now();
 		return new SelectionProcess(ID, JOB_ID, 12L, "Acme", "Dev Java", "https://acme.com/vaga", "https://acme.gupy.io/p/1", stage,
-				null, null, null, null, null, null, null, now, now, List.of(new StageMovement(UUID.randomUUID(), SelectionStage.APPLIED, null, now)));
+				null, null, null, null, null, null, null, now, now, List.of(new StageMovement(UUID.randomUUID(), SelectionStage.APPLIED, null, now)), List.of(), null);
 	}
 }

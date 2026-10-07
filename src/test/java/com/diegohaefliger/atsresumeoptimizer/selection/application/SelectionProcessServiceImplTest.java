@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.diegohaefliger.atsresumeoptimizer.job.JobOffer;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
+import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleChanged;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.InvalidStageMovementException;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcess;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class SelectionProcessServiceImplTest {
@@ -39,7 +41,13 @@ class SelectionProcessServiceImplTest {
 	private SelectionStageMovementRepository movementRepository;
 
 	@Mock
+	private SelectionScheduleRepository scheduleRepository;
+
+	@Mock
 	private JobStructuringService jobService;
+
+	@Mock
+	private ApplicationEventPublisher events;
 
 	private static final UUID JOB_ID = UUID.randomUUID();
 
@@ -50,8 +58,8 @@ class SelectionProcessServiceImplTest {
 			null, null, List.of(), null, null, "texto");
 
 	private SelectionProcessServiceImpl service() {
-		return new SelectionProcessServiceImpl(repository, movementRepository, new SelectionProcessEntityMapperImpl(),
-				jobService);
+		return new SelectionProcessServiceImpl(repository, movementRepository, scheduleRepository,
+				new SelectionScheduleEntityMapperImpl(), new SelectionProcessEntityMapperImpl(), jobService, events);
 	}
 
 	private void jobExists() {
@@ -160,6 +168,19 @@ class SelectionProcessServiceImplTest {
 
 		assertThatThrownBy(() -> service().get(ID)).isInstanceOf(SelectionProcessNotFoundException.class);
 		assertThatThrownBy(() -> service().delete(ID)).isInstanceOf(SelectionProcessNotFoundException.class);
+	}
+
+	@Test
+	void deletingAProcessAnnouncesItsSchedulesSoExternalCalendarsCanDropThem() {
+		SelectionProcessEntity entity = existing(SelectionStage.SCREENING);
+		SelectionScheduleEntity schedule = new SelectionScheduleEntity(ID, SelectionStage.SCREENING, Instant.now());
+		when(repository.findById(ID)).thenReturn(Optional.of(entity));
+		when(scheduleRepository.findByProcessIdOrderByScheduledAtAsc(ID)).thenReturn(List.of(schedule));
+
+		service().delete(ID);
+
+		verify(events).publishEvent(new ScheduleChanged(schedule.getId()));
+		verify(repository).delete(entity);
 	}
 
 	@Test
