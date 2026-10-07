@@ -115,7 +115,7 @@ class AnalysesControllerTest {
 	void returnsTheAnalysisResultByIdView() throws Exception {
 		AnalysisId id = AnalysisId.generate();
 		var result = new AnalysisReportView(
-				new AnalysisHeaderView(id.value(), AnalysisStatus.COMPLETED, AnalysisMode.JOB_MATCH, true),
+				new AnalysisHeaderView(id.value(), AnalysisStatus.COMPLETED, AnalysisMode.JOB_MATCH, true, false),
 				new ScoreSummaryView(71, List.of()),
 				new KeywordsPanelView(List.of(), List.of(), List.of(), List.of(), List.of(), false),
 				new FindingsListView(List.of()),

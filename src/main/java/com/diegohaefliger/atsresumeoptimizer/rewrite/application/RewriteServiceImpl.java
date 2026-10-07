@@ -212,7 +212,7 @@ class RewriteServiceImpl implements RewriteService {
 
 		return new RewriteResult(documents.resumeId(), documents.docxVersionId(), documents.pdfVersionId(), views,
 				snapshot.overallScore(), scoreAfter, jobFocus.enabled(), removedSkills(contentModel), contentModel, contact,
-				originalSections(parsingResult), jobFocus.evidencedRequirements(), usage.provider(), usage.model());
+				originalSections(parsingResult), jobFocus.evidencedRequirements(), usage.provider(), usage.model(), template);
 	}
 
 	private StructuredResume enforceGuardRails(AiResult<StructuredResume> structureResult, String originalText,

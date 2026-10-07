@@ -2,6 +2,7 @@ package com.diegohaefliger.atsresumeoptimizer.rewrite;
 
 import com.diegohaefliger.atsresumeoptimizer.ai.RequirementEvidence;
 import com.diegohaefliger.atsresumeoptimizer.ai.StructuredResume;
+import com.diegohaefliger.atsresumeoptimizer.rewrite.domain.ResumeTemplate;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,7 +20,8 @@ public record RewriteResult(
 		List<OriginalSection> originalSections,
 		List<RequirementEvidence> evidencedRequirements,
 		String aiProvider,
-		String aiModel) {
+		String aiModel,
+		ResumeTemplate template) {
 
 	public RewriteResult {
 		bullets = bullets == null ? List.of() : List.copyOf(bullets);

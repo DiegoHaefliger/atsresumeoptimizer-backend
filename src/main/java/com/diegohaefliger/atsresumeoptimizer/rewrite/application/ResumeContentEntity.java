@@ -51,6 +51,18 @@ class ResumeContentEntity {
 		this.createdAt = Instant.now();
 	}
 
+	UUID resumeId() {
+		return resumeId;
+	}
+
+	UUID docxVersionId() {
+		return docxVersionId;
+	}
+
+	UUID pdfVersionId() {
+		return pdfVersionId;
+	}
+
 	ResumeTemplate template() {
 		return template;
 	}

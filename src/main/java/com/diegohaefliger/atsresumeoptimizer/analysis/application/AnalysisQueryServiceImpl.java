@@ -71,7 +71,8 @@ class AnalysisQueryServiceImpl implements AnalysisQueryService {
 		List<KeywordMatchEntity> keywordMatches = keywordMatchRepository.findByAnalysisId(id.value());
 
 		var header = new AnalysisHeaderView(analysis.id(), analysis.status(), analysis.mode(),
-				StringUtils.hasText(analysis.jobDescription()) || StringUtils.hasText(analysis.targetRole()));
+				StringUtils.hasText(analysis.jobDescription()) || StringUtils.hasText(analysis.targetRole()),
+				resumeService.latestAdaptedVersion(analysis.id()).isPresent());
 		ScoreSummaryView score = analysis.overallScore() == null && dimensions.isEmpty()
 				? null
 				: new ScoreSummaryView(analysis.overallScore(), dimensions);
