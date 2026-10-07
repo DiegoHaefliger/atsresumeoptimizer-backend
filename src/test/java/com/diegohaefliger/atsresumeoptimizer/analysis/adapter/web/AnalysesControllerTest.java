@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -38,12 +39,15 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeOrigin;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeSummary;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -246,5 +250,33 @@ class AnalysesControllerTest {
 				.andExpect(jsonPath("$[0].id").value(resumeId.toString()))
 				.andExpect(jsonPath("$[0].origin").value("ADAPTED"))
 				.andExpect(jsonPath("$[0].atsScore").value(83));
+	}
+
+	@Test
+	void acceptsUpToTenMainKeywords() throws Exception {
+		UUID id = UUID.randomUUID();
+
+		mockMvc.perform(put("/api/v1/analyses/{id}/keywords", id)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(keywordsBody(10)))
+				.andExpect(status().isNoContent());
+
+		verify(analysisService).updateKeywords(eq(new AnalysisId(id)), any(), any());
+	}
+
+	@Test
+	void rejectsMoreThanTenMainKeywords() throws Exception {
+		mockMvc.perform(put("/api/v1/analyses/{id}/keywords", UUID.randomUUID())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(keywordsBody(11)))
+				.andExpect(status().isBadRequest());
+
+		verifyNoInteractions(analysisService);
+	}
+
+	private static String keywordsBody(int selectedCount) {
+		String terms = IntStream.rangeClosed(1, selectedCount).mapToObj(index -> "\"termo" + index + "\"")
+				.collect(Collectors.joining(","));
+		return "{\"keywords\":[" + terms + "],\"selected\":[" + terms + "]}";
 	}
 }

@@ -10,12 +10,14 @@ import com.diegohaefliger.atsresumeoptimizer.resume.ResumeSummary;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeUploadLimits;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionCreated;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionInfo;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionOrigin;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionSummary;
 import com.diegohaefliger.atsresumeoptimizer.resume.domain.FavoriteResumeMustBeBaseException;
 import com.diegohaefliger.atsresumeoptimizer.resume.domain.EmptyResumeFileException;
 import com.diegohaefliger.atsresumeoptimizer.resume.domain.ResumeFileTooLargeException;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -87,6 +89,22 @@ class ResumeServiceImplTest {
 
 		assertThat(info.fileName()).isEqualTo("curriculo-adaptado.docx");
 		assertThat(new String(info.content())).startsWith("conteudo reescrito");
+	}
+
+	@Test
+	void numbersTheVersionAndTellsTheAnalysisTheAdaptedResumeCameFrom() {
+		ResumeVersionCreated base = resumeService.storeUpload(
+				"base.pdf", unique("base origem"), "base.pdf", "application/pdf", "texto", "texto", 1);
+		UUID analysisId = UUID.randomUUID();
+		ResumeVersionCreated adapted = resumeService.storeAdapted(base.resumeVersionId(), analysisId, "Vaga",
+				unique("adaptado origem"), "curriculo-adaptado.docx", DOCX_MIME, "texto");
+		ResumeVersionCreated edited = resumeService.storeGeneratedVersion(adapted.resumeVersionId(),
+				unique("editado origem"), "curriculo-editado.docx", DOCX_MIME, "texto");
+
+		assertThat(resumeService.origin(base.resumeId(), base.resumeVersionId()))
+				.isEqualTo(new ResumeVersionOrigin(1, Optional.empty()));
+		assertThat(resumeService.origin(adapted.resumeId(), edited.resumeVersionId()))
+				.isEqualTo(new ResumeVersionOrigin(2, Optional.of(analysisId)));
 	}
 
 	@Test

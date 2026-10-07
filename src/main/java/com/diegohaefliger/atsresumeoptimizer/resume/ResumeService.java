@@ -52,6 +52,9 @@ public interface ResumeService {
 
 	void assertExists(UUID resumeId, UUID resumeVersionId);
 
+	/** Mesma numeração de {@link #listVersions}: conta as versões já apagadas. */
+	ResumeVersionOrigin origin(UUID resumeId, UUID resumeVersionId);
+
 	String title(UUID resumeId);
 
 	void rename(UUID resumeId, String title);

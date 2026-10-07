@@ -12,6 +12,8 @@ interface ResumeVersionRepository extends JpaRepository<ResumeVersion, UUID> {
 
 	List<ResumeVersion> findByResumeIdOrderByCreatedAtAsc(UUID resumeId);
 
+	long countByResumeIdAndCreatedAtLessThanEqual(UUID resumeId, Instant createdAt);
+
 	List<ResumeVersion> findByResumeIdInOrderByCreatedAtAsc(Collection<UUID> resumeIds);
 
 	List<ResumeVersion> findByCreatedAtBeforeAndStorageKeyNot(Instant cutoff, String scrubbedPlaceholder);

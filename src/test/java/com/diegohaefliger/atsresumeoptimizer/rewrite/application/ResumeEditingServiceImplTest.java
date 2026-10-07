@@ -49,6 +49,8 @@ class ResumeEditingServiceImplTest {
 	private ResumeContentStore contentStore;
 	@Mock
 	private ResumeDocumentWriter documentWriter;
+	@Mock
+	private ResumeExportName exportName;
 
 	@InjectMocks
 	private ResumeEditingServiceImpl service;
@@ -119,15 +121,36 @@ class ResumeEditingServiceImplTest {
 
 	@Test
 	void exportsTheStoredFileAsIsWhenItAlreadyHasTheRequestedFormat() {
+		EditableResume stored = new EditableResume(null, ResumeTemplate.CLASSIC,
+				new StructuredResume("Diego Haefliger", null, List.of()), CONTACT, false);
 		when(resumeService.getVersionInfo(RESUME_ID, VERSION_ID))
 				.thenReturn(new ResumeVersionInfo(new byte[] {7}, "x.pdf", "application/pdf"));
-		when(resumeService.title(RESUME_ID)).thenReturn("Diego_Haefliger.pdf");
+		when(contentStore.find(VERSION_ID)).thenReturn(Optional.of(stored));
+		when(exportName.baseName(RESUME_ID, VERSION_ID, "Diego Haefliger")).thenReturn("DiegoHaefliger_Cielo_V0001_1");
 
 		ExportedResume exported = service.export(RESUME_ID, VERSION_ID, ResumeFormat.PDF);
 
-		assertThat(exported.fileName()).isEqualTo("Diego_Haefliger.pdf");
+		assertThat(exported.fileName()).isEqualTo("DiegoHaefliger_Cielo_V0001_1.pdf");
 		assertThat(exported.content()).containsExactly(7);
 		verifyNoInteractions(documentWriter);
+	}
+
+	@Test
+	void namesTheExportAfterTheCandidateReadFromTheFileWhenThereIsNoSavedContent() {
+		when(resumeService.getVersionInfo(RESUME_ID, VERSION_ID))
+				.thenReturn(new ResumeVersionInfo(new byte[] {7}, "x.pdf", "application/pdf"));
+		when(contentStore.find(VERSION_ID)).thenReturn(Optional.empty());
+		when(parsingPipeline.analyze(new byte[] {7})).thenReturn(new ParsingResult(
+				new NormalizedDocument(SourceFormat.PDF, "Ana Silva", "Ana Silva", 1),
+				new ParsingSignals(false, false, false, false, false, false, false, false), List.of(),
+				new ContactInfo(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+						Optional.empty(), Optional.empty())));
+		when(exportName.baseName(RESUME_ID, VERSION_ID, "Ana Silva")).thenReturn("AnaSilva_1");
+
+		ExportedResume exported = service.export(RESUME_ID, VERSION_ID, ResumeFormat.PDF);
+
+		assertThat(exported.fileName()).isEqualTo("AnaSilva_1.pdf");
+		verify(resumeService, never()).downloadContent(any());
 	}
 
 	@Test
@@ -136,14 +159,14 @@ class ResumeEditingServiceImplTest {
 				new StructuredResume("Ana Silva", null, List.of()), CONTACT, false);
 		when(resumeService.getVersionInfo(RESUME_ID, VERSION_ID))
 				.thenReturn(new ResumeVersionInfo(new byte[] {7}, "x.docx", ResumeFormat.DOCX.mimeType()));
-		when(resumeService.title(RESUME_ID)).thenReturn("Meu: currículo");
 		when(contentStore.find(VERSION_ID)).thenReturn(Optional.of(stored));
+		when(exportName.baseName(RESUME_ID, VERSION_ID, "Ana Silva")).thenReturn("AnaSilva_2");
 		when(documentWriter.render(eq(ResumeTemplate.CLASSIC), any(), eq(CONTACT)))
 				.thenReturn(new RenderedResume(new byte[] {1}, new byte[] {2}, "texto"));
 
 		ExportedResume exported = service.export(RESUME_ID, VERSION_ID, ResumeFormat.PDF);
 
-		assertThat(exported.fileName()).isEqualTo("Meu_ currículo.pdf");
+		assertThat(exported.fileName()).isEqualTo("AnaSilva_2.pdf");
 		assertThat(exported.content()).containsExactly(2);
 	}
 }

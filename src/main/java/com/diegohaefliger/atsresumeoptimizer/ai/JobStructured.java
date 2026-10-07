@@ -17,6 +17,7 @@ public record JobStructured(
 		List<String> priorityKeywords) {
 
 	public static final int DEFAULT_PRIORITY_COUNT = 5;
+	public static final int MAX_PRIORITY_COUNT = 10;
 
 	public JobStructured {
 		languages = languages == null ? List.of() : List.copyOf(languages);
