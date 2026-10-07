@@ -12,6 +12,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.application.GoogleCalendarService;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleConnectionStatus;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleNotConfiguredException;
+import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCalendarItem;
+import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -51,6 +54,17 @@ class GoogleCalendarControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.url").value("https://accounts.google.com/auth?x=1"));
 		mockMvc.perform(get(BASE + "/authorize")).andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void listsGoogleEventsOfTheRange() throws Exception {
+		when(service.events(Instant.parse("2026-10-01T00:00:00Z"), Instant.parse("2026-11-01T00:00:00Z")))
+				.thenReturn(List.of(new GoogleCalendarItem("a", "Dentista", "2026-10-08T14:00:00Z", "2026-10-08T15:00:00Z", false, "l")));
+
+		mockMvc.perform(get(BASE + "/events").param("from", "2026-10-01T00:00:00Z").param("to", "2026-11-01T00:00:00Z"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].title").value("Dentista"))
+				.andExpect(jsonPath("$[0].allDay").value(false));
 	}
 
 	@Test

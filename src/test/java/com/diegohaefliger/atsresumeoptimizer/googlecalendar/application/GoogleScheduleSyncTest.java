@@ -13,7 +13,6 @@ import com.diegohaefliger.atsresumeoptimizer.selection.CalendarEvent;
 import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleStatus;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionCalendar;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
-import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleAuthRevokedException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -33,7 +32,7 @@ class GoogleScheduleSyncTest {
 	private static final UUID SCHEDULE_ID = UUID.randomUUID();
 
 	@Mock
-	private GoogleAccountStore accountStore;
+	private GoogleAccessTokens accessTokens;
 
 	@Mock
 	private GoogleCalendarGateway gateway;
@@ -47,17 +46,16 @@ class GoogleScheduleSyncTest {
 	@Mock
 	private ReminderLeadTimes leadTimes;
 
-	private GoogleCalendarProperties properties = new GoogleCalendarProperties("id", "secret", "http://localhost:8080/cb",
+	private final GoogleCalendarProperties properties = new GoogleCalendarProperties("id", "secret", "http://localhost:8080/cb",
 			"http://localhost:5173", "a", "t", "r", "u", "e");
 
 	private GoogleScheduleSync sync() {
-		return new GoogleScheduleSync(accountStore, properties, gateway, linkRepository, new GoogleEventPayloads(properties), calendar,
+		return new GoogleScheduleSync(accessTokens, gateway, linkRepository, new GoogleEventPayloads(properties), calendar,
 				leadTimes, Clock.fixed(NOW, ZoneOffset.UTC));
 	}
 
 	private void connected() {
-		when(accountStore.refreshToken()).thenReturn(Optional.of("ref"));
-		when(gateway.refreshAccessToken(any(), eq("ref"))).thenReturn("acc");
+		when(accessTokens.current()).thenReturn(Optional.of("acc"));
 	}
 
 	private CalendarEvent event(ScheduleStatus status) {
@@ -67,22 +65,13 @@ class GoogleScheduleSyncTest {
 
 	@Test
 	void doesNothingWhenNoGoogleAccountIsConnected() {
-		when(accountStore.refreshToken()).thenReturn(Optional.empty());
+		when(accessTokens.current()).thenReturn(Optional.empty());
 
 		sync().syncOne(SCHEDULE_ID);
 
 		verifyNoInteractions(gateway, calendar, linkRepository);
 	}
 
-	@Test
-	void doesNothingWhenTheServerHasNoGoogleCredentials() {
-		properties = new GoogleCalendarProperties("", "", "uri", "front", "a", "t", "r", "u", "e");
-		when(accountStore.refreshToken()).thenReturn(Optional.of("ref"));
-
-		sync().syncOne(SCHEDULE_ID);
-
-		verifyNoInteractions(gateway, calendar, linkRepository);
-	}
 
 	@Test
 	void createsTheGoogleEventAndRemembersItsId() {
@@ -141,16 +130,6 @@ class GoogleScheduleSyncTest {
 		verify(gateway).deleteEvent("acc", "evt1");
 	}
 
-	@Test
-	void disconnectsWhenGoogleRevokedTheAccess() {
-		when(accountStore.refreshToken()).thenReturn(Optional.of("ref"));
-		when(gateway.refreshAccessToken(any(), any())).thenThrow(new GoogleAuthRevokedException());
-
-		sync().syncOne(SCHEDULE_ID);
-
-		verify(accountStore).clearConnection();
-		verifyNoInteractions(calendar);
-	}
 
 	@Test
 	void syncAllPushesEveryEventOfTheNextYear() {

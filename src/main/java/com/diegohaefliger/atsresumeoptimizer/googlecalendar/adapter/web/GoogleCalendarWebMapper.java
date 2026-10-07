@@ -1,5 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.googlecalendar.adapter.web;
 
+import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCalendarItem;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleConnectionStatus;
 import org.mapstruct.Mapper;
 
@@ -7,4 +8,6 @@ import org.mapstruct.Mapper;
 interface GoogleCalendarWebMapper {
 
 	GoogleStatusResponse toResponse(GoogleConnectionStatus status);
+
+	GoogleEventResponse toResponse(GoogleCalendarItem item);
 }

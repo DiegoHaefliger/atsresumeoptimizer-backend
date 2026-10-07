@@ -5,7 +5,11 @@ import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleAuthRev
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleAuthorizationException;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCredentials;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleTokens;
+import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCalendarItem;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +29,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 class GoogleApiClient implements GoogleCalendarGateway {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(GoogleApiClient.class);
+	private static final int MAX_LISTED_EVENTS = 250;
 	private static final String SCOPES = "openid email https://www.googleapis.com/auth/calendar.events";
 	private static final ParameterizedTypeReference<Map<String, Object>> JSON_OBJECT = new ParameterizedTypeReference<>() {
 	};
@@ -138,6 +143,54 @@ class GoogleApiClient implements GoogleCalendarGateway {
 		} catch (RestClientException exception) {
 			throw new GoogleApiException("Falha ao remover o evento do Google Agenda.", exception);
 		}
+	}
+
+	@Override
+	public List<GoogleCalendarItem> listEvents(String accessToken, Instant from, Instant to) {
+		try {
+			Map<String, Object> body = http.get()
+					.uri(UriComponentsBuilder.fromUriString(properties.eventsUrl())
+							.queryParam("timeMin", from.toString())
+							.queryParam("timeMax", to.toString())
+							.queryParam("singleEvents", true)
+							.queryParam("orderBy", "startTime")
+							.queryParam("maxResults", MAX_LISTED_EVENTS)
+							.encode()
+							.build()
+							.toUri())
+					.header(HttpHeaders.AUTHORIZATION, bearer(accessToken))
+					.retrieve()
+					.body(JSON_OBJECT);
+			Object items = body == null ? null : body.get("items");
+			if (!(items instanceof List<?> list)) {
+				return List.of();
+			}
+			return list.stream()
+					.filter(Map.class::isInstance)
+					.map(item -> (Map<?, ?>) item)
+					.filter(item -> !"cancelled".equals(item.get("status")))
+					.map(GoogleApiClient::toItem)
+					.filter(Objects::nonNull)
+					.toList();
+		} catch (RestClientException exception) {
+			throw new GoogleApiException("Falha ao ler a agenda do Google.", exception);
+		}
+	}
+
+	private static GoogleCalendarItem toItem(Map<?, ?> event) {
+		if (!(event.get("start") instanceof Map<?, ?> start) || !(event.get("end") instanceof Map<?, ?> end)) {
+			return null;
+		}
+		boolean allDay = start.get("dateTime") == null;
+		Object startValue = allDay ? start.get("date") : start.get("dateTime");
+		Object endValue = allDay ? end.get("date") : end.get("dateTime");
+		if (startValue == null || endValue == null) {
+			return null;
+		}
+		Object title = event.get("summary");
+		Object link = event.get("htmlLink");
+		return new GoogleCalendarItem(String.valueOf(event.get("id")), title == null ? "(sem título)" : title.toString(),
+				startValue.toString(), endValue.toString(), allDay, link == null ? null : link.toString());
 	}
 
 	@Override

@@ -1,14 +1,22 @@
 package com.diegohaefliger.atsresumeoptimizer.googlecalendar.application;
 
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleAuthorizationException;
+import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCalendarItem;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleConnectionStatus;
+import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.InvalidCalendarRangeException;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCredentials;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleNotConfiguredException;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleTokens;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @Service
@@ -16,18 +24,24 @@ class GoogleCalendarServiceImpl implements GoogleCalendarService {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(GoogleCalendarServiceImpl.class);
 	private static final String SETTINGS_PATH = "/settings/notifications";
+	private static final Duration MAX_RANGE = Duration.ofDays(366);
 
 	private final GoogleAccountStore accountStore;
 	private final GoogleCalendarGateway gateway;
 	private final GoogleScheduleSync sync;
+	private final GoogleAccessTokens accessTokens;
+	private final GoogleEventLinkRepository linkRepository;
 	private final OAuthStateStore stateStore;
 	private final GoogleCalendarProperties properties;
 
 	GoogleCalendarServiceImpl(GoogleAccountStore accountStore, GoogleCalendarGateway gateway, GoogleScheduleSync sync,
-			OAuthStateStore stateStore, GoogleCalendarProperties properties) {
+			GoogleAccessTokens accessTokens, GoogleEventLinkRepository linkRepository, OAuthStateStore stateStore,
+			GoogleCalendarProperties properties) {
 		this.accountStore = accountStore;
 		this.gateway = gateway;
 		this.sync = sync;
+		this.accessTokens = accessTokens;
+		this.linkRepository = linkRepository;
 		this.stateStore = stateStore;
 		this.properties = properties;
 	}
@@ -59,6 +73,24 @@ class GoogleCalendarServiceImpl implements GoogleCalendarService {
 			LOGGER.warn("Conexão com o Google não concluída: {}", exception.getMessage());
 			return redirect("error");
 		}
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<GoogleCalendarItem> events(Instant from, Instant to) {
+		if (!from.isBefore(to) || Duration.between(from, to).compareTo(MAX_RANGE) > 0) {
+			throw new InvalidCalendarRangeException("Intervalo inválido: até %d dias.".formatted(MAX_RANGE.toDays()));
+		}
+		Optional<String> accessToken = accessTokens.current();
+		if (accessToken.isEmpty()) {
+			return List.of();
+		}
+		Set<String> ownEvents = linkRepository.findAll().stream()
+				.map(GoogleEventLinkEntity::getGoogleEventId)
+				.collect(Collectors.toSet());
+		return gateway.listEvents(accessToken.get(), from, to).stream()
+				.filter(item -> !ownEvents.contains(item.id()))
+				.toList();
 	}
 
 	@Override

@@ -9,12 +9,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleApiException;
+import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCalendarItem;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCredentials;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleNotConfiguredException;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleTokens;
+import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.InvalidCalendarRangeException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -37,11 +40,18 @@ class GoogleCalendarServiceImplTest {
 	@Mock
 	private GoogleScheduleSync sync;
 
+	@Mock
+	private GoogleAccessTokens accessTokens;
+
+	@Mock
+	private GoogleEventLinkRepository linkRepository;
+
 	private final OAuthStateStore stateStore =
 			new OAuthStateStore(Clock.fixed(Instant.parse("2026-10-06T12:00:00Z"), ZoneOffset.UTC));
 
 	private GoogleCalendarServiceImpl service(String clientId, String clientSecret) {
-		return new GoogleCalendarServiceImpl(accountStore, gateway, sync, stateStore, new GoogleCalendarProperties(
+		return new GoogleCalendarServiceImpl(accountStore, gateway, sync, accessTokens, linkRepository, stateStore,
+				new GoogleCalendarProperties(
 				clientId, clientSecret, "http://localhost:8080/cb", "http://localhost:5173", "a", "t", "r", "u", "e"));
 	}
 
@@ -118,6 +128,30 @@ class GoogleCalendarServiceImplTest {
 
 		verify(gateway).revoke("ref");
 		verify(accountStore).clearConnection();
+	}
+
+	@Test
+	void listsGoogleEventsWithoutTheOnesCreatedByTheApp() {
+		Instant from = Instant.parse("2026-10-01T00:00:00Z");
+		Instant to = Instant.parse("2026-11-01T00:00:00Z");
+		when(accessTokens.current()).thenReturn(Optional.of("acc"));
+		when(linkRepository.findAll()).thenReturn(List.of(new GoogleEventLinkEntity(UUID.randomUUID(), "nosso", from)));
+		when(gateway.listEvents("acc", from, to)).thenReturn(List.of(
+				new GoogleCalendarItem("nosso", "Entrevista", "2026-10-08T17:00:00Z", "2026-10-08T18:00:00Z", false, null),
+				new GoogleCalendarItem("dentista", "Dentista", "2026-10-08T14:00:00Z", "2026-10-08T15:00:00Z", false, "l")));
+
+		assertThat(service().events(from, to)).extracting(GoogleCalendarItem::id).containsExactly("dentista");
+	}
+
+	@Test
+	void returnsNoGoogleEventsWhenNotConnectedAndRefusesBadRanges() {
+		Instant from = Instant.parse("2026-10-01T00:00:00Z");
+		when(accessTokens.current()).thenReturn(Optional.empty());
+
+		assertThat(service().events(from, from.plusSeconds(3600))).isEmpty();
+		assertThatThrownBy(() -> service().events(from, from)).isInstanceOf(InvalidCalendarRangeException.class);
+		assertThatThrownBy(() -> service().events(from, from.plusSeconds(86_400L * 400)))
+				.isInstanceOf(InvalidCalendarRangeException.class);
 	}
 
 	private String captureState() {

@@ -2,6 +2,7 @@ package com.diegohaefliger.atsresumeoptimizer.googlecalendar.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
@@ -15,8 +16,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleApiException;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleAuthRevokedException;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleAuthorizationException;
+import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCalendarItem;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCredentials;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleTokens;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -129,6 +133,35 @@ class GoogleApiClientTest {
 		server.reset();
 		server.expect(requestTo(EVENTS + "/evt3")).andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
 		assertThatThrownBy(() -> client.deleteEvent("acc", "evt3")).isInstanceOf(GoogleApiException.class);
+	}
+
+	@Test
+	void listsEventsSkippingCanceledOnesAndKeepingAllDayDates() {
+		server.expect(requestTo(startsWith(EVENTS + "?timeMin=2026-10-01T00:00:00Z")))
+				.andExpect(method(HttpMethod.GET))
+				.andExpect(header("Authorization", "Bearer acc"))
+				.andRespond(withSuccess("""
+						{"items":[
+						  {"id":"a","summary":"Dentista","status":"confirmed","htmlLink":"https://g/a",
+						   "start":{"dateTime":"2026-10-08T14:00:00-03:00"},"end":{"dateTime":"2026-10-08T15:00:00-03:00"}},
+						  {"id":"b","summary":"Feriado","start":{"date":"2026-10-12"},"end":{"date":"2026-10-13"}},
+						  {"id":"c","status":"cancelled","start":{"dateTime":"2026-10-09T10:00:00Z"},"end":{"dateTime":"2026-10-09T11:00:00Z"}}
+						]}""", MediaType.APPLICATION_JSON));
+
+		List<GoogleCalendarItem> items =
+				client.listEvents("acc", Instant.parse("2026-10-01T00:00:00Z"), Instant.parse("2026-11-01T00:00:00Z"));
+
+		assertThat(items).containsExactly(
+				new GoogleCalendarItem("a", "Dentista", "2026-10-08T14:00:00-03:00", "2026-10-08T15:00:00-03:00", false, "https://g/a"),
+				new GoogleCalendarItem("b", "Feriado", "2026-10-12", "2026-10-13", true, null));
+	}
+
+	@Test
+	void failsWhenTheAgendaCannotBeRead() {
+		server.expect(requestTo(startsWith(EVENTS))).andRespond(withStatus(HttpStatus.FORBIDDEN));
+
+		assertThatThrownBy(() -> client.listEvents("acc", Instant.parse("2026-10-01T00:00:00Z"), Instant.parse("2026-11-01T00:00:00Z")))
+				.isInstanceOf(GoogleApiException.class);
 	}
 
 	@Test

@@ -5,8 +5,6 @@ import com.diegohaefliger.atsresumeoptimizer.selection.CalendarEvent;
 import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleChanged;
 import com.diegohaefliger.atsresumeoptimizer.selection.ScheduleStatus;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionCalendar;
-import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleAuthRevokedException;
-import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCredentials;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -25,8 +23,7 @@ class GoogleScheduleSync {
 	private static final Logger LOGGER = LoggerFactory.getLogger(GoogleScheduleSync.class);
 	private static final Duration SYNC_WINDOW = Duration.ofDays(365);
 
-	private final GoogleAccountStore accountStore;
-	private final GoogleCalendarProperties properties;
+	private final GoogleAccessTokens accessTokens;
 	private final GoogleCalendarGateway gateway;
 	private final GoogleEventLinkRepository linkRepository;
 	private final GoogleEventPayloads payloads;
@@ -34,11 +31,10 @@ class GoogleScheduleSync {
 	private final ReminderLeadTimes leadTimes;
 	private final Clock clock;
 
-	GoogleScheduleSync(GoogleAccountStore accountStore, GoogleCalendarProperties properties, GoogleCalendarGateway gateway,
+	GoogleScheduleSync(GoogleAccessTokens accessTokens, GoogleCalendarGateway gateway,
 			GoogleEventLinkRepository linkRepository, GoogleEventPayloads payloads, SelectionCalendar calendar,
 			ReminderLeadTimes leadTimes, Clock clock) {
-		this.accountStore = accountStore;
-		this.properties = properties;
+		this.accessTokens = accessTokens;
 		this.gateway = gateway;
 		this.linkRepository = linkRepository;
 		this.payloads = payloads;
@@ -59,7 +55,7 @@ class GoogleScheduleSync {
 
 	@Transactional
 	void syncOne(UUID scheduleId) {
-		Optional<String> accessToken = accessToken();
+		Optional<String> accessToken = accessTokens.current();
 		if (accessToken.isEmpty()) {
 			return;
 		}
@@ -73,7 +69,7 @@ class GoogleScheduleSync {
 
 	@Transactional
 	int syncAll() {
-		Optional<String> accessToken = accessToken();
+		Optional<String> accessToken = accessTokens.current();
 		if (accessToken.isEmpty()) {
 			return 0;
 		}
@@ -101,20 +97,5 @@ class GoogleScheduleSync {
 	private void remove(String accessToken, UUID scheduleId, GoogleEventLinkEntity link) {
 		gateway.deleteEvent(accessToken, link.getGoogleEventId());
 		linkRepository.deleteById(scheduleId);
-	}
-
-	private Optional<String> accessToken() {
-		Optional<String> refreshToken = accountStore.refreshToken();
-		if (!properties.configured() || refreshToken.isEmpty()) {
-			return Optional.empty();
-		}
-		try {
-			GoogleCredentials credentials = new GoogleCredentials(properties.clientId(), properties.clientSecret());
-			return Optional.of(gateway.refreshAccessToken(credentials, refreshToken.get()));
-		} catch (GoogleAuthRevokedException exception) {
-			LOGGER.warn("Acesso ao Google revogado; conta desconectada.");
-			accountStore.clearConnection();
-			return Optional.empty();
-		}
 	}
 }

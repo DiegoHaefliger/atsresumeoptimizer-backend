@@ -2,6 +2,8 @@ package com.diegohaefliger.atsresumeoptimizer.googlecalendar.adapter.web;
 
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.application.GoogleCalendarService;
 import java.net.URI;
+import java.time.Instant;
+import java.util.List;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +30,11 @@ class GoogleCalendarController {
 	@GetMapping
 	GoogleStatusResponse status() {
 		return mapper.toResponse(service.status());
+	}
+
+	@GetMapping("/events")
+	List<GoogleEventResponse> events(@RequestParam Instant from, @RequestParam Instant to) {
+		return service.events(from, to).stream().map(mapper::toResponse).toList();
 	}
 
 	@GetMapping("/authorize")
