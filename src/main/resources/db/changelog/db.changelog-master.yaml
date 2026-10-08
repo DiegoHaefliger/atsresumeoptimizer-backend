@@ -117,3 +117,5 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000064_cover_letter.yaml
   - include:
       file: db/changelog/changes/00000000000065_prompt_template_cover_letter.yaml
+  - include:
+      file: db/changelog/changes/00000000000068_prompt_template_resume_structuring_v12.yaml

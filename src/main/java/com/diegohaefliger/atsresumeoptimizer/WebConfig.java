@@ -3,6 +3,7 @@ package com.diegohaefliger.atsresumeoptimizer;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -17,6 +18,7 @@ class WebConfig implements WebMvcConfigurer {
 		registry.addMapping("/**")
 				.allowedOrigins(allowedOrigins.toArray(String[]::new))
 				.allowedMethods("GET", "POST", "PUT", "DELETE")
-				.allowedHeaders("Content-Type");
+				.allowedHeaders("Content-Type")
+				.exposedHeaders(HttpHeaders.CONTENT_DISPOSITION);
 	}
 }

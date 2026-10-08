@@ -25,10 +25,11 @@ final class CanonicalSections {
 	static StructuredResume apply(StructuredResume content) {
 		return content.withSections(content.sections().stream()
 				.filter(CanonicalSections::hasContent)
-				.map(section -> CANONICAL_TITLE.containsKey(section.semanticType())
+				.map(section -> CANONICAL_TITLE.containsKey(section.semanticType()) && !OriginalObjective.isObjective(section)
 						? section.withTitle(CANONICAL_TITLE.get(section.semanticType()))
 						: section)
-				.sorted(Comparator.comparing(ResumeSection::semanticType))
+				.sorted(Comparator.comparing((ResumeSection section) -> !OriginalObjective.isObjective(section))
+						.thenComparing(ResumeSection::semanticType))
 				.toList());
 	}
 

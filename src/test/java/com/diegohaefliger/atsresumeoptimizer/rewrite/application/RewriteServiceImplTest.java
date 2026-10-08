@@ -487,6 +487,45 @@ class RewriteServiceImplTest {
 	}
 
 	@Test
+	void keepsTheObjectiveTheAiAdaptedToTheJobAheadOfTheSummary() {
+		RewriteServiceImpl service = newService();
+		AnalysisId analysisId = AnalysisId.generate();
+		ResumeSection adaptedObjective = new ResumeSection("Objetivo", ResumeSectionSemanticType.OTHER,
+				ResumeSectionKind.PARAGRAPH, "Atuar como Desenvolvedor Backend Java Sênior.", null, null, null);
+		ResumeSection summary = new ResumeSection("Resumo", ResumeSectionSemanticType.SUMMARY, ResumeSectionKind.PARAGRAPH,
+				"Desenvolvedora Java.", null, null, null);
+		stubJobMatchRewrite(analysisId, new StructuredResume("Ana", null, List.of(summary, adaptedObjective)),
+				"OBJETIVO\nAtuar como desenvolvedora.\nRESUMO\nDesenvolvedora Java.",
+				List.of(new Section("OBJETIVO", true, "Atuar como desenvolvedora."),
+						new Section("RESUMO", true, "Desenvolvedora Java.")));
+
+		RewriteResult result = service.rewrite(analysisId, ResumeTemplate.CLASSIC, JobHighlight.AUTO);
+
+		assertThat(result.content().sections()).extracting(ResumeSection::title)
+				.containsExactly("Objetivo", "Resumo Profissional");
+		assertThat(result.content().sections().getFirst().paragraph())
+				.isEqualTo("Atuar como Desenvolvedor Backend Java Sênior.");
+	}
+
+	@Test
+	void bringsTheOriginalObjectiveBackWhenTheAiDroppedIt() {
+		RewriteServiceImpl service = newService();
+		AnalysisId analysisId = AnalysisId.generate();
+		ResumeSection summary = new ResumeSection("Resumo", ResumeSectionSemanticType.SUMMARY, ResumeSectionKind.PARAGRAPH,
+				"Desenvolvedora Java.", null, null, null);
+		stubJobMatchRewrite(analysisId, new StructuredResume("Ana", null, List.of(summary)),
+				"OBJETIVO\nAtuar como desenvolvedora.\nRESUMO\nDesenvolvedora Java.",
+				List.of(new Section("OBJETIVO", true, "Atuar como desenvolvedora."),
+						new Section("RESUMO", true, "Desenvolvedora Java.")));
+
+		RewriteResult result = service.rewrite(analysisId, ResumeTemplate.CLASSIC, JobHighlight.AUTO);
+
+		assertThat(result.content().sections()).extracting(ResumeSection::title)
+				.containsExactly("OBJETIVO", "Resumo Profissional");
+		assertThat(result.content().sections().getFirst().paragraph()).isEqualTo("Atuar como desenvolvedora.");
+	}
+
+	@Test
 	void skipsTheJobFocusWhenTheUserTurnsItOff() {
 		RewriteServiceImpl service = newService();
 		AnalysisId analysisId = AnalysisId.generate();
