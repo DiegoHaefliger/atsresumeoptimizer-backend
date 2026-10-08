@@ -21,8 +21,9 @@ class ChatModelFactory {
 					.apiKey(settings.apiKey())
 					.baseUrl(settings.baseUrl())
 					.modelName(modelName)
-					.temperature(acceptsTemperature(modelName) ? settings.temperature() : null)
-					.maxTokens(maxOutputTokens)
+					.temperature(isReasoning(modelName) ? null : settings.temperature())
+					.maxTokens(isReasoning(modelName) ? null : maxOutputTokens)
+					.maxCompletionTokens(isReasoning(modelName) ? maxOutputTokens : null)
 					.timeout(settings.timeout())
 					.build();
 			// Claude 5.5 rejeita temperature diferente do padrão (HTTP 400), então não é enviada.
@@ -49,8 +50,8 @@ class ChatModelFactory {
 		};
 	}
 
-	// Modelos de raciocínio da OpenAI (o1/o3/o4, gpt-5) só aceitam a temperatura padrão.
-	private static boolean acceptsTemperature(String modelName) {
-		return !REASONING_MODEL.matcher(modelName).find();
+	// Modelos de raciocínio da OpenAI (o1/o3/o4, gpt-5) só aceitam a temperatura padrão e rejeitam max_tokens.
+	private static boolean isReasoning(String modelName) {
+		return REASONING_MODEL.matcher(modelName).find();
 	}
 }
