@@ -48,20 +48,38 @@ class ChatModelFactoryTest {
 	}
 
 	@Test
-	void sendsMaxCompletionTokensInsteadOfMaxTokensToOpenAiReasoningModels() {
-		for (String model : new String[] {"o3-mini", "o4-mini", "gpt-5", "gpt-5-mini"}) {
-			call(model, 1000);
+	void sendsMaxCompletionTokensToEveryOpenAiModelIncludingUnknownNewOnes() {
+		for (String model : new String[] {"gpt-4o", "gpt-4.1", "o3-mini", "gpt-5", "gpt-6-luna", "modelo-futuro"}) {
+			call(AiProvider.OPENAI, model, 1000);
 
-			assertThat(body()).as(model).containsEntry("max_completion_tokens", 1000).doesNotContainKeys("max_tokens", "temperature");
+			assertThat(body()).as(model).containsEntry("max_completion_tokens", 1000).doesNotContainKey("max_tokens");
 		}
 	}
 
 	@Test
-	void keepsSendingMaxTokensAndTemperatureToOtherOpenAiModels() {
-		call("gpt-4o", 1000);
+	void sendsTemperatureOnlyToTheClassicOpenAiFamily() {
+		for (String model : new String[] {"gpt-4o", "gpt-4.1-mini", "gpt-3.5-turbo", "chatgpt-4o-latest"}) {
+			call(AiProvider.OPENAI, model, 1000);
+
+			assertThat(body()).as(model).containsEntry("temperature", 0.1);
+		}
+		for (String model : new String[] {"o3-mini", "gpt-5", "gpt-6-luna", "modelo-futuro"}) {
+			call(AiProvider.OPENAI, model, 1000);
+
+			assertThat(body()).as(model).doesNotContainKey("temperature");
+		}
+	}
+
+	@Test
+	void keepsMaxTokensAndTemperatureOnOpenAiCompatibleEndpointsExceptForReasoningModels() {
+		call(AiProvider.OPENAI_COMPATIBLE, "llama-3.3-70b", 1000);
 
 		assertThat(body()).containsEntry("max_tokens", 1000).containsEntry("temperature", 0.1)
 				.doesNotContainKey("max_completion_tokens");
+
+		call(AiProvider.OPENAI_COMPATIBLE, "o3-mini", 1000);
+
+		assertThat(body()).containsEntry("max_completion_tokens", 1000).doesNotContainKeys("max_tokens", "temperature");
 	}
 
 	private Map<String, Object> body() {
@@ -73,8 +91,8 @@ class ChatModelFactoryTest {
 		}
 	}
 
-	private void call(String model, int maxOutputTokens) {
-		AiRuntimeSettings settings = new AiRuntimeSettings(AiProvider.OPENAI, "k",
+	private void call(AiProvider provider, String model, int maxOutputTokens) {
+		AiRuntimeSettings settings = new AiRuntimeSettings(provider, "k",
 				"http://127.0.0.1:" + server.getAddress().getPort(), model, null, 0.1, maxOutputTokens,
 				Duration.ofSeconds(10));
 		ChatModel chatModel = factory.create(settings, model, maxOutputTokens);
