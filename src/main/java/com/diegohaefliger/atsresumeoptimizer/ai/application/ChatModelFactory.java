@@ -14,16 +14,20 @@ class ChatModelFactory {
 	// Opus/Sonnet 5.5 pensam sempre; o raciocínio consome o limite de saída antes do JSON.
 	private static final int ANTHROPIC_MIN_OUTPUT_TOKENS = 16_000;
 	private static final Pattern REASONING_MODEL = Pattern.compile("^(o\\d|gpt-5)");
+	// Só a família clássica aceita temperatura; modelo novo ou desconhecido (ex.: gpt-6-*) usa o padrão da OpenAI.
+	private static final Pattern CLASSIC_OPENAI_MODEL = Pattern.compile("^(gpt-[34]|chatgpt)");
 
 	ChatModel create(AiRuntimeSettings settings, String modelName, int maxOutputTokens) {
 		return switch (settings.provider()) {
-			case OPENAI, OPENAI_COMPATIBLE -> OpenAiChatModel.builder()
-					.apiKey(settings.apiKey())
-					.baseUrl(settings.baseUrl())
-					.modelName(modelName)
-					.temperature(acceptsTemperature(modelName) ? settings.temperature() : null)
-					.maxTokens(maxOutputTokens)
-					.timeout(settings.timeout())
+			// max_tokens é legado na OpenAI e os modelos novos o rejeitam; max_completion_tokens vale para todos.
+			case OPENAI -> openAi(settings, modelName)
+					.temperature(CLASSIC_OPENAI_MODEL.matcher(modelName).find() ? settings.temperature() : null)
+					.maxCompletionTokens(maxOutputTokens)
+					.build();
+			case OPENAI_COMPATIBLE -> openAi(settings, modelName)
+					.temperature(isReasoning(modelName) ? null : settings.temperature())
+					.maxTokens(isReasoning(modelName) ? null : maxOutputTokens)
+					.maxCompletionTokens(isReasoning(modelName) ? maxOutputTokens : null)
 					.build();
 			// Claude 5.5 rejeita temperature diferente do padrão (HTTP 400), então não é enviada.
 			case ANTHROPIC -> AnthropicChatModel.builder()
@@ -49,8 +53,16 @@ class ChatModelFactory {
 		};
 	}
 
-	// Modelos de raciocínio da OpenAI (o1/o3/o4, gpt-5) só aceitam a temperatura padrão.
-	private static boolean acceptsTemperature(String modelName) {
-		return !REASONING_MODEL.matcher(modelName).find();
+	private static OpenAiChatModel.OpenAiChatModelBuilder openAi(AiRuntimeSettings settings, String modelName) {
+		return OpenAiChatModel.builder()
+				.apiKey(settings.apiKey())
+				.baseUrl(settings.baseUrl())
+				.modelName(modelName)
+				.timeout(settings.timeout());
+	}
+
+	// Endpoints compatíveis (Azure etc.): modelos de raciocínio só aceitam a temperatura padrão e rejeitam max_tokens.
+	private static boolean isReasoning(String modelName) {
+		return REASONING_MODEL.matcher(modelName).find();
 	}
 }
