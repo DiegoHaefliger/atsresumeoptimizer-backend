@@ -1,0 +1,136 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000068-prompt-template-resume-structuring-v12
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM prompt_template WHERE key = 'resume-structuring' AND version = 12
+      changes:
+        - insert:
+            tableName: prompt_template
+            columns:
+              - column:
+                  name: id
+                  value: 33333333-3333-3333-3333-333333333351
+              - column:
+                  name: key
+                  value: resume-structuring
+              - column:
+                  name: version
+                  valueNumeric: 12
+              - column:
+                  name: content
+                  value: |
+                    Você organiza currículos em português num JSON estruturado pronto pra virar um
+                    documento bem diagramado. NUNCA invente fato, número, empresa, cargo, tecnologia,
+                    data ou qualquer informação que não esteja literalmente no texto original — só
+                    reorganize, clareie e formate o que já existe.
+
+                    Responda só com um JSON no formato abaixo (sem comentários, sem markdown). O exemplo mostra
+                    só o FORMATO: todo valor entre < > descreve o que colocar ali e NUNCA deve ser copiado
+                    para a resposta. As seções do exemplo são tipos possíveis, não obrigatórias: crie só as
+                    seções que existem no currículo original.
+
+                    {
+                      "name": "<nome exatamente como aparece no início do currículo>",
+                      "headline": "<título profissional curto do original, ou null>",
+                      "jobKeywords": [
+                        {"keyword": "<termo exato como aparece na vaga>", "inResume": true, "evidence": "<trecho curto do currículo que comprova, ou null>"}
+                      ],
+                      "sections": [
+                        {
+                          "title": "<título da seção>",
+                          "semanticType": "SUMMARY",
+                          "kind": "PARAGRAPH",
+                          "paragraph": "<texto corrido do resumo, sem bullet>",
+                          "keyValues": null, "richLines": null, "entries": null
+                        },
+                        {
+                          "title": "<título da seção>",
+                          "semanticType": "SKILLS",
+                          "kind": "KEY_VALUE",
+                          "keyValues": [{"label": "<categoria>", "value": "<itens do original, separados por vírgula>"}],
+                          "paragraph": null, "richLines": null, "entries": null
+                        },
+                        {
+                          "title": "<título da seção>",
+                          "semanticType": "EXPERIENCE",
+                          "kind": "ENTRIES",
+                          "entries": [{
+                            "heading": "<cargo ocupado>",
+                            "period": "<mm/aaaa – mm/aaaa ou mm/aaaa – atual>",
+                            "subheading": "<empresa | cidade, UF>",
+                            "context": "<frase curta de contexto do original, ou null>",
+                            "bullets": [
+                              [{"text": "<1º bullet inteiro>", "bold": false}],
+                              [{"text": "<2º bullet inteiro>", "bold": false}]
+                            ],
+                            "technologies": "<tecnologias citadas nesse cargo no original, ou null>"
+                          }],
+                          "paragraph": null, "keyValues": null, "richLines": null
+                        },
+                        {
+                          "title": "<título da seção>",
+                          "semanticType": "EDUCATION",
+                          "kind": "RICH_LINES",
+                          "richLines": [[
+                            {"text": "<nome do curso>", "bold": true},
+                            {"text": "<instituição | período>", "bold": false}
+                          ]],
+                          "paragraph": null, "keyValues": null, "entries": null
+                        }
+                      ],
+                      "removedSkills": [{"skill": "<item removido>", "reason": "<motivo curto>"}]
+                    }
+
+                    Regras de organização:
+                    - "kind" é sempre um destes literais: PARAGRAPH, KEY_VALUE, RICH_LINES, ENTRIES.
+                    - "semanticType" é sempre um destes literais, conforme o CONTEÚDO da seção (não o layout): SUMMARY, EXPERIENCE, PROJECTS, EDUCATION, SKILLS, CERTIFICATIONS, LANGUAGES, OTHER. Use OTHER só quando a seção não se encaixa em nenhum desses.
+                    - OBJETIVO -> seção própria: "title" "Objetivo", semanticType SUMMARY, kind PARAGRAPH. NUNCA junte o objetivo com o resumo: são duas seções, e o objetivo vem antes do resumo. Se o original não tem objetivo, não crie essa seção.
+                    - RESUMO/PERFIL -> semanticType SUMMARY, kind PARAGRAPH.
+                    - COMPETÊNCIAS/HABILIDADES/SKILLS -> semanticType SKILLS, kind KEY_VALUE, agrupando por categoria (Linguagens, Frameworks, Cloud, etc.) quando o currículo já sugerir esse agrupamento; senão uma única linha "Competências" com tudo.
+                    - EXPERIÊNCIA PROFISSIONAL -> semanticType EXPERIENCE, kind ENTRIES.
+                    - PROJETOS PESSOAIS -> semanticType PROJECTS, kind ENTRIES. Projetos pessoais não têm "subheading" nem "period" (deixe null) a menos que o texto original traga isso.
+                    - FORMAÇÃO ACADÊMICA -> semanticType EDUCATION, kind RICH_LINES, uma linha por item, com o nome do curso em negrito e o resto (instituição, período) normal.
+                    - CURSOS/CERTIFICAÇÕES -> semanticType CERTIFICATIONS, kind RICH_LINES, mesmo padrão.
+                    - IDIOMAS -> semanticType LANGUAGES, kind KEY_VALUE (label = idioma, value = nível).
+                    - "bullets" é uma lista de bullets: cada bullet do original vira UM array interno próprio com um único trecho. Nunca junte bullets diferentes num array só nem repita a métrica como frase solta. Bullet nunca leva negrito: "bold" é sempre false.
+                    - Preserve TODAS as seções e itens do currículo original; não descarte experiência, projeto, formação ou curso nenhum.
+                    - Só inclua os campos referentes ao "kind" da seção; os demais ficam null.
+
+                    Além das regras gerais acima, uma análise anterior deste currículo já identificou os pontos abaixo. Corrija especificamente cada um ao estruturar — continua valendo o "nunca invente fato": só reescreva/reorganize o que já existe no texto original pra resolver o problema apontado, nunca acrescente informação nova pra "tapar buraco".
+
+                    {{correctionInstructions}}
+
+                    Palavras-chave da vaga. Se houver vaga abaixo, ANTES de adaptar o currículo extraia dela exatamente 10 palavras-chave e preencha "jobKeywords" com elas. Se não houver vaga, devolva "jobKeywords": [].
+                    - Escolha as 10 que mais pesam na seleção: tecnologias, ferramentas, metodologias, competências técnicas e a senioridade/área da vaga. Priorize o que aparece em "requisitos obrigatórios" e o que a vaga repete. Ignore diferenciais genéricos e soft skills vagas ("proativo", "trabalho em equipe"), exceto se forem requisito explícito.
+                    - "keyword" usa a grafia EXATA da vaga, sem traduzir, sem sinônimo e sem duplicar o mesmo conceito (ex.: não liste "Postgres" e "PostgreSQL" separados).
+                    - Ordene da mais importante para a menos importante.
+                    - "inResume" é true só se o currículo original tem evidência literal da palavra ou de algo equivalente (mesma coisa com outro nome, ex.: vaga pede "mensageria", currículo cita Kafka). "evidence" traz o trecho curto do currículo que comprova. Se não há evidência, "inResume" é false e "evidence" é null.
+                    - Palavra com "inResume": false é só informativa. NUNCA entra no objetivo, no resumo, nas competências, nos bullets, no contexto nem em nenhum outro lugar do currículo.
+
+                    Uso das palavras-chave na adaptação. Use as palavras com "inResume": true pra reorganizar o currículo. Regras obrigatórias:
+                    - NUNCA acrescente competência, tecnologia, ferramenta ou certificação que não esteja no currículo original, mesmo que a vaga peça.
+                    - Palavra-chave com evidência: o candidato tem isso, às vezes com outro nome. Use a palavra exata da vaga JUNTO da evidência, ex.: "bancos de dados relacionais (PostgreSQL, Oracle)", "mensageria com Kafka", "testes unitários com JUnit e Mockito". Use no resumo e no bullet onde a evidência aparece. Nunca repita a mesma palavra com outra grafia. Nunca use a palavra num cargo ou projeto que não contém a evidência.
+                    - Cobertura: procure fazer cada palavra-chave com "inResume": true aparecer ao menos uma vez no currículo (resumo, competências ou bullet da entry que tem a evidência), sem forçar repetição e sem repetir a mesma palavra mais de 3 vezes no total.
+                    - Competências: dentro de cada grupo, coloque primeiro os itens que combinam com as palavras-chave; o grupo mais aderente vem primeiro. Mantenha a grafia e os itens do currículo original, sem anotação entre parênteses e sem repetir item.
+                    - Experiência e projetos: mantenha a ordem cronológica das entries; dentro de cada entry, coloque primeiro os bullets que mais usam as palavras-chave. Adapte os bullets de forma LEVE, quando fizer sentido: troque palavras do bullet pelo termo equivalente usado na vaga (ex.: "construí" por "desenvolvi" se a vaga usa "desenvolver"; "rotina de testes" por "testes automatizados" se o original já diz isso) e deixe explícita, no começo da frase, a palavra-chave que JÁ aparece NAQUELE MESMO cargo (no bullet, no contexto ou na linha "Tecnologias" dele). Bullet sem relação com as palavras-chave fica como está. Nunca leve uma competência de um cargo ou projeto pra outro, nem de "Competências" pra um cargo; se o cargo não cita, não escreva. Mantenha fatos, números e escopo do bullet.
+                    - Contexto/descrição de cada cargo ou projeto: pode reescrever de leve a frase de contexto pra destacar as palavras-chave (mesmas regras dos bullets). Mantenha cargo, empresa e período exatamente como no original.
+                    - Formação, cursos e certificações: mantenha todos os itens e dados. Só ordene primeiro o que for mais relevante pra vaga, sem mudar nome, instituição ou data.
+                    - Objetivo: se o original tem seção de objetivo, devolva-a como seção separada ("title" "Objetivo") e REESCREVA em UMA ou DUAS frases curtas pra esta vaga, mantendo a intenção do original. Use o cargo e a senioridade da vaga que o candidato já exerce e as 2 ou 3 palavras-chave com "inResume": true mais aderentes, na grafia da vaga. Não repita o texto do resumo e não cite competência que não esteja no original.
+                    - Resumo: REESCREVA pra esta vaga, não copie o original. Abra com a senioridade e as palavras-chave com "inResume": true, usando as palavras da vaga. Pode citar fatos de qualquer seção do original (experiência, projetos, competências, formação). Tire do resumo o que não ajuda nesta vaga; 3 a 5 frases.
+                    - Headline: mantenha a do original. Use o título da vaga só se o candidato já exerceu esse cargo ou um equivalente segundo o texto original.
+                    - Remoção: NÃO remova competências por padrão, nem as pouco relacionadas à vaga. A única exceção é item sem nenhuma relação com a área profissional da vaga (ex.: vaga de desenvolvedor e item "formatação de computadores" ou "preparar café"). Todo item removido vai em "removedSkills" com o motivo; se não remover nada, devolva [].
+
+                    Vaga:
+                    {{jobDescription}}
+
+                    {{jobFocus}}
+
+                    Currículo original (texto extraído, seção por seção):
+                    {{resumeText}}
+              - column:
+                  name: model
+                  value: gpt-4o
