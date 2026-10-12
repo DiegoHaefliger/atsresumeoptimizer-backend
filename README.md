@@ -32,14 +32,18 @@ Veja o passo a passo no [README do repositório principal](https://github.com/Di
 instalado:
 
 ```bash
-./mvnw package -DskipTests
+(cd ../front && npm run build:desktop)
+./mvnw -Pdesktop package -DskipTests      # embute ../front/dist no jar; outro caminho: -Dfrontend.dist=...
 java -jar target/ats-resume-optimizer-backend-*.jar --spring.profiles.active=desktop
 ```
+
+O app abre em <http://localhost:8080>, com front e API na mesma origem.
 
 | Variável            | Padrão                     | O que é                                     |
 |---------------------|----------------------------|---------------------------------------------|
 | `ATS_DATA_DIR`      | `~/.ats-resume-optimizer`  | Pasta dos dados (`pgdata`) e da senha do banco |
 | `ATS_POSTGRES_PORT` | `54329`                    | Porta do Postgres, só em `localhost`         |
+| `ATS_FRONTEND_LOCATION` | `classpath:/static/`   | De onde servir o front (ex.: `file:../front/dist/`) |
 
 O banco é criado com senha aleatória gravada em `postgres-password`, legível só pelo dono. Backup = copiar a
 pasta inteira com o app fechado; sem o `postgres-password` o banco não abre.
