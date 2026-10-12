@@ -11,6 +11,9 @@ import static org.mockito.Mockito.when;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiResult;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterDraft;
+import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionDraft;
+import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionsBrief;
+import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionsDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobFocus;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobStructured;
 import com.diegohaefliger.atsresumeoptimizer.ai.RemovedSkill;
@@ -330,6 +333,32 @@ class LangChain4jAiPortTest {
 		String sentPrompt = ((dev.langchain4j.data.message.UserMessage) requestCaptor.getValue().messages().get(0)).singleText();
 		assertThat(sentPrompt).isEqualTo(
 				"Vaga: Backend Java | Empresa: não informada | Principais: Java, Kafka | texto da vaga | texto do currículo");
+		verifyNoInteractions(llmCacheRepository);
+	}
+
+	@Test
+	void writesTheInterviewQuestionsFromTheJobRequirementsWithoutTouchingTheCache() {
+		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
+		PromptTemplate template = template("interview-questions", "{{jobTitle}} | {{company}} | {{seniority}} | "
+				+ "{{priorityKeywords}} | {{requirements}} | {{jobText}} | {{resumeText}}");
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("interview-questions")).thenReturn(Optional.of(template));
+		ChatResponse response = ChatResponse.builder()
+				.aiMessage(AiMessage.from("{\"questions\":[{\"question\":\"Como o Kafka garante ordem?\","
+						+ "\"requirement\":\"Kafka\",\"reason\":\"A vaga pede Kafka\",\"answerTip\":\"Fale de partições\"}]}"))
+				.tokenUsage(new TokenUsage(800, 900))
+				.build();
+		org.mockito.ArgumentCaptor<ChatRequest> requestCaptor = org.mockito.ArgumentCaptor.forClass(ChatRequest.class);
+		when(chatModel.chat(requestCaptor.capture())).thenReturn(response);
+
+		AiResult<InterviewQuestionsDraft> result = aiPort.writeInterviewQuestions(new InterviewQuestionsBrief("Backend Java",
+				"Cielo", null, "texto da vaga", List.of("Java"), List.of("Java", "Kafka"), null));
+
+		assertThat(result.value().questions())
+				.containsExactly(new InterviewQuestionDraft("Como o Kafka garante ordem?", "Kafka", "A vaga pede Kafka",
+						"Fale de partições"));
+		String sentPrompt = ((dev.langchain4j.data.message.UserMessage) requestCaptor.getValue().messages().get(0)).singleText();
+		assertThat(sentPrompt).isEqualTo(
+				"Backend Java | Cielo | não informada | Java | Java, Kafka | texto da vaga | não informado");
 		verifyNoInteractions(llmCacheRepository);
 	}
 }

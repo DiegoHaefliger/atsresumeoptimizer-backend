@@ -78,7 +78,7 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 				new SelectionProcessEntity(UuidCreator.getTimeOrderedEpoch(), initialStage, now);
 		mapper.update(data, entity);
 		repository.save(entity);
-		movementRepository.save(new SelectionStageMovementEntity(entity.getId(), initialStage, null, now));
+		movementRepository.save(new SelectionStageMovementEntity(entity.getId(), initialStage, null, null, now));
 		return withHistory(entity);
 	}
 
@@ -94,7 +94,7 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 
 	@Override
 	@Transactional
-	public SelectionProcess moveTo(UUID id, SelectionStage stage, String note) {
+	public SelectionProcess moveTo(UUID id, SelectionStage stage, String note, Instant stageAt) {
 		SelectionProcessEntity entity = find(id);
 		if (entity.getStage() == stage) {
 			throw new InvalidStageMovementException("O processo já está na etapa %s.".formatted(stage.label()));
@@ -102,21 +102,25 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 		Instant now = Instant.now();
 		entity.setStage(stage);
 		entity.setUpdatedAt(now);
-		movementRepository.save(new SelectionStageMovementEntity(id, stage, blankToNull(note), now));
+		movementRepository.save(new SelectionStageMovementEntity(id, stage, blankToNull(note), stageAt, now));
 		return withHistory(entity);
 	}
 
 	@Override
 	@Transactional
 	public void removeMovement(UUID id, UUID movementId) {
-		find(id);
+		SelectionProcessEntity entity = find(id);
 		List<SelectionStageMovementEntity> movements = movementRepository.findByProcessIdOrderByMovedAtAsc(id);
 		SelectionStageMovementEntity target = movements.stream()
 				.filter(movement -> movement.getId().equals(movementId))
 				.findFirst()
 				.orElseThrow(() -> new StageMovementNotFoundException(movementId));
+		if (movements.size() == 1) {
+			throw new InvalidStageMovementException("A única etapa do processo não pode ser excluída. Exclua o processo.");
+		}
 		if (movements.getLast() == target) {
-			throw new InvalidStageMovementException("A etapa atual não pode ser excluída. Mova o processo antes.");
+			entity.setStage(movements.get(movements.size() - 2).getStage());
+			entity.setUpdatedAt(Instant.now());
 		}
 		movementRepository.delete(target);
 	}

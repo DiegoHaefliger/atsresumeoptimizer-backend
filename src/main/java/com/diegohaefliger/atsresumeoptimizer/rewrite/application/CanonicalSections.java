@@ -16,6 +16,7 @@ final class CanonicalSections {
 			ResumeSectionSemanticType.PROJECTS, "Projetos",
 			ResumeSectionSemanticType.EDUCATION, "Formação Acadêmica",
 			ResumeSectionSemanticType.SKILLS, "Competências Técnicas",
+			ResumeSectionSemanticType.SOFT_SKILLS, "Habilidades",
 			ResumeSectionSemanticType.CERTIFICATIONS, "Cursos e Certificações",
 			ResumeSectionSemanticType.LANGUAGES, "Idiomas");
 
@@ -25,11 +26,10 @@ final class CanonicalSections {
 	static StructuredResume apply(StructuredResume content) {
 		return content.withSections(content.sections().stream()
 				.filter(CanonicalSections::hasContent)
-				.map(section -> CANONICAL_TITLE.containsKey(section.semanticType()) && !OriginalObjective.isObjective(section)
+				.map(section -> CANONICAL_TITLE.containsKey(section.semanticType())
 						? section.withTitle(CANONICAL_TITLE.get(section.semanticType()))
 						: section)
-				.sorted(Comparator.comparing((ResumeSection section) -> !OriginalObjective.isObjective(section))
-						.thenComparing(ResumeSection::semanticType))
+				.sorted(Comparator.comparing(ResumeSection::semanticType))
 				.toList());
 	}
 

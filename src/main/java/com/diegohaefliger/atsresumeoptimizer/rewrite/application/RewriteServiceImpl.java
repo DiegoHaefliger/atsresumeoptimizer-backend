@@ -193,7 +193,7 @@ class RewriteServiceImpl implements RewriteService {
 		StructuredResume ordered =
 				new JobRelevanceOrdering(relevanceKeywords(jobFocus)).apply(RedundantParentheticalCleaner.apply(guarded));
 		StructuredResume contentModel = StructuredResumeSanitizer.sanitizeGrammar(
-				OriginalObjective.restore(CanonicalSections.apply(ordered), parsingResult.sections())
+				CanonicalSections.apply(ObjectiveMerger.mergeIntoSummary(ordered, parsingResult.sections()))
 						.withName(header.resolveName(ordered.name(), originalText)));
 		List<BulletRewriteView> views = buildBulletViews(parsingResult, contentModel);
 

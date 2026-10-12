@@ -101,11 +101,11 @@ class SelectionProcessControllerTest {
 
 	@Test
 	void movesTheStageManually() throws Exception {
-		when(service.moveTo(ID, SelectionStage.SCREENING, "ligaram")).thenReturn(process(SelectionStage.SCREENING));
+		when(service.moveTo(ID, SelectionStage.SCREENING, "ligaram", Instant.parse("2026-10-09T17:00:00Z"))).thenReturn(process(SelectionStage.SCREENING));
 
 		mockMvc.perform(post(BASE + "/" + ID + "/stage")
 						.contentType("application/json")
-						.content("{\"stage\":\"SCREENING\",\"note\":\"ligaram\"}"))
+						.content("{\"stage\":\"SCREENING\",\"note\":\"ligaram\",\"stageAt\":\"2026-10-09T17:00:00Z\"}"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.stage").value("SCREENING"))
 				.andExpect(jsonPath("$.history[0].stage").value("APPLIED"));
@@ -113,7 +113,7 @@ class SelectionProcessControllerTest {
 
 	@Test
 	void rejectsMovingToTheSameStage() throws Exception {
-		when(service.moveTo(ID, SelectionStage.OFFER, null))
+		when(service.moveTo(ID, SelectionStage.OFFER, null, null))
 				.thenThrow(new InvalidStageMovementException("O processo já está na etapa Proposta."));
 
 		mockMvc.perform(post(BASE + "/" + ID + "/stage").contentType("application/json").content("{\"stage\":\"OFFER\"}"))
@@ -145,19 +145,19 @@ class SelectionProcessControllerTest {
 	}
 
 	@Test
-	void refusesToRemoveTheCurrentMovement() throws Exception {
+	void refusesToRemoveTheOnlyMovement() throws Exception {
 		UUID movementId = UUID.randomUUID();
-		doThrow(new InvalidStageMovementException("A etapa atual não pode ser excluída. Mova o processo antes."))
+		doThrow(new InvalidStageMovementException("A única etapa do processo não pode ser excluída. Exclua o processo."))
 				.when(service).removeMovement(ID, movementId);
 
 		mockMvc.perform(delete(BASE + "/" + ID + "/history/" + movementId))
 				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.detail").value("A etapa atual não pode ser excluída. Mova o processo antes."));
+				.andExpect(jsonPath("$.detail").value("A única etapa do processo não pode ser excluída. Exclua o processo."));
 	}
 
 	private SelectionProcess process(SelectionStage stage) {
 		Instant now = Instant.now();
 		return new SelectionProcess(ID, JOB_ID, 12L, "Acme", "Dev Java", "https://acme.com/vaga", "https://acme.gupy.io/p/1", stage,
-				null, null, null, null, null, null, null, now, now, List.of(new StageMovement(UUID.randomUUID(), SelectionStage.APPLIED, null, now)), List.of(), null);
+				null, null, null, null, null, null, null, now, now, List.of(new StageMovement(UUID.randomUUID(), SelectionStage.APPLIED, null, null, now)), List.of(), null);
 	}
 }

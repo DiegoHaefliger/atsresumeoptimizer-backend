@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000066-stage-movement-stage-at
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: selection_stage_movement
+            columns:
+              - column:
+                  name: stage_at
+                  type: timestamptz

@@ -1,10 +1,9 @@
 package com.diegohaefliger.atsresumeoptimizer.coverletter.adapter.web;
 
-import com.diegohaefliger.atsresumeoptimizer.analysis.domain.AnalysisId;
 import com.diegohaefliger.atsresumeoptimizer.coverletter.application.CoverLetterService;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/analyses/{id}/cover-letter")
+@RequestMapping("/api/v1/jobs/{jobId}/cover-letters")
 class CoverLetterController {
 
 	private final CoverLetterService service;
@@ -26,20 +25,17 @@ class CoverLetterController {
 	}
 
 	@GetMapping
-	ResponseEntity<CoverLetterResponse> find(@PathVariable UUID id) {
-		return service.find(new AnalysisId(id))
-				.map(mapper::toResponse)
-				.map(ResponseEntity::ok)
-				.orElseGet(() -> ResponseEntity.noContent().build());
+	List<CoverLetterResponse> list(@PathVariable UUID jobId) {
+		return mapper.toResponses(service.list(jobId));
 	}
 
 	@PostMapping
-	CoverLetterResponse generate(@PathVariable UUID id) {
-		return mapper.toResponse(service.generate(new AnalysisId(id)));
+	CoverLetterResponse generate(@PathVariable UUID jobId, @Valid @RequestBody CoverLetterGenerationRequest request) {
+		return mapper.toResponse(service.generate(jobId, request.resumeVersionId()));
 	}
 
-	@PutMapping
-	CoverLetterResponse save(@PathVariable UUID id, @Valid @RequestBody CoverLetterRequest request) {
-		return mapper.toResponse(service.save(new AnalysisId(id), request.content()));
+	@PutMapping("/{id}")
+	CoverLetterResponse update(@PathVariable UUID jobId, @PathVariable UUID id, @Valid @RequestBody CoverLetterRequest request) {
+		return mapper.toResponse(service.update(jobId, id, request.content()));
 	}
 }

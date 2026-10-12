@@ -58,7 +58,7 @@ class SelectionProcessController {
 
 	@PostMapping("/{id}/stage")
 	SelectionProcessResponse moveStage(@PathVariable UUID id, @Valid @RequestBody MoveStageRequest request) {
-		return mapper.toResponse(service.moveTo(id, request.stage(), request.note()));
+		return mapper.toResponse(service.moveTo(id, request.stage(), request.note(), request.stageAt()));
 	}
 
 	@DeleteMapping("/{id}/history/{movementId}")

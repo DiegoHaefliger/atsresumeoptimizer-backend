@@ -22,6 +22,9 @@ class CoverLetterEntity {
 	@Column(name = "analysis_id")
 	private UUID analysisId;
 
+	@Column(name = "resume_version_id")
+	private UUID resumeVersionId;
+
 	private String content;
 
 	@Column(name = "ai_model")
@@ -66,6 +69,14 @@ class CoverLetterEntity {
 
 	public void setAnalysisId(UUID analysisId) {
 		this.analysisId = analysisId;
+	}
+
+	public UUID getResumeVersionId() {
+		return resumeVersionId;
+	}
+
+	public void setResumeVersionId(UUID resumeVersionId) {
+		this.resumeVersionId = resumeVersionId;
 	}
 
 	public String getContent() {

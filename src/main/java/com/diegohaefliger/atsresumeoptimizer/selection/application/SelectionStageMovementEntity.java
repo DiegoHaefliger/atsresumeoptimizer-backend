@@ -26,17 +26,21 @@ class SelectionStageMovementEntity {
 
 	private String note;
 
+	@Column(name = "stage_at")
+	private Instant stageAt;
+
 	@Column(name = "moved_at")
 	private Instant movedAt;
 
 	protected SelectionStageMovementEntity() {
 	}
 
-	SelectionStageMovementEntity(UUID processId, SelectionStage stage, String note, Instant movedAt) {
+	SelectionStageMovementEntity(UUID processId, SelectionStage stage, String note, Instant stageAt, Instant movedAt) {
 		this.id = UuidCreator.getTimeOrderedEpoch();
 		this.processId = processId;
 		this.stage = stage;
 		this.note = note;
+		this.stageAt = stageAt;
 		this.movedAt = movedAt;
 	}
 
@@ -50,6 +54,10 @@ class SelectionStageMovementEntity {
 
 	public String getNote() {
 		return note;
+	}
+
+	public Instant getStageAt() {
+		return stageAt;
 	}
 
 	public Instant getMovedAt() {

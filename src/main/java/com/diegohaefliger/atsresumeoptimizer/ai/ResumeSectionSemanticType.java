@@ -7,6 +7,7 @@ public enum ResumeSectionSemanticType {
 	PROJECTS,
 	EDUCATION,
 	SKILLS,
+	SOFT_SKILLS,
 	CERTIFICATIONS,
 	LANGUAGES,
 	OTHER;

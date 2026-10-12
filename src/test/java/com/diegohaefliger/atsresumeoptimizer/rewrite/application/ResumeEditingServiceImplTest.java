@@ -9,6 +9,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.diegohaefliger.atsresumeoptimizer.ai.ResumeSection;
+import com.diegohaefliger.atsresumeoptimizer.ai.ResumeSectionKind;
+import com.diegohaefliger.atsresumeoptimizer.ai.ResumeSectionSemanticType;
 import com.diegohaefliger.atsresumeoptimizer.ai.StructuredResume;
 import com.diegohaefliger.atsresumeoptimizer.parsing.application.ResumeAnalysisPipeline;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ContactInfo;
@@ -167,6 +170,24 @@ class ResumeEditingServiceImplTest {
 		ExportedResume exported = service.export(RESUME_ID, VERSION_ID, ResumeFormat.PDF);
 
 		assertThat(exported.fileName()).isEqualTo("AnaSilva_2.pdf");
+		assertThat(exported.content()).containsExactly(2);
+	}
+
+	@Test
+	void rerendersAStoredFileThatStillHasASeparateObjectiveSection() {
+		ResumeSection objective = new ResumeSection("Objetivo", ResumeSectionSemanticType.SUMMARY,
+				ResumeSectionKind.PARAGRAPH, "Atuar como dev.", null, null, null);
+		EditableResume stored = new EditableResume(null, ResumeTemplate.CLASSIC,
+				new StructuredResume("Ana Silva", null, List.of(objective)), CONTACT, false);
+		when(resumeService.getVersionInfo(RESUME_ID, VERSION_ID))
+				.thenReturn(new ResumeVersionInfo(new byte[] {7}, "x.pdf", ResumeFormat.PDF.mimeType()));
+		when(contentStore.find(VERSION_ID)).thenReturn(Optional.of(stored));
+		when(exportName.baseName(RESUME_ID, VERSION_ID, "Ana Silva")).thenReturn("AnaSilva_3");
+		when(documentWriter.render(eq(ResumeTemplate.CLASSIC), any(), eq(CONTACT)))
+				.thenReturn(new RenderedResume(new byte[] {1}, new byte[] {2}, "texto"));
+
+		ExportedResume exported = service.export(RESUME_ID, VERSION_ID, ResumeFormat.PDF);
+
 		assertThat(exported.content()).containsExactly(2);
 	}
 }

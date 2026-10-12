@@ -111,12 +111,14 @@ class SelectionProcessServiceImplTest {
 		when(repository.findById(ID)).thenReturn(Optional.of(entity));
 		when(movementRepository.findByProcessIdOrderByMovedAtAsc(ID)).thenReturn(List.of());
 
-		SelectionProcess moved = service().moveTo(ID, SelectionStage.TECHNICAL_INTERVIEW, "  marcada para sexta  ");
+		SelectionProcess moved = service().moveTo(ID, SelectionStage.TECHNICAL_INTERVIEW, "  marcada para sexta  ",
+				Instant.parse("2026-10-09T17:00:00Z"));
 
 		assertThat(moved.stage()).isEqualTo(SelectionStage.TECHNICAL_INTERVIEW);
 		ArgumentCaptor<SelectionStageMovementEntity> movement = ArgumentCaptor.forClass(SelectionStageMovementEntity.class);
 		verify(movementRepository).save(movement.capture());
 		assertThat(movement.getValue().getNote()).isEqualTo("marcada para sexta");
+		assertThat(movement.getValue().getStageAt()).isEqualTo(Instant.parse("2026-10-09T17:00:00Z"));
 	}
 
 	@Test
@@ -124,11 +126,11 @@ class SelectionProcessServiceImplTest {
 		when(repository.findById(ID)).thenReturn(Optional.of(existing(SelectionStage.OFFER)));
 		when(movementRepository.findByProcessIdOrderByMovedAtAsc(ID)).thenReturn(List.of());
 
-		assertThat(service().moveTo(ID, SelectionStage.SCREENING, null).stage()).isEqualTo(SelectionStage.SCREENING);
+		assertThat(service().moveTo(ID, SelectionStage.SCREENING, null, null).stage()).isEqualTo(SelectionStage.SCREENING);
 	}
 
 	@Test
-	void removesAPreviousMovementButNotTheCurrentOne() {
+	void removesAPreviousMovementKeepingTheCurrentStage() {
 		SelectionProcessEntity entity = existing(SelectionStage.SCREENING);
 		SelectionStageMovementEntity first = movement(SelectionStage.APPLIED, "2026-10-06T10:00:00Z");
 		SelectionStageMovementEntity current = movement(SelectionStage.SCREENING, "2026-10-06T11:00:00Z");
@@ -138,9 +140,32 @@ class SelectionProcessServiceImplTest {
 		service().removeMovement(ID, first.getId());
 
 		verify(movementRepository).delete(first);
-		assertThatThrownBy(() -> service().removeMovement(ID, current.getId()))
+		assertThat(entity.getStage()).isEqualTo(SelectionStage.SCREENING);
+	}
+
+	@Test
+	void removesTheCurrentMovementAndReturnsToThePreviousStage() {
+		SelectionProcessEntity entity = existing(SelectionStage.SCREENING);
+		SelectionStageMovementEntity first = movement(SelectionStage.APPLIED, "2026-10-06T10:00:00Z");
+		SelectionStageMovementEntity current = movement(SelectionStage.SCREENING, "2026-10-06T11:00:00Z");
+		when(repository.findById(ID)).thenReturn(Optional.of(entity));
+		when(movementRepository.findByProcessIdOrderByMovedAtAsc(ID)).thenReturn(List.of(first, current));
+
+		service().removeMovement(ID, current.getId());
+
+		verify(movementRepository).delete(current);
+		assertThat(entity.getStage()).isEqualTo(SelectionStage.APPLIED);
+	}
+
+	@Test
+	void refusesToRemoveTheOnlyMovement() {
+		SelectionStageMovementEntity only = movement(SelectionStage.APPLIED, "2026-10-06T10:00:00Z");
+		when(repository.findById(ID)).thenReturn(Optional.of(existing(SelectionStage.APPLIED)));
+		when(movementRepository.findByProcessIdOrderByMovedAtAsc(ID)).thenReturn(List.of(only));
+
+		assertThatThrownBy(() -> service().removeMovement(ID, only.getId()))
 				.isInstanceOf(InvalidStageMovementException.class);
-		verify(movementRepository, never()).delete(current);
+		verify(movementRepository, never()).delete(only);
 	}
 
 	@Test
@@ -156,7 +181,7 @@ class SelectionProcessServiceImplTest {
 	void rejectsMovingToTheCurrentStage() {
 		when(repository.findById(ID)).thenReturn(Optional.of(existing(SelectionStage.OFFER)));
 
-		assertThatThrownBy(() -> service().moveTo(ID, SelectionStage.OFFER, null))
+		assertThatThrownBy(() -> service().moveTo(ID, SelectionStage.OFFER, null, null))
 				.isInstanceOf(InvalidStageMovementException.class);
 
 		verify(movementRepository, never()).save(any());
@@ -212,7 +237,7 @@ class SelectionProcessServiceImplTest {
 	}
 
 	private SelectionStageMovementEntity movement(SelectionStage stage, String movedAt) {
-		return new SelectionStageMovementEntity(ID, stage, null, Instant.parse(movedAt));
+		return new SelectionStageMovementEntity(ID, stage, null, null, Instant.parse(movedAt));
 	}
 
 	private SelectionProcessEntity existing(SelectionStage stage) {

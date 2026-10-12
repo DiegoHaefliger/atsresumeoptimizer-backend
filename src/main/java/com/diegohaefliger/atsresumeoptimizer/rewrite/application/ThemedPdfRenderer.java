@@ -70,7 +70,7 @@ class ThemedPdfRenderer implements PdfTemplateRenderer {
 			}
 			case KEY_VALUE -> {
 				for (KeyValueLine line : section.keyValues()) {
-					writer.writeRich(keyValueSpans(line), BODY_FONT_SIZE, TEXT_COLOR, null, 0);
+					writer.writeRich(keyValueSpans(line, section.semanticType() != ResumeSectionSemanticType.SOFT_SKILLS), BODY_FONT_SIZE, TEXT_COLOR, null, 0);
 				}
 			}
 			case RICH_LINES -> {
@@ -97,11 +97,11 @@ class ThemedPdfRenderer implements PdfTemplateRenderer {
 				listItem ? BULLET_INDENT : 0, italic);
 	}
 
-	private static List<TextSpan> keyValueSpans(KeyValueLine line) {
+	private static List<TextSpan> keyValueSpans(KeyValueLine line, boolean boldLabel) {
 		if (!StringUtils.hasText(line.label())) {
 			return List.of(new TextSpan(line.value() == null ? "" : line.value(), false));
 		}
-		return List.of(new TextSpan(line.label() + ": ", true), new TextSpan(line.value(), false));
+		return List.of(new TextSpan(line.label() + ": ", boldLabel), new TextSpan(line.value(), false));
 	}
 
 	private void renderExperience(PdfFlowWriter writer, ResumeEntry entry, Color accent) throws IOException {
@@ -130,11 +130,8 @@ class ThemedPdfRenderer implements PdfTemplateRenderer {
 			return;
 		}
 		if (type == ResumeSectionSemanticType.EDUCATION) {
-			List<TextSpan> headline = new ArrayList<>(List.of(new TextSpan(EducationEntryLayout.title(entry), true)));
-			if (!EducationEntryLayout.period(entry).isEmpty()) {
-				headline.add(new TextSpan(EducationEntryLayout.PERIOD_SEPARATOR + EducationEntryLayout.period(entry), false));
-			}
-			writer.writeRich(headline, BODY_FONT_SIZE, accent, null, 0);
+			writer.writeRich(List.of(new TextSpan(EducationEntryLayout.headline(entry), false)), BODY_FONT_SIZE, TEXT_COLOR, null,
+					0);
 		} else {
 			writer.writeHeadingWithTrailing(entry.heading(), entry.period(), BODY_FONT_SIZE, accent, TEXT_COLOR);
 			if (StringUtils.hasText(entry.subheading())) {
@@ -159,6 +156,8 @@ class ThemedPdfRenderer implements PdfTemplateRenderer {
 			writer.writeRich(List.of(new TextSpan("Tecnologias: ", true), new TextSpan(entry.technologies(), false)),
 					TECHNOLOGIES_FONT_SIZE, TEXT_COLOR, null, 0);
 		}
-		writer.gap(ENTRY_GAP);
+		if (type != ResumeSectionSemanticType.EDUCATION) {
+			writer.gap(ENTRY_GAP);
+		}
 	}
 }

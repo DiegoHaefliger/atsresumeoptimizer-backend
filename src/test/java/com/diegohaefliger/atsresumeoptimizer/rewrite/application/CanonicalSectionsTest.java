@@ -2,6 +2,7 @@ package com.diegohaefliger.atsresumeoptimizer.rewrite.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.diegohaefliger.atsresumeoptimizer.ai.KeyValueLine;
 import com.diegohaefliger.atsresumeoptimizer.ai.ResumeSection;
 import com.diegohaefliger.atsresumeoptimizer.ai.ResumeSectionKind;
 import com.diegohaefliger.atsresumeoptimizer.ai.ResumeSectionSemanticType;
@@ -12,25 +13,27 @@ import org.junit.jupiter.api.Test;
 class CanonicalSectionsTest {
 
 	@Test
-	void keepsObjectiveTitleInsteadOfRenamingItToSummary() {
-		StructuredResume content = new StructuredResume("Ana", "Dev", List.of(
-				paragraph("OBJETIVO", "Atuar como desenvolvedora."),
-				paragraph("Perfil", "15 anos de experiência.")));
+	void renamesSummaryVariantsToTheCanonicalTitle() {
+		StructuredResume content = new StructuredResume("Ana", "Dev", List.of(paragraph("Perfil", "15 anos de experiência.")));
 
 		List<String> titles = CanonicalSections.apply(content).sections().stream().map(ResumeSection::title).toList();
 
-		assertThat(titles).containsExactly("OBJETIVO", "Resumo Profissional");
+		assertThat(titles).containsExactly("Resumo Profissional");
 	}
 
 	@Test
-	void putsTheObjectiveFirstEvenWhenTheAiTypedItAsOther() {
-		ResumeSection objective = new ResumeSection("Objetivo", ResumeSectionSemanticType.OTHER, ResumeSectionKind.PARAGRAPH,
-				"Atuar como desenvolvedora.", null, null, null);
-		StructuredResume content = new StructuredResume("Ana", "Dev", List.of(paragraph("Resumo", "15 anos."), objective));
+	void placesHabilidadesRightAfterTechnicalSkills() {
+		ResumeSection soft = new ResumeSection("HABILIDADES", ResumeSectionSemanticType.SOFT_SKILLS, ResumeSectionKind.KEY_VALUE,
+				null, List.of(new KeyValueLine("Habilidades", "Comunicação")), null, null);
+		ResumeSection skills = new ResumeSection("Skills", ResumeSectionSemanticType.SKILLS, ResumeSectionKind.KEY_VALUE,
+				null, List.of(new KeyValueLine("Backend", "Java")), null, null);
+		ResumeSection languages = new ResumeSection("Idiomas", ResumeSectionSemanticType.LANGUAGES, ResumeSectionKind.KEY_VALUE,
+				null, List.of(new KeyValueLine("Inglês", "Avançado")), null, null);
+		StructuredResume content = new StructuredResume("Ana", "Dev", List.of(languages, soft, skills));
 
 		List<String> titles = CanonicalSections.apply(content).sections().stream().map(ResumeSection::title).toList();
 
-		assertThat(titles).containsExactly("Objetivo", "Resumo Profissional");
+		assertThat(titles).containsExactly("Competências Técnicas", "Habilidades", "Idiomas");
 	}
 
 	private static ResumeSection paragraph(String title, String text) {

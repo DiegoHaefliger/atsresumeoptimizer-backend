@@ -52,8 +52,16 @@ class ChatModelFactoryTest {
 		for (String model : new String[] {"gpt-4o", "gpt-4.1", "o3-mini", "gpt-5", "gpt-6-luna", "modelo-futuro"}) {
 			call(AiProvider.OPENAI, model, 1000);
 
-			assertThat(body()).as(model).containsEntry("max_completion_tokens", 1000).doesNotContainKey("max_tokens");
+			int expected = model.startsWith("gpt-4") ? 1000 : 16_000;
+			assertThat(body()).as(model).containsEntry("max_completion_tokens", expected).doesNotContainKey("max_tokens");
 		}
+	}
+
+	@Test
+	void keepsConfiguredLimitWhenAboveReasoningFloor() {
+		call(AiProvider.OPENAI, "gpt-6-luna", 32_000);
+
+		assertThat(body()).containsEntry("max_completion_tokens", 32_000);
 	}
 
 	@Test

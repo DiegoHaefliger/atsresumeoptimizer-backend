@@ -12,6 +12,7 @@ import com.diegohaefliger.atsresumeoptimizer.rewrite.ResumeFormat;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.ResumeContact;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.ResumeEditingService;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.domain.ResumeTemplate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -62,7 +63,8 @@ class ResumeEditingServiceImpl implements ResumeEditingService {
 		ResumeVersionInfo stored = resumeService.getVersionInfo(resumeId, resumeVersionId);
 		EditableResume editable = contentStore.find(resumeVersionId).orElseGet(() -> importFromFile(stored.content()));
 		String fileName = exportName.baseName(resumeId, resumeVersionId, editable.content().name()) + format.extension();
-		if (format.mimeType().equals(stored.mimeType())) {
+		boolean objectiveAlreadyMerged = ObjectiveMerger.mergeIntoSummary(editable.content(), List.of()) == editable.content();
+		if (objectiveAlreadyMerged && format.mimeType().equals(stored.mimeType())) {
 			return new ExportedResume(stored.content(), fileName, format.mimeType());
 		}
 		RenderedResume rendered = documentWriter.render(editable.template(),

@@ -77,12 +77,13 @@ class ResumeDocumentWriter {
 
 	private StoredResumeDocuments remember(StoredResumeDocuments documents, ResumeTemplate template,
 			StructuredResume content, ResumeContact contact) {
-		contentStore.save(documents, template, content, contact);
+		contentStore.save(documents, template, ObjectiveMerger.mergeIntoSummary(content, List.of()), contact);
 		return documents;
 	}
 
-	RenderedResume render(ResumeTemplate template, StructuredResume content, ResumeContact contact) {
-		String contactLine = Stream.of(contact.email(), contact.phone(), contact.linkedIn())
+	RenderedResume render(ResumeTemplate template, StructuredResume rawContent, ResumeContact contact) {
+		StructuredResume content = ObjectiveMerger.mergeIntoSummary(rawContent, List.of());
+		String contactLine = Stream.of(contact.phone(), contact.email(), contact.linkedIn())
 				.filter(StringUtils::hasText)
 				.collect(Collectors.joining(CONTACT_SEPARATOR));
 		ResumeTheme theme = ResumeTheme.of(template);
@@ -96,7 +97,7 @@ class ResumeDocumentWriter {
 		StringBuilder builder = new StringBuilder();
 		appendLine(builder, content.name());
 		appendLine(builder, content.headline());
-		appendLine(builder, Stream.of(contactLine, contact.github(), contact.portfolio(), contact.location())
+		appendLine(builder, Stream.of(contact.location(), contactLine, contact.github(), contact.portfolio())
 				.filter(StringUtils::hasText).collect(Collectors.joining(CONTACT_SEPARATOR)));
 		for (ResumeSection section : content.sections()) {
 			builder.append(section.title()).append('\n');

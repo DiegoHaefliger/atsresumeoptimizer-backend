@@ -129,6 +129,15 @@ class AnalysisQueryServiceImpl implements AnalysisQueryService {
 		return resumeService.listAdaptedFromAnalyses(analysisRepository.findIdsByJobPostingId(jobPostingId));
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<UUID> analysisOfGeneratedVersion(UUID jobPostingId, UUID resumeVersionId) {
+		return generatedResumes(jobPostingId).stream()
+				.filter(resume -> resume.versions().stream().anyMatch(version -> version.id().equals(resumeVersionId)))
+				.map(ResumeSummary::sourceAnalysisId)
+				.findFirst();
+	}
+
 	private AnalysisEntity find(AnalysisId id) {
 		return analysisRepository.findById(id.value()).orElseThrow(() -> new AnalysisNotFoundException(id));
 	}

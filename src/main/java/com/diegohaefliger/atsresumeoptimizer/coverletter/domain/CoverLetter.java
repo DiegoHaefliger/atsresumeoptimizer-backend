@@ -7,6 +7,7 @@ public record CoverLetter(
 		UUID id,
 		UUID jobPostingId,
 		UUID analysisId,
+		UUID resumeVersionId,
 		String content,
 		String aiModel,
 		Instant createdAt,
