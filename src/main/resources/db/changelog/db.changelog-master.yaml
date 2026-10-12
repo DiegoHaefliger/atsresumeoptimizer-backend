@@ -127,3 +127,7 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000069_prompt_template_resume_structuring_v13.yaml
   - include:
       file: db/changelog/changes/00000000000070_resume_version_parsing_signals.yaml
+  - include:
+      file: db/changelog/changes/00000000000071_candidate_questions.yaml
+  - include:
+      file: db/changelog/changes/00000000000072_prompt_template_candidate_questions_v2.yaml

@@ -17,4 +17,7 @@ public interface AiPort {
 
 	/** Sem cache: gerar de novo tem que trazer outras perguntas. */
 	AiResult<InterviewQuestionsDraft> writeInterviewQuestions(InterviewQuestionsBrief brief);
+
+	/** Sem cache: gerar de novo tem que trazer outras perguntas. */
+	AiResult<CandidateQuestionsDraft> writeCandidateQuestions(CandidateQuestionsBrief brief);
 }

@@ -1,0 +1,141 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000071-candidate-questions
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: candidate_question_set
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: job_posting_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_candidate_question_set_job_posting
+                    references: job_posting(id)
+                    deleteCascade: true
+              - column:
+                  name: ai_model
+                  type: varchar(100)
+              - column:
+                  name: tokens_in
+                  type: integer
+              - column:
+                  name: tokens_out
+                  type: integer
+              - column:
+                  name: cost_usd
+                  type: numeric(10,4)
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_candidate_question_set_job_posting
+            tableName: candidate_question_set
+            columns:
+              - column:
+                  name: job_posting_id
+              - column:
+                  name: created_at
+        - createTable:
+            tableName: candidate_question
+            columns:
+              - column:
+                  name: set_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_candidate_question_set
+                    references: candidate_question_set(id)
+                    deleteCascade: true
+              - column:
+                  name: position
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: question
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: topic
+                  type: text
+              - column:
+                  name: reason
+                  type: text
+        - addPrimaryKey:
+            tableName: candidate_question
+            columnNames: set_id, position
+            constraintName: pk_candidate_question
+  - changeSet:
+      id: 00000000000071-prompt-template-candidate-questions
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM prompt_template WHERE id = '33333333-3333-3333-3333-333333333353'
+      changes:
+        - insert:
+            tableName: prompt_template
+            columns:
+              - column:
+                  name: id
+                  value: 33333333-3333-3333-3333-333333333353
+              - column:
+                  name: key
+                  value: candidate-questions
+              - column:
+                  name: version
+                  valueNumeric: 1
+              - column:
+                  name: content
+                  value: |
+                    Você prepara um candidato para o fim da entrevista, quando o recrutador abre espaço para ele
+                    fazer perguntas, em português do Brasil.
+
+                    Objetivo: escrever até 7 perguntas que o candidato pode fazer, boas o bastante para mostrar
+                    interesse real, maturidade e que ele leu a vaga com atenção.
+
+                    Regras:
+                    - Baseie cada pergunta em algo específico do texto da vaga ou dos benefícios: uma tecnologia
+                      citada, uma responsabilidade, um modelo de trabalho, um benefício, o tamanho ou o momento do
+                      time. Pergunta que serviria para qualquer vaga não entra.
+                    - Fuja das perguntas óbvias que todo candidato faz: próxima etapa do processo, prazo de retorno,
+                      lista de benefícios, salário, horário, "como é a cultura da empresa", "como é um dia típico".
+                    - Se a vaga cita um benefício, não pergunte quais são os benefícios; pergunte algo que o texto
+                      não responde, como a regra de uso, o que muda na prática ou como funciona no dia a dia.
+                    - Prefira perguntas sobre: como o sucesso é medido nos primeiros meses, desafios técnicos atuais
+                      do time, por que a vaga está aberta, como o time decide e entrega, crescimento e aprendizado,
+                      como o trabalho remoto ou híbrido funciona de verdade.
+                    - Ajuste ao nível da vaga: sênior pergunta sobre decisões técnicas, autonomia e dívida técnica;
+                      júnior pergunta sobre mentoria, onboarding e aprendizado.
+                    - Perguntas curtas, naturais e educadas, como uma pessoa falaria. Sem tom de interrogatório.
+                    - "topic": o assunto da pergunta em poucas palavras (ex.: "Time", "Remoto", "Crescimento").
+                    - "reason": uma frase dizendo o que a pergunta mostra de bom sobre o candidato ou o que ele
+                      descobre com a resposta, citando o ponto da vaga que a motivou.
+                    - Sem markdown e sem emojis.
+
+                    Responda só com um JSON:
+                    {"questions": [{"question": "...", "topic": "...", "reason": "..."}]}
+                    com no máximo 7 itens, do mais útil para o menos útil.
+
+                    Vaga: {{jobTitle}}
+                    Empresa: {{company}}
+                    Senioridade: {{seniority}}
+                    Benefícios informados: {{benefits}}
+
+                    Texto da vaga:
+                    {{jobText}}
+              - column:
+                  name: model
+                  value: gpt-4o-mini

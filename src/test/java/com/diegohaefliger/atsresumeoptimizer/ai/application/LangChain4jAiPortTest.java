@@ -9,6 +9,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.diegohaefliger.atsresumeoptimizer.ai.AiResult;
+import com.diegohaefliger.atsresumeoptimizer.ai.CandidateQuestionDraft;
+import com.diegohaefliger.atsresumeoptimizer.ai.CandidateQuestionsBrief;
+import com.diegohaefliger.atsresumeoptimizer.ai.CandidateQuestionsDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionDraft;
@@ -359,6 +362,30 @@ class LangChain4jAiPortTest {
 		String sentPrompt = ((dev.langchain4j.data.message.UserMessage) requestCaptor.getValue().messages().get(0)).singleText();
 		assertThat(sentPrompt).isEqualTo(
 				"Backend Java | Cielo | não informada | Java | Java, Kafka | texto da vaga | não informado");
+		verifyNoInteractions(llmCacheRepository);
+	}
+
+	@Test
+	void writesTheCandidateQuestionsFromTheJobAndBenefitsWithoutTouchingTheCache() {
+		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
+		PromptTemplate template = template("candidate-questions",
+				"{{jobTitle}} | {{company}} | {{seniority}} | {{benefits}} | {{jobText}}");
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("candidate-questions")).thenReturn(Optional.of(template));
+		ChatResponse response = ChatResponse.builder()
+				.aiMessage(AiMessage.from("{\"questions\":[{\"question\":\"Como funciona o home office?\","
+						+ "\"topic\":\"Remoto\",\"reason\":\"A vaga é híbrida\"}]}"))
+				.tokenUsage(new TokenUsage(500, 400))
+				.build();
+		org.mockito.ArgumentCaptor<ChatRequest> requestCaptor = org.mockito.ArgumentCaptor.forClass(ChatRequest.class);
+		when(chatModel.chat(requestCaptor.capture())).thenReturn(response);
+
+		AiResult<CandidateQuestionsDraft> result = aiPort.writeCandidateQuestions(
+				new CandidateQuestionsBrief("Backend Java", "Cielo", null, "texto da vaga", List.of("VR", "Gympass")));
+
+		assertThat(result.value().questions())
+				.containsExactly(new CandidateQuestionDraft("Como funciona o home office?", "Remoto", "A vaga é híbrida"));
+		String sentPrompt = ((dev.langchain4j.data.message.UserMessage) requestCaptor.getValue().messages().get(0)).singleText();
+		assertThat(sentPrompt).isEqualTo("Backend Java | Cielo | não informada | VR; Gympass | texto da vaga");
 		verifyNoInteractions(llmCacheRepository);
 	}
 }
