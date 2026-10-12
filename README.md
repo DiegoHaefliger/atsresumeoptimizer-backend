@@ -14,17 +14,35 @@ Backend do [ATSResumeOptimizer](https://github.com/DiegoHaefliger/atsresumeoptim
 ## Stack
 
 - Java 25 (LTS), Spring Boot, Liquibase
-- PostgreSQL (sobe via `compose.yaml`)
+- PostgreSQL (sobe via `compose.yaml`; no profile `desktop`, embutido)
 - IA configurável pela tela de Configurações: OpenAI, Anthropic, Gemini ou Ollama
 
 ## Estrutura
 
 Um pacote por contexto (`ai`, `analysis`, `job`, `language`, `parsing`, `preference`, `resume`, `rewrite`,
-`scoring`, `selection`, `notification`, `googlecalendar`), cada um dividido em `adapter`, `application` e `domain`.
+`scoring`, `selection`, `notification`, `googlecalendar`, `desktop`), cada um dividido em `adapter`, `application` e `domain`.
 
 ## Como rodar
 
 Veja o passo a passo no [README do repositório principal](https://github.com/DiegoHaefliger/atsresumeoptimizer#como-rodar).
+
+### Profile `desktop` (sem Docker)
+
+É o modo usado pelo instalador. Sobe um Postgres 17 embutido no próprio processo, sem Docker e sem Postgres
+instalado:
+
+```bash
+./mvnw package -DskipTests
+java -jar target/ats-resume-optimizer-backend-*.jar --spring.profiles.active=desktop
+```
+
+| Variável            | Padrão                     | O que é                                     |
+|---------------------|----------------------------|---------------------------------------------|
+| `ATS_DATA_DIR`      | `~/.ats-resume-optimizer`  | Pasta dos dados (`pgdata`) e da senha do banco |
+| `ATS_POSTGRES_PORT` | `54329`                    | Porta do Postgres, só em `localhost`         |
+
+O banco é criado com senha aleatória gravada em `postgres-password`, legível só pelo dono. Backup = copiar a
+pasta inteira com o app fechado; sem o `postgres-password` o banco não abre.
 
 ## Contrato de API
 
