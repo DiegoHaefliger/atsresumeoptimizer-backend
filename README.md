@@ -34,7 +34,9 @@ instalado:
 ```bash
 (cd ../front && npm run build:desktop)
 ./mvnw -Pdesktop package -DskipTests      # embute ../front/dist no jar; outro caminho: -Dfrontend.dist=...
-java -jar target/ats-resume-optimizer-backend-*.jar --spring.profiles.active=desktop
+java -cp target/ats-resume-optimizer-backend-*.jar \
+  -Dloader.main=com.diegohaefliger.atsresumeoptimizer.desktop.DesktopApplication \
+  org.springframework.boot.loader.launch.PropertiesLauncher
 ```
 
 Abre uma janela de espera e, quando o app fica pronto, o navegador em <http://localhost:8080> (front e API na
