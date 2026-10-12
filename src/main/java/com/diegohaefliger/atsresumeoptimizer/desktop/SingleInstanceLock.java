@@ -1,0 +1,73 @@
+package com.diegohaefliger.atsresumeoptimizer.desktop;
+
+import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
+
+final class SingleInstanceLock {
+
+	private static final String LOCK_FILE = "app.lock";
+	private static final String PORT_FILE = "app.port";
+	private static final Duration POLL_INTERVAL = Duration.ofMillis(500);
+
+	// Guardado só pra manter o lock vivo até a JVM sair; o sistema operacional solta se o processo cair.
+	private final FileLock lock;
+	private final Path portFile;
+
+	private SingleInstanceLock(FileLock lock, Path portFile) {
+		this.lock = lock;
+		this.portFile = portFile;
+	}
+
+	static Optional<SingleInstanceLock> tryAcquire(Path dataDir) throws IOException {
+		Files.createDirectories(dataDir);
+		FileChannel channel = FileChannel.open(dataDir.resolve(LOCK_FILE), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+		FileLock lock;
+		try {
+			lock = channel.tryLock();
+		} catch (OverlappingFileLockException heldByThisJvm) {
+			// O devtools roda o main de novo no mesmo processo a cada restart: continua sendo a mesma instância.
+			channel.close();
+			lock = null;
+		}
+		if (lock == null && channel.isOpen()) {
+			channel.close();
+			return Optional.empty();
+		}
+		Path portFile = dataDir.resolve(PORT_FILE);
+		Files.deleteIfExists(portFile);
+		return Optional.of(new SingleInstanceLock(lock, portFile));
+	}
+
+	void publishPort(int port) throws IOException {
+		Files.writeString(portFile, Integer.toString(port), StandardCharsets.UTF_8);
+	}
+
+	static Optional<Integer> waitForPublishedPort(Path dataDir, Duration timeout) throws IOException {
+		Path portFile = dataDir.resolve(PORT_FILE);
+		Instant deadline = Instant.now().plus(timeout);
+		while (Instant.now().isBefore(deadline)) {
+			if (Files.isRegularFile(portFile)) {
+				String content = Files.readString(portFile, StandardCharsets.UTF_8).strip();
+				if (!content.isEmpty()) {
+					return Optional.of(Integer.parseInt(content));
+				}
+			}
+			try {
+				Thread.sleep(POLL_INTERVAL);
+			} catch (InterruptedException interrupted) {
+				Thread.currentThread().interrupt();
+				return Optional.empty();
+			}
+		}
+		return Optional.empty();
+	}
+}

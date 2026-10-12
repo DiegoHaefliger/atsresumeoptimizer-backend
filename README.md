@@ -37,11 +37,15 @@ instalado:
 java -jar target/ats-resume-optimizer-backend-*.jar --spring.profiles.active=desktop
 ```
 
-O app abre em <http://localhost:8080>, com front e API na mesma origem.
+Abre uma janela de espera e, quando o app fica pronto, o navegador em <http://localhost:8080> (front e API na
+mesma origem). Com a 8080 ocupada, usa outra porta livre. Abrir de novo só traz o navegador de volta. O ícone na
+bandeja tem **Abrir** e **Sair**. O servidor só aceita conexões do próprio computador (`127.0.0.1`), e o log
+fica em `logs/app.log` dentro da pasta de dados.
 
 | Variável            | Padrão                     | O que é                                     |
 |---------------------|----------------------------|---------------------------------------------|
 | `ATS_DATA_DIR`      | `~/.ats-resume-optimizer`  | Pasta dos dados (`pgdata`) e da senha do banco |
+| `ATS_PORT`          | `8080`                     | Porta preferida do app                       |
 | `ATS_POSTGRES_PORT` | `54329`                    | Porta do Postgres, só em `localhost`         |
 | `ATS_FRONTEND_LOCATION` | `classpath:/static/`   | De onde servir o front (ex.: `file:../front/dist/`) |
 
