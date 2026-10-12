@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.diegohaefliger</groupId>
 	<artifactId>ats-resume-optimizer-backend</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>${revision}</version>
 	<name>AtsResumeOptimizerBackend</name>
 	<description>ATS Resume Optimizer - Backend</description>
 	<url/>
@@ -27,6 +27,7 @@
 		<url/>
 	</scm>
 	<properties>
+		<revision>0.0.1-SNAPSHOT</revision>
 		<java.version>25</java.version>
 		<dependency-check.version>12.2.2</dependency-check.version>
 		<dependency-check.data.dir>${project.basedir}/.dependency-check-data</dependency-check.data.dir>
@@ -108,26 +109,6 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>io.zonky.test.postgres</groupId>
-			<artifactId>embedded-postgres-binaries-linux-amd64</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.zonky.test.postgres</groupId>
-			<artifactId>embedded-postgres-binaries-windows-amd64</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.zonky.test.postgres</groupId>
-			<artifactId>embedded-postgres-binaries-darwin-arm64v8</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.zonky.test.postgres</groupId>
-			<artifactId>embedded-postgres-binaries-darwin-amd64</artifactId>
-			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.modulith</groupId>
@@ -378,35 +359,75 @@
 
 	<profiles>
 		<profile>
+			<id>postgres-linux</id>
+			<activation>
+				<os>
+					<name>Linux</name>
+					<arch>amd64</arch>
+				</os>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>io.zonky.test.postgres</groupId>
+					<artifactId>embedded-postgres-binaries-linux-amd64</artifactId>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>postgres-windows</id>
+			<activation>
+				<os>
+					<family>windows</family>
+				</os>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>io.zonky.test.postgres</groupId>
+					<artifactId>embedded-postgres-binaries-windows-amd64</artifactId>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>postgres-mac-arm</id>
+			<activation>
+				<os>
+					<family>mac</family>
+					<arch>aarch64</arch>
+				</os>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>io.zonky.test.postgres</groupId>
+					<artifactId>embedded-postgres-binaries-darwin-arm64v8</artifactId>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>postgres-mac-intel</id>
+			<activation>
+				<os>
+					<family>mac</family>
+					<arch>x86_64</arch>
+				</os>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>io.zonky.test.postgres</groupId>
+					<artifactId>embedded-postgres-binaries-darwin-amd64</artifactId>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
 			<id>desktop</id>
 			<properties>
 				<frontend.dist>${project.basedir}/../front/dist</frontend.dist>
 			</properties>
 			<build>
 				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-enforcer-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>require-frontend-build</id>
-								<phase>validate</phase>
-								<goals>
-									<goal>enforce</goal>
-								</goals>
-								<configuration>
-									<rules>
-										<requireFilesExist>
-											<files>
-												<file>${frontend.dist}/index.html</file>
-											</files>
-											<message>Build do front não encontrado em ${frontend.dist}. Rode "npm run build:desktop" no front ou informe -Dfrontend.dist=caminho.</message>
-										</requireFilesExist>
-									</rules>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-resources-plugin</artifactId>
@@ -424,6 +445,29 @@
 											<directory>${frontend.dist}</directory>
 										</resource>
 									</resources>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-enforcer-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>require-frontend-build</id>
+								<phase>process-resources</phase>
+								<goals>
+									<goal>enforce</goal>
+								</goals>
+								<configuration>
+									<rules>
+										<requireFilesExist>
+											<files>
+												<file>${project.build.outputDirectory}/static/index.html</file>
+											</files>
+											<message>Build do front não encontrado em ${frontend.dist}. Rode "npm run build:desktop" no front ou informe -Dfrontend.dist=caminho.</message>
+										</requireFilesExist>
+									</rules>
 								</configuration>
 							</execution>
 						</executions>
