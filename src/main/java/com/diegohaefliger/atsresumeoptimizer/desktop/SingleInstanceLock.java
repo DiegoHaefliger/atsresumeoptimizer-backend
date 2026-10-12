@@ -8,15 +8,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Optional;
 
 final class SingleInstanceLock {
 
 	private static final String LOCK_FILE = "app.lock";
 	private static final String PORT_FILE = "app.port";
-	private static final Duration POLL_INTERVAL = Duration.ofMillis(500);
 
 	// Guardado só pra manter o lock vivo até a JVM sair; o sistema operacional solta se o processo cair.
 	private final FileLock lock;
@@ -51,23 +48,16 @@ final class SingleInstanceLock {
 		Files.writeString(portFile, Integer.toString(port), StandardCharsets.UTF_8);
 	}
 
-	static Optional<Integer> waitForPublishedPort(Path dataDir, Duration timeout) throws IOException {
+	void withdrawPort() throws IOException {
+		Files.deleteIfExists(portFile);
+	}
+
+	static Optional<Integer> publishedPort(Path dataDir) throws IOException {
 		Path portFile = dataDir.resolve(PORT_FILE);
-		Instant deadline = Instant.now().plus(timeout);
-		while (Instant.now().isBefore(deadline)) {
-			if (Files.isRegularFile(portFile)) {
-				String content = Files.readString(portFile, StandardCharsets.UTF_8).strip();
-				if (!content.isEmpty()) {
-					return Optional.of(Integer.parseInt(content));
-				}
-			}
-			try {
-				Thread.sleep(POLL_INTERVAL);
-			} catch (InterruptedException interrupted) {
-				Thread.currentThread().interrupt();
-				return Optional.empty();
-			}
+		if (!Files.isRegularFile(portFile)) {
+			return Optional.empty();
 		}
-		return Optional.empty();
+		String content = Files.readString(portFile, StandardCharsets.UTF_8).strip();
+		return content.isEmpty() ? Optional.empty() : Optional.of(Integer.parseInt(content));
 	}
 }

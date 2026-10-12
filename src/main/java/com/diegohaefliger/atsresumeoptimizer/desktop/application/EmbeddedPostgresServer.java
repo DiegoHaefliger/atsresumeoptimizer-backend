@@ -34,6 +34,8 @@ class EmbeddedPostgresServer implements JdbcConnectionDetails, AutoCloseable {
 		this.postgres = EmbeddedPostgres.builder()
 				.setDataDirectory(dataDirectory)
 				.setCleanDataDirectory(false)
+				// Quem para o banco é o Spring, depois do pool; o hook do zonky parava antes e travava o shutdown em 30 s.
+				.setRegisterShutdownHook(false)
 				.setOverrideWorkingDirectory(properties.dataDir().resolve("postgres-bin").toFile())
 				.setPort(properties.postgresPort())
 				.setPGStartupWait(properties.postgresStartupTimeout())

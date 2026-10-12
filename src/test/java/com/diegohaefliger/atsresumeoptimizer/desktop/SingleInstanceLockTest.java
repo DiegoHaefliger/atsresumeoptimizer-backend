@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -19,7 +18,7 @@ class SingleInstanceLockTest {
 
 		assertThat(SingleInstanceLock.tryAcquire(dataDir)).isPresent();
 
-		assertThat(SingleInstanceLock.waitForPublishedPort(dataDir, Duration.ZERO)).isEmpty();
+		assertThat(SingleInstanceLock.publishedPort(dataDir)).isEmpty();
 	}
 
 	@Test
@@ -28,7 +27,17 @@ class SingleInstanceLockTest {
 
 		lock.publishPort(8123);
 
-		assertThat(SingleInstanceLock.waitForPublishedPort(dataDir, Duration.ofSeconds(1))).contains(8123);
+		assertThat(SingleInstanceLock.publishedPort(dataDir)).contains(8123);
+	}
+
+	@Test
+	void stopsAdvertisingThePortWhenTheAppStartsClosing() throws Exception {
+		SingleInstanceLock lock = SingleInstanceLock.tryAcquire(dataDir).orElseThrow();
+		lock.publishPort(8123);
+
+		lock.withdrawPort();
+
+		assertThat(SingleInstanceLock.publishedPort(dataDir)).isEmpty();
 	}
 
 	@Test

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -13,6 +14,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.event.ContextClosedEvent;
 
 public final class DesktopLauncher {
 
@@ -20,6 +22,7 @@ public final class DesktopLauncher {
 	private static final String PROFILE = "desktop";
 	private static final int DEFAULT_PORT = 8080;
 	private static final Duration RUNNING_INSTANCE_WAIT = Duration.ofSeconds(90);
+	private static final Duration POLL_INTERVAL = Duration.ofMillis(500);
 
 	private final Class<?> application;
 	private final Path dataDir;
@@ -38,9 +41,8 @@ public final class DesktopLauncher {
 	}
 
 	public void launch(String[] args) throws IOException {
-		Optional<SingleInstanceLock> lock = SingleInstanceLock.tryAcquire(dataDir);
+		Optional<SingleInstanceLock> lock = acquireOrHandOver();
 		if (lock.isEmpty()) {
-			openRunningInstance();
 			return;
 		}
 		StartupWindow window = StartupWindow.show();
@@ -48,7 +50,8 @@ public final class DesktopLauncher {
 		SpringApplication spring = new SpringApplication(application);
 		spring.setHeadless(false);
 		spring.setAdditionalProfiles(PROFILE);
-		spring.addListeners((ApplicationListener<ApplicationReadyEvent>) event -> onReady(event, lock.get(), window));
+		spring.addListeners((ApplicationListener<ApplicationReadyEvent>) event -> onReady(event, lock.get(), window),
+				(ApplicationListener<ContextClosedEvent>) event -> withdrawPort(lock.get()));
 		try {
 			spring.run(Stream.concat(Arrays.stream(args),
 					Stream.of("--server.port=" + port, "--app.desktop.data-dir=" + dataDir)).toArray(String[]::new));
@@ -66,7 +69,7 @@ public final class DesktopLauncher {
 		try {
 			lock.publishPort(port);
 		} catch (IOException exception) {
-			LOGGER.warn("Não deu pra gravar a porta do app; abrir de novo vai subir outra tela de espera.", exception);
+			LOGGER.warn("Não deu pra gravar a porta do app; abrir de novo não vai achar esta instância.", exception);
 		}
 		window.close();
 		DesktopTray.install(url, () -> System.exit(SpringApplication.exit(context)));
@@ -74,12 +77,34 @@ public final class DesktopLauncher {
 		LOGGER.info("App pronto em {}", url);
 	}
 
-	private void openRunningInstance() throws IOException {
-		Optional<Integer> port = SingleInstanceLock.waitForPublishedPort(dataDir, RUNNING_INSTANCE_WAIT);
-		if (port.isPresent()) {
-			Browser.open(URI.create("http://localhost:" + port.get() + "/"));
-		} else {
-			LOGGER.warn("Já existe uma instância do app, mas ela não informou a porta em {}", RUNNING_INSTANCE_WAIT);
+	private Optional<SingleInstanceLock> acquireOrHandOver() throws IOException {
+		Instant deadline = Instant.now().plus(RUNNING_INSTANCE_WAIT);
+		while (Instant.now().isBefore(deadline)) {
+			Optional<SingleInstanceLock> lock = SingleInstanceLock.tryAcquire(dataDir);
+			if (lock.isPresent()) {
+				return lock;
+			}
+			Optional<Integer> port = SingleInstanceLock.publishedPort(dataDir);
+			if (port.isPresent()) {
+				Browser.open(URI.create("http://localhost:" + port.get() + "/"));
+				return Optional.empty();
+			}
+			try {
+				Thread.sleep(POLL_INTERVAL);
+			} catch (InterruptedException interrupted) {
+				Thread.currentThread().interrupt();
+				return Optional.empty();
+			}
+		}
+		LOGGER.warn("Outra instância do app segurou a pasta de dados por {} sem ficar pronta", RUNNING_INSTANCE_WAIT);
+		return Optional.empty();
+	}
+
+	private void withdrawPort(SingleInstanceLock lock) {
+		try {
+			lock.withdrawPort();
+		} catch (IOException exception) {
+			LOGGER.warn("Não deu pra apagar o arquivo de porta do app", exception);
 		}
 	}
 }
