@@ -10,22 +10,19 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/** LGPD: expira arquivo e texto de versões antigas; análises já gravadas não dependem deles. */
+/** LGPD: expira o texto de versões antigas; análises já gravadas não dependem dele. */
 @Component
 class ResumeRetentionJob {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ResumeRetentionJob.class);
 
 	private final ResumeVersionRepository resumeVersionRepository;
-	private final ResumeStorage storage;
 	private final int retentionDays;
 
 	ResumeRetentionJob(
 			ResumeVersionRepository resumeVersionRepository,
-			ResumeStorage storage,
 			@Value("${app.resume.retention-days:90}") int retentionDays) {
 		this.resumeVersionRepository = resumeVersionRepository;
-		this.storage = storage;
 		this.retentionDays = retentionDays;
 	}
 
@@ -33,15 +30,12 @@ class ResumeRetentionJob {
 	@Transactional
 	void expireOldVersions() {
 		Instant cutoff = Instant.now().minus(retentionDays, ChronoUnit.DAYS);
-		List<ResumeVersion> expired = resumeVersionRepository.findByCreatedAtBeforeAndStorageKeyNot(
+		List<ResumeVersion> expired = resumeVersionRepository.findByCreatedAtBeforeAndFileNameNot(
 				cutoff, ResumeVersion.SCRUBBED_PLACEHOLDER);
 		if (expired.isEmpty()) {
 			return;
 		}
-		for (ResumeVersion version : expired) {
-			storage.delete(version.storageKey());
-			version.scrub();
-		}
+		expired.forEach(ResumeVersion::scrub);
 		resumeVersionRepository.saveAll(expired);
 		LOGGER.info("Retenção LGPD: {} resume_version expiradas (mais de {} dias)", expired.size(), retentionDays);
 	}

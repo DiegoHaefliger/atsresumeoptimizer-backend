@@ -18,7 +18,6 @@ import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringResult;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 import com.diegohaefliger.atsresumeoptimizer.job.WorkModel;
 import com.diegohaefliger.atsresumeoptimizer.parsing.application.BulletTextExtractor;
-import com.diegohaefliger.atsresumeoptimizer.parsing.application.ResumeAnalysisPipeline;
 import com.diegohaefliger.atsresumeoptimizer.parsing.application.SensitiveDataDetector;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ContactInfo;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.NormalizedDocument;
@@ -52,8 +51,6 @@ import org.springframework.context.ApplicationEventPublisher;
 class AnalysisServiceImplTest {
 
 	@Mock
-	private ResumeAnalysisPipeline parsingPipeline;
-	@Mock
 	private ResumeService resumeService;
 	@Mock
 	private JobStructuringService jobStructuringService;
@@ -81,7 +78,7 @@ class AnalysisServiceImplTest {
 		var upload = new ResumeUpload("curriculo.pdf", "application/pdf");
 		byte[] content = "conteudo".getBytes();
 		when(resumeService.upload(content, "curriculo.pdf", "application/pdf"))
-				.thenReturn(new ResumeVersionCreated(UUID.randomUUID(), UUID.randomUUID(), "key", 8, "sha", 1));
+				.thenReturn(new ResumeVersionCreated(UUID.randomUUID(), UUID.randomUUID(), 8, "sha", 1));
 
 		var details = new JobDetails("Acme", "https://acme.com/vaga", WorkModel.REMOTE, null, null, null, null, null, null);
 		UUID jobPostingId = UUID.randomUUID();
@@ -95,7 +92,7 @@ class AnalysisServiceImplTest {
 		assertThat(saved.getValue().jobPostingId()).isEqualTo(jobPostingId);
 		verify(eventPublisher).publishEvent(any(AnalysisRequested.class));
 		verify(jobStructuringService, never()).structureFromText(any());
-		verifyNoInteractions(parsingPipeline, scoringService, scoringProfileProvider, aiPort);
+		verifyNoInteractions(scoringService, scoringProfileProvider, aiPort);
 	}
 
 	@Test
@@ -105,12 +102,10 @@ class AnalysisServiceImplTest {
 				AnalysisMode.JOB_MATCH, null, "vaga de java", Instant.now());
 		when(analysisRepository.findById(entity.id())).thenReturn(Optional.of(entity));
 
-		byte[] content = "conteudo".getBytes();
-		when(resumeService.downloadContent(entity.resumeVersionId())).thenReturn(content);
 		NormalizedDocument document = new NormalizedDocument(SourceFormat.PDF, "Ana Silva\nExperiencia", "", 1);
 		ParsingResult parsingResult = new ParsingResult(document, new ParsingSignals(false, false, false, false, false,
 				false, false, false), List.of(), new ContactInfo(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()));
-		when(parsingPipeline.analyze(content)).thenReturn(parsingResult);
+		when(resumeService.parsedVersion(entity.resumeVersionId())).thenReturn(parsingResult);
 
 		JobStructured structured = new JobStructured("Backend Java", "pleno", 3, null, List.of(), List.of(), Map.of());
 		when(jobStructuringService.structureFromText(any()))
@@ -136,8 +131,6 @@ class AnalysisServiceImplTest {
 				AnalysisMode.GENERAL, null, null, Instant.now());
 		when(analysisRepository.findById(entity.id())).thenReturn(Optional.of(entity));
 
-		byte[] content = "conteudo".getBytes();
-		when(resumeService.downloadContent(entity.resumeVersionId())).thenReturn(content);
 		NormalizedDocument document = new NormalizedDocument(SourceFormat.PDF, "Ana Silva", "", 1);
 		String experienceContent = String.join("\n",
 				"Desenvolvedora Backend Sênior — Jan 2020 – Dez 2022",
@@ -150,7 +143,7 @@ class AnalysisServiceImplTest {
 				false, false, false), List.of(experience),
 				new ContactInfo(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
 						Optional.empty()));
-		when(parsingPipeline.analyze(content)).thenReturn(parsingResult);
+		when(resumeService.parsedVersion(entity.resumeVersionId())).thenReturn(parsingResult);
 
 		when(scoringProfileProvider.activeProfile(AnalysisMode.GENERAL))
 				.thenReturn(new ScoringProfileLookup(UUID.randomUUID(), ScoringProfileV1.GENERAL));
@@ -178,7 +171,7 @@ class AnalysisServiceImplTest {
 
 		service.onAnalysisRequested(new AnalysisRequested(entity.id()));
 
-		verifyNoInteractions(resumeService, parsingPipeline, jobStructuringService, scoringService);
+		verifyNoInteractions(resumeService, jobStructuringService, scoringService);
 	}
 
 	@Test
@@ -237,7 +230,7 @@ class AnalysisServiceImplTest {
 	private AnalysisDimensionRepository dimensionRepository;
 
 	private AnalysisServiceImpl newService() {
-		return new AnalysisServiceImpl(parsingPipeline, resumeService, jobStructuringService, scoringService,
+		return new AnalysisServiceImpl(resumeService, jobStructuringService, scoringService,
 				scoringProfileProvider, aiPort, analysisRepository, resultRecorder, keywordMatchRepository, findingRepository, dimensionRepository, eventEmitterRegistry, eventPublisher, sensitiveDataDetector,
 				new BulletTextExtractor());
 	}

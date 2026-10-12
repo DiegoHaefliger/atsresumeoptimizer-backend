@@ -40,7 +40,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * Ponta a ponta real (Postgres + MinIO via Testcontainers), com a IA mockada — sem chamar
+ * Ponta a ponta real (Postgres via Testcontainers), com a IA mockada — sem chamar
  * OpenAI de verdade. Cobre o "pronto quando" da fase 1b: POST com vaga → GET devolvendo
  * JOB_MATCH completo com score, dimensões e keywords.
  */

@@ -16,7 +16,6 @@ import com.diegohaefliger.atsresumeoptimizer.job.JobDetails;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringResult;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 import com.diegohaefliger.atsresumeoptimizer.parsing.application.BulletTextExtractor;
-import com.diegohaefliger.atsresumeoptimizer.parsing.application.ResumeAnalysisPipeline;
 import com.diegohaefliger.atsresumeoptimizer.parsing.application.SensitiveDataDetector;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ParsingResult;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeService;
@@ -47,7 +46,6 @@ class AnalysisServiceImpl implements AnalysisService {
 	private static final int MAX_BULLETS_REVIEWED = 15;
 	private static final String ERROR_SEPARATOR = "; ";
 
-	private final ResumeAnalysisPipeline parsingPipeline;
 	private final ResumeService resumeService;
 	private final JobStructuringService jobStructuringService;
 	private final ScoringService scoringService;
@@ -64,7 +62,6 @@ class AnalysisServiceImpl implements AnalysisService {
 	private final BulletTextExtractor bulletTextExtractor;
 
 	AnalysisServiceImpl(
-			ResumeAnalysisPipeline parsingPipeline,
 			ResumeService resumeService,
 			JobStructuringService jobStructuringService,
 			ScoringService scoringService,
@@ -79,7 +76,6 @@ class AnalysisServiceImpl implements AnalysisService {
 			ApplicationEventPublisher eventPublisher,
 			SensitiveDataDetector sensitiveDataDetector,
 			BulletTextExtractor bulletTextExtractor) {
-		this.parsingPipeline = parsingPipeline;
 		this.resumeService = resumeService;
 		this.jobStructuringService = jobStructuringService;
 		this.scoringService = scoringService;
@@ -131,7 +127,7 @@ class AnalysisServiceImpl implements AnalysisService {
 	}
 
 	private void rescore(AnalysisEntity entity) {
-		ParsingResult parsingResult = parsingPipeline.analyze(resumeService.downloadContent(entity.resumeVersionId()));
+		ParsingResult parsingResult = resumeService.parsedVersion(entity.resumeVersionId());
 		JobStructured job = jobStructuringService.structureFromText(entity.jobDescription()).structured();
 		List<BulletReview> bulletReviews = reviewBullets(extractBullets(parsingResult));
 		ScoringProfileLookup profileLookup = scoringProfileProvider.activeProfile(entity.mode());
@@ -169,7 +165,7 @@ class AnalysisServiceImpl implements AnalysisService {
 		AnalysisStatus status;
 		try {
 			advance(entity, entity::startParsing);
-			ParsingResult parsingResult = parsingPipeline.analyze(resumeService.downloadContent(entity.resumeVersionId()));
+			ParsingResult parsingResult = resumeService.parsedVersion(entity.resumeVersionId());
 			advance(entity, entity::startAnalyzing);
 			status = runExpensivePipeline(entity, parsingResult);
 		} catch (RuntimeException exception) {

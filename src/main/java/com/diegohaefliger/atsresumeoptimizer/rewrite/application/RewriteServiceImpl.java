@@ -152,7 +152,7 @@ class RewriteServiceImpl implements RewriteService {
 		}
 
 		progressTracker.advance(analysisId.value(), RewritePhase.READING);
-		ParsingResult parsingResult = parsingPipeline.analyze(resumeService.downloadContent(snapshot.resumeVersionId()));
+		ParsingResult parsingResult = resumeService.parsedVersion(snapshot.resumeVersionId());
 		ScoringProfileLookup profileLookup = scoringProfileProvider.activeProfile(snapshot.mode());
 		JobStructured job = resolveJob(snapshot);
 

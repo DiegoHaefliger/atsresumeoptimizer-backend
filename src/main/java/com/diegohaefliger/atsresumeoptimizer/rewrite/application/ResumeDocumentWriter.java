@@ -70,7 +70,7 @@ class ResumeDocumentWriter {
 	StoredResumeDocuments writeNew(String title, ResumeTemplate template, StructuredResume content, ResumeContact contact) {
 		RenderedResume rendered = render(template, content, contact);
 		ResumeVersionCreated docxVersion = resumeService.storeUpload(
-				title, rendered.docx(), COMPOSED_FILE_NAME + DOCX_EXTENSION, DOCX_MIME, rendered.text(), rendered.text(), null);
+				title, rendered.docx(), COMPOSED_FILE_NAME + DOCX_EXTENSION, DOCX_MIME, rendered.text());
 		return remember(new StoredResumeDocuments(docxVersion.resumeId(), docxVersion.resumeVersionId(), null,
 				rendered.docx()), template, content, contact);
 	}

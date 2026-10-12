@@ -2,13 +2,14 @@ package com.diegohaefliger.atsresumeoptimizer.resume.application;
 
 import com.diegohaefliger.atsresumeoptimizer.Sha256;
 import com.diegohaefliger.atsresumeoptimizer.parsing.application.ResumeAnalysisPipeline;
+import com.diegohaefliger.atsresumeoptimizer.parsing.domain.NormalizedDocument;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ParsingResult;
+import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ParsingSignals;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeOrigin;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeService;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeSummary;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeUploadLimits;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionCreated;
-import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionInfo;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionOrigin;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionSummary;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionText;
@@ -33,17 +34,14 @@ class ResumeServiceImpl implements ResumeService {
 	private static final String TITLE_SEPARATOR = " · ";
 	private static final int MAX_TITLE_LENGTH = 255;
 
-	private final ResumeStorage storage;
 	private final ResumeRepository resumeRepository;
 	private final ResumeVersionRepository resumeVersionRepository;
 	private final ResumeAnalysisPipeline parsingPipeline;
 
 	ResumeServiceImpl(
-			ResumeStorage storage,
 			ResumeRepository resumeRepository,
 			ResumeVersionRepository resumeVersionRepository,
 			ResumeAnalysisPipeline parsingPipeline) {
-		this.storage = storage;
 		this.resumeRepository = resumeRepository;
 		this.resumeVersionRepository = resumeVersionRepository;
 		this.parsingPipeline = parsingPipeline;
@@ -51,18 +49,9 @@ class ResumeServiceImpl implements ResumeService {
 
 	@Override
 	@Transactional
-	public ResumeVersionCreated storeUpload(
-			String title,
-			byte[] content,
-			String fileName,
-			String mimeType,
-			String rawText,
-			String structuredText,
-			Integer pageCount) {
-		String sha256 = Sha256.hex(content);
-
+	public ResumeVersionCreated storeUpload(String title, byte[] content, String fileName, String mimeType, String text) {
 		Resume resume = resumeRepository.save(Resume.base(UuidCreator.getTimeOrderedEpoch(), title));
-		return storeFirstVersion(resume, content, fileName, mimeType, sha256, pageCount, rawText, structuredText);
+		return storeGenerated(resume.id(), content, fileName, mimeType, text);
 	}
 
 	@Override
@@ -74,7 +63,7 @@ class ResumeServiceImpl implements ResumeService {
 		String title = source.title() + TITLE_SEPARATOR + titleSuffix;
 		title = title.substring(0, Math.min(title.length(), MAX_TITLE_LENGTH));
 		Resume resume = resumeRepository.save(Resume.adapted(UuidCreator.getTimeOrderedEpoch(), title, analysisId));
-		return storeFirstVersion(resume, content, fileName, mimeType, Sha256.hex(content), null, rawText, rawText);
+		return storeGenerated(resume.id(), content, fileName, mimeType, rawText);
 	}
 
 	@Override
@@ -88,17 +77,20 @@ class ResumeServiceImpl implements ResumeService {
 						.findFirst());
 	}
 
-	private ResumeVersionCreated storeFirstVersion(Resume resume, byte[] content, String fileName, String mimeType,
-			String sha256, Integer pageCount, String rawText, String structuredText) {
-		UUID versionId = UuidCreator.getTimeOrderedEpoch();
-		String storageKey = storageKey(resume.id(), versionId, fileName);
-		storage.upload(storageKey, content, mimeType);
+	private ResumeVersionCreated storeGenerated(UUID resumeId, byte[] content, String fileName, String mimeType,
+			String text) {
+		ParsingResult parsing = parsingPipeline.analyze(content);
+		NormalizedDocument document =
+				new NormalizedDocument(parsing.document().sourceFormat(), text, text, parsing.document().pageCount());
+		return storeVersion(resumeId, content, fileName, mimeType, document, parsing.signals());
+	}
 
+	private ResumeVersionCreated storeVersion(UUID resumeId, byte[] content, String fileName, String mimeType,
+			NormalizedDocument document, ParsingSignals signals) {
 		ResumeVersion version = resumeVersionRepository.save(new ResumeVersion(
-				versionId, resume.id(), storageKey, fileName, mimeType, content.length,
-				sha256, pageCount, rawText, structuredText));
-
-		return new ResumeVersionCreated(resume.id(), version.id(), storageKey, version.sizeBytes(), sha256, pageCount);
+				UuidCreator.getTimeOrderedEpoch(), resumeId, fileName, mimeType, content.length, Sha256.hex(content),
+				document, signals));
+		return new ResumeVersionCreated(resumeId, version.id(), version.sizeBytes(), version.sha256(), version.pageCount());
 	}
 
 	@Override
@@ -107,8 +99,8 @@ class ResumeServiceImpl implements ResumeService {
 		ResumeUploadLimits.validateSize(content.length);
 		ParsingResult parsingResult = parsingPipeline.analyze(content);
 		ResumeUploadLimits.validatePageCount(parsingResult.document().pageCount());
-		return storeUpload(resolveTitle(title, fileName), content, fileName, mimeType, parsingResult.document().rawText(),
-				parsingResult.document().structuredText(), parsingResult.document().pageCount());
+		Resume resume = resumeRepository.save(Resume.base(UuidCreator.getTimeOrderedEpoch(), resolveTitle(title, fileName)));
+		return storeVersion(resume.id(), content, fileName, mimeType, parsingResult.document(), parsingResult.signals());
 	}
 
 	private static String resolveTitle(String title, String fileName) {
@@ -175,18 +167,19 @@ class ResumeServiceImpl implements ResumeService {
 		return summaries.reversed();
 	}
 
-	private static String storageKey(UUID resumeId, UUID versionId, String fileName) {
-		return "%s/%s/%s".formatted(resumeId, versionId, fileName);
-	}
-
 	private static ResumeVersionSummary summary(ResumeVersion version, int number) {
 		return new ResumeVersionSummary(version.id(), number, version.fileName(), version.mimeType(), version.sizeBytes(),
 				version.pageCount(), version.createdAt());
 	}
 
 	@Override
-	public byte[] downloadContent(UUID resumeVersionId) {
-		return storage.download(version(resumeVersionId).storageKey());
+	@Transactional(readOnly = true)
+	public ParsingResult parsedVersion(UUID resumeVersionId) {
+		ResumeVersion version = version(resumeVersionId);
+		if (version.isScrubbed()) {
+			throw new ResumeVersionNotFoundException(resumeVersionId);
+		}
+		return parsingPipeline.assemble(version.document(), version.signals());
 	}
 
 	@Override
@@ -199,25 +192,7 @@ class ResumeServiceImpl implements ResumeService {
 	@Transactional
 	public ResumeVersionCreated storeGeneratedVersion(
 			UUID sourceVersionId, byte[] content, String fileName, String mimeType, String rawText) {
-		ResumeVersion sourceVersion = version(sourceVersionId);
-
-		String sha256 = Sha256.hex(content);
-		UUID versionId = UuidCreator.getTimeOrderedEpoch();
-		String storageKey = storageKey(sourceVersion.resumeId(), versionId, fileName);
-		storage.upload(storageKey, content, mimeType);
-
-		ResumeVersion version = resumeVersionRepository.save(new ResumeVersion(
-				versionId, sourceVersion.resumeId(), storageKey, fileName, mimeType,
-				content.length, sha256, null, rawText, rawText));
-
-		return new ResumeVersionCreated(sourceVersion.resumeId(), version.id(), storageKey, version.sizeBytes(), sha256, null);
-	}
-
-	@Override
-	public ResumeVersionInfo getVersionInfo(UUID resumeId, UUID resumeVersionId) {
-		ResumeVersion version = ownedVersion(resumeId, resumeVersionId);
-		byte[] content = storage.download(version.storageKey());
-		return new ResumeVersionInfo(content, version.fileName(), version.mimeType());
+		return storeGenerated(version(sourceVersionId).resumeId(), content, fileName, mimeType, rawText);
 	}
 
 	@Override
@@ -273,7 +248,6 @@ class ResumeServiceImpl implements ResumeService {
 		List<ResumeVersion> versions = resumeVersionRepository.findByResumeId(resumeId);
 		for (ResumeVersion version : versions) {
 			if (!version.isScrubbed()) {
-				storage.delete(version.storageKey());
 				version.scrub();
 			}
 		}
@@ -292,7 +266,6 @@ class ResumeServiceImpl implements ResumeService {
 				.filter(candidate -> candidate.id().equals(resumeVersionId) && !candidate.isScrubbed())
 				.findFirst()
 				.orElseThrow(() -> new ResumeVersionNotFoundException(resumeVersionId));
-		storage.delete(version.storageKey());
 		version.scrub();
 		resumeVersionRepository.save(version);
 		if (versions.stream().allMatch(ResumeVersion::isScrubbed)) {

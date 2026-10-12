@@ -37,9 +37,7 @@
 		<tika.version>3.3.2</tika.version>
 		<languagetool.version>6.6</languagetool.version>
 		<uuid-creator.version>6.1.1</uuid-creator.version>
-		<aws-sdk.version>2.46.7</aws-sdk.version>
 		<springdoc.version>3.1.1</springdoc.version>
-		<testcontainers-minio.version>1.21.3</testcontainers-minio.version>
 		<guava.version>33.4.0-jre</guava.version>
 		<bucket4j.version>8.10.1</bucket4j.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
@@ -152,12 +150,6 @@
 			<artifactId>testcontainers-postgresql</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>minio</artifactId>
-			<version>${testcontainers-minio.version}</version>
-			<scope>test</scope>
-		</dependency>
 
 		<!-- Parsing: PDF/DOCX/ODT -->
 		<dependency>
@@ -217,12 +209,6 @@
 			<version>${bucket4j.version}</version>
 		</dependency>
 
-		<!-- Storage S3-compatível (MinIO) -->
-		<dependency>
-			<groupId>software.amazon.awssdk</groupId>
-			<artifactId>s3</artifactId>
-			<version>${aws-sdk.version}</version>
-		</dependency>
 
 		<!-- Documentação da API -->
 		<dependency>
