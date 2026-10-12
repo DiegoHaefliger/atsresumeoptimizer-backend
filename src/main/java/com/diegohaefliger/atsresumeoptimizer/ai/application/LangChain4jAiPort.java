@@ -6,6 +6,8 @@ import com.diegohaefliger.atsresumeoptimizer.ai.AiPort;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiResult;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiUsage;
 import com.diegohaefliger.atsresumeoptimizer.ai.BulletReview;
+import com.diegohaefliger.atsresumeoptimizer.ai.CandidateQuestionsBrief;
+import com.diegohaefliger.atsresumeoptimizer.ai.CandidateQuestionsDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionsBrief;
@@ -37,6 +39,7 @@ class LangChain4jAiPort implements AiPort {
 	private static final String REQUIREMENT_EVIDENCE_KEY = "requirement-evidence";
 	private static final String COVER_LETTER_KEY = "cover-letter";
 	private static final String INTERVIEW_QUESTIONS_KEY = "interview-questions";
+	private static final String CANDIDATE_QUESTIONS_KEY = "candidate-questions";
 	static final String RESUME_STRUCTURING_KEY = "resume-structuring";
 	private static final int MAX_PARSE_ATTEMPTS = 2;
 	private static final String NO_PROVIDER_CONFIGURED =
@@ -51,6 +54,7 @@ class LangChain4jAiPort implements AiPort {
 	private static final String UNKNOWN_COMPANY = "não informada";
 	private static final String UNKNOWN_JOB_TITLE = "não informado";
 	private static final String NO_RESUME = "não informado";
+	private static final String NO_BENEFITS = "nenhum informado";
 
 	private final AiModelGateway modelGateway;
 	private final PromptTemplateRepository promptTemplateRepository;
@@ -122,6 +126,18 @@ class LangChain4jAiPort implements AiPort {
 				.replace("{{jobText}}", brief.jobText())
 				.replace("{{resumeText}}", StringUtils.hasText(brief.resumeText()) ? brief.resumeText() : NO_RESUME);
 		return call(template, prompt, InterviewQuestionsDraft.class, false);
+	}
+
+	@Override
+	public AiResult<CandidateQuestionsDraft> writeCandidateQuestions(CandidateQuestionsBrief brief) {
+		PromptTemplate template = activeTemplate(CANDIDATE_QUESTIONS_KEY);
+		String prompt = template.getContent()
+				.replace("{{jobTitle}}", StringUtils.hasText(brief.jobTitle()) ? brief.jobTitle() : UNKNOWN_JOB_TITLE)
+				.replace("{{company}}", StringUtils.hasText(brief.company()) ? brief.company() : UNKNOWN_COMPANY)
+				.replace("{{seniority}}", StringUtils.hasText(brief.seniority()) ? brief.seniority() : UNKNOWN_SENIORITY)
+				.replace("{{benefits}}", brief.benefits().isEmpty() ? NO_BENEFITS : String.join("; ", brief.benefits()))
+				.replace("{{jobText}}", brief.jobText());
+		return call(template, prompt, CandidateQuestionsDraft.class, false);
 	}
 
 	@Override

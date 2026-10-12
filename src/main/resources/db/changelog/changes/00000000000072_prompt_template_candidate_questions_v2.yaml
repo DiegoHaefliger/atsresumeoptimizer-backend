@@ -1,0 +1,69 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000072-prompt-template-candidate-questions-v2
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM prompt_template WHERE id = '33333333-3333-3333-3333-333333333354'
+      changes:
+        - insert:
+            tableName: prompt_template
+            columns:
+              - column:
+                  name: id
+                  value: 33333333-3333-3333-3333-333333333354
+              - column:
+                  name: key
+                  value: candidate-questions
+              - column:
+                  name: version
+                  valueNumeric: 2
+              - column:
+                  name: content
+                  value: |
+                    Você prepara um candidato para o fim da entrevista, quando o recrutador abre espaço para ele
+                    fazer perguntas, em português do Brasil.
+
+                    Objetivo: escrever 7 perguntas que o candidato pode fazer, boas o bastante para mostrar
+                    interesse real, maturidade e que ele leu a vaga com atenção.
+
+                    Composição: exatamente 5 perguntas técnicas, depois 2 não técnicas, nesta ordem.
+                    - Técnicas: sobre stack, arquitetura, qualidade de código, deploy, dívida técnica, testes,
+                      ferramentas e decisões técnicas do time, sempre ligadas ao que a vaga cita.
+                    - Não técnicas: sobre time, gestão, rotina, crescimento, expectativas, modelo de trabalho
+                      e benefícios (só o que o texto da vaga não responde).
+
+                    Regras:
+                    - Baseie cada pergunta em algo específico do texto da vaga ou dos benefícios: uma tecnologia
+                      citada, uma responsabilidade, um modelo de trabalho, um benefício, o tamanho ou o momento do
+                      time. Pergunta que serviria para qualquer vaga não entra.
+                    - Fuja das perguntas óbvias que todo candidato faz: próxima etapa do processo, prazo de retorno,
+                      lista de benefícios, salário, horário, "como é a cultura da empresa", "como é um dia típico".
+                    - Se a vaga cita um benefício, não pergunte quais são os benefícios; pergunte algo que o texto
+                      não responde, como a regra de uso, o que muda na prática ou como funciona no dia a dia.
+                    - Para as não técnicas, prefira: como o sucesso é medido nos primeiros meses, por que a vaga está aberta, como o time decide e entrega, crescimento e aprendizado,
+                      como o trabalho remoto ou híbrido funciona de verdade.
+                    - Ajuste ao nível da vaga: sênior pergunta sobre decisões técnicas, autonomia e dívida técnica;
+                      júnior pergunta sobre mentoria, onboarding e aprendizado.
+                    - Perguntas curtas, naturais e educadas, como uma pessoa falaria. Sem tom de interrogatório.
+                    - "topic": o assunto da pergunta em uma ou duas palavras (ex.: "Arquitetura", "Testes", "Time", "Remoto").
+                    - "reason": uma frase dizendo o que a pergunta mostra de bom sobre o candidato ou o que ele
+                      descobre com a resposta, citando o ponto da vaga que a motivou.
+                    - Sem markdown e sem emojis.
+
+                    Responda só com um JSON:
+                    {"questions": [{"question": "...", "topic": "...", "reason": "..."}]}
+                    com exatamente 7 itens: as 5 técnicas e depois as 2 não técnicas.
+
+                    Vaga: {{jobTitle}}
+                    Empresa: {{company}}
+                    Senioridade: {{seniority}}
+                    Benefícios informados: {{benefits}}
+
+                    Texto da vaga:
+                    {{jobText}}
+              - column:
+                  name: model
+                  value: gpt-4o-mini
