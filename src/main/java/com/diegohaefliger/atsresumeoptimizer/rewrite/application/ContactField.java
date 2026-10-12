@@ -16,6 +16,9 @@ record ContactField(String text, ContactFieldType type) {
 	/** GitHub, portfolio e localização vêm separados: link de portfolio não se distingue de telefone pelo formato. */
 	static List<ContactField> collect(String contactLine, String githubLine, String portfolioLine, String location) {
 		List<ContactField> fields = new ArrayList<>();
+		if (StringUtils.hasText(location)) {
+			fields.add(new ContactField(location, ContactFieldType.LOCATION));
+		}
 		if (StringUtils.hasText(contactLine)) {
 			for (String token : contactLine.split(CONTACT_LINE_SEPARATOR)) {
 				fields.add(new ContactField(token, classify(token)));
@@ -26,9 +29,6 @@ record ContactField(String text, ContactFieldType type) {
 		}
 		if (StringUtils.hasText(portfolioLine)) {
 			fields.add(new ContactField(portfolioLine, ContactFieldType.PORTFOLIO));
-		}
-		if (StringUtils.hasText(location)) {
-			fields.add(new ContactField(location, ContactFieldType.LOCATION));
 		}
 		return List.copyOf(fields);
 	}

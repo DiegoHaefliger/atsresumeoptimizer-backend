@@ -8,6 +8,8 @@ import com.diegohaefliger.atsresumeoptimizer.ai.AiUsage;
 import com.diegohaefliger.atsresumeoptimizer.ai.BulletReview;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterDraft;
+import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionsBrief;
+import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionsDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobFocus;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobStructured;
 import com.diegohaefliger.atsresumeoptimizer.ai.RequirementEvidence;
@@ -34,6 +36,7 @@ class LangChain4jAiPort implements AiPort {
 	private static final String BULLET_REVIEW_KEY = "bullet-review";
 	private static final String REQUIREMENT_EVIDENCE_KEY = "requirement-evidence";
 	private static final String COVER_LETTER_KEY = "cover-letter";
+	private static final String INTERVIEW_QUESTIONS_KEY = "interview-questions";
 	static final String RESUME_STRUCTURING_KEY = "resume-structuring";
 	private static final int MAX_PARSE_ATTEMPTS = 2;
 	private static final String NO_PROVIDER_CONFIGURED =
@@ -47,6 +50,7 @@ class LangChain4jAiPort implements AiPort {
 	private static final String NO_EVIDENCED_REQUIREMENTS = "- nenhum";
 	private static final String UNKNOWN_COMPANY = "não informada";
 	private static final String UNKNOWN_JOB_TITLE = "não informado";
+	private static final String NO_RESUME = "não informado";
 
 	private final AiModelGateway modelGateway;
 	private final PromptTemplateRepository promptTemplateRepository;
@@ -102,6 +106,22 @@ class LangChain4jAiPort implements AiPort {
 				.replace("{{jobText}}", brief.jobText())
 				.replace("{{resumeText}}", brief.resumeText());
 		return call(template, prompt, CoverLetterDraft.class, false);
+	}
+
+	@Override
+	public AiResult<InterviewQuestionsDraft> writeInterviewQuestions(InterviewQuestionsBrief brief) {
+		PromptTemplate template = activeTemplate(INTERVIEW_QUESTIONS_KEY);
+		String prompt = template.getContent()
+				.replace("{{jobTitle}}", StringUtils.hasText(brief.jobTitle()) ? brief.jobTitle() : UNKNOWN_JOB_TITLE)
+				.replace("{{company}}", StringUtils.hasText(brief.company()) ? brief.company() : UNKNOWN_COMPANY)
+				.replace("{{seniority}}", StringUtils.hasText(brief.seniority()) ? brief.seniority() : UNKNOWN_SENIORITY)
+				.replace("{{priorityKeywords}}",
+						brief.priorityKeywords().isEmpty() ? NO_MATCHED_KEYWORDS : String.join(", ", brief.priorityKeywords()))
+				.replace("{{requirements}}",
+						brief.requirements().isEmpty() ? NO_MATCHED_KEYWORDS : String.join(", ", brief.requirements()))
+				.replace("{{jobText}}", brief.jobText())
+				.replace("{{resumeText}}", StringUtils.hasText(brief.resumeText()) ? brief.resumeText() : NO_RESUME);
+		return call(template, prompt, InterviewQuestionsDraft.class, false);
 	}
 
 	@Override
@@ -190,6 +210,10 @@ class LangChain4jAiPort implements AiPort {
 			}
 
 			String rawText = stripMarkdownFences(response.aiMessage().text());
+			if (rawText.isEmpty()) {
+				LOGGER.warn("IA devolveu texto vazio pra {} (finishReason={}, tokens={})", template.getKey(),
+						response.finishReason(), response.tokenUsage());
+			}
 			String parsedText = rawText;
 			T value;
 			try {

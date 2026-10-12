@@ -13,6 +13,8 @@ class ChatModelFactory {
 
 	// Opus/Sonnet 5.5 pensam sempre; o raciocínio consome o limite de saída antes do JSON.
 	private static final int ANTHROPIC_MIN_OUTPUT_TOKENS = 16_000;
+	// Modelo que raciocina gasta o limite pensando e devolve texto vazio; o piso deixa folga pro JSON.
+	private static final int OPENAI_REASONING_MIN_OUTPUT_TOKENS = 16_000;
 	private static final Pattern REASONING_MODEL = Pattern.compile("^(o\\d|gpt-5)");
 	// Só a família clássica aceita temperatura; modelo novo ou desconhecido (ex.: gpt-6-*) usa o padrão da OpenAI.
 	private static final Pattern CLASSIC_OPENAI_MODEL = Pattern.compile("^(gpt-[34]|chatgpt)");
@@ -22,7 +24,9 @@ class ChatModelFactory {
 			// max_tokens é legado na OpenAI e os modelos novos o rejeitam; max_completion_tokens vale para todos.
 			case OPENAI -> openAi(settings, modelName)
 					.temperature(CLASSIC_OPENAI_MODEL.matcher(modelName).find() ? settings.temperature() : null)
-					.maxCompletionTokens(maxOutputTokens)
+					.maxCompletionTokens(CLASSIC_OPENAI_MODEL.matcher(modelName).find()
+							? maxOutputTokens
+							: Math.max(maxOutputTokens, OPENAI_REASONING_MIN_OUTPUT_TOKENS))
 					.build();
 			case OPENAI_COMPATIBLE -> openAi(settings, modelName)
 					.temperature(isReasoning(modelName) ? null : settings.temperature())

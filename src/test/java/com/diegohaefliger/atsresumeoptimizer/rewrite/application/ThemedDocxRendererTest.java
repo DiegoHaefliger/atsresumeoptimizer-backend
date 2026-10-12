@@ -54,6 +54,24 @@ class ThemedDocxRendererTest {
 	}
 
 	@Test
+	void keepsTheLabelsOfHabilidadesLinesPlainWhileSkillsLabelsStayBold() throws Exception {
+		ResumeSection soft = new ResumeSection("Habilidades", ResumeSectionSemanticType.SOFT_SKILLS, ResumeSectionKind.KEY_VALUE,
+				null, List.of(new com.diegohaefliger.atsresumeoptimizer.ai.KeyValueLine("Comportamentais", "Comunicação")), null,
+				null);
+		ResumeSection skills = new ResumeSection("Competências Técnicas", ResumeSectionSemanticType.SKILLS,
+				ResumeSectionKind.KEY_VALUE, null,
+				List.of(new com.diegohaefliger.atsresumeoptimizer.ai.KeyValueLine("Backend", "Java")), null, null);
+
+		List<XWPFParagraph> paragraphs = paragraphs(renderer.render(ResumeTheme.of(ResumeTemplate.CLASSIC),
+				new StructuredResume("Ana", null, List.of(skills, soft)), CONTACT));
+
+		XWPFParagraph skillsLine = paragraphs.stream().filter(p -> p.getText().startsWith("Backend")).findFirst().orElseThrow();
+		XWPFParagraph softLine = paragraphs.stream().filter(p -> p.getText().startsWith("Comportamentais")).findFirst().orElseThrow();
+		assertThat(skillsLine.getRuns().getFirst().isBold()).isTrue();
+		assertThat(softLine.getRuns().getFirst().isBold()).isFalse();
+	}
+
+	@Test
 	void keepsTheBlankLineTheCandidateLeftBetweenItems() throws Exception {
 		ResumeSection projects = new ResumeSection("PROJETOS", ResumeSectionSemanticType.PROJECTS,
 				ResumeSectionKind.RICH_LINES, null, null,

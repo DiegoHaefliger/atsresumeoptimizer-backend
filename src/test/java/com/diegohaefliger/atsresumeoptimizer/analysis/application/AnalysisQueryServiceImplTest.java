@@ -15,9 +15,13 @@ import com.diegohaefliger.atsresumeoptimizer.preference.JobPreferenceMatchServic
 import com.diegohaefliger.atsresumeoptimizer.preference.MatchStatus;
 import com.diegohaefliger.atsresumeoptimizer.preference.PreferenceCriterion;
 import com.diegohaefliger.atsresumeoptimizer.preference.PreferenceMatch;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeOrigin;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeService;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeSummary;
+import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionSummary;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionText;
 import com.diegohaefliger.atsresumeoptimizer.scoring.domain.AnalysisMode;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -113,6 +117,21 @@ class AnalysisQueryServiceImplTest {
 		when(analysisRepository.findById(id.value())).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> service.getAtsView(id)).isInstanceOf(AnalysisNotFoundException.class);
+	}
+
+	@Test
+	void findsTheAnalysisOfAVersionGeneratedForTheJob() {
+		var service = newService();
+		UUID jobPostingId = UUID.randomUUID();
+		UUID analysisId = UUID.randomUUID();
+		UUID versionId = UUID.randomUUID();
+		when(analysisRepository.findIdsByJobPostingId(jobPostingId)).thenReturn(List.of(analysisId));
+		ResumeVersionSummary version = new ResumeVersionSummary(versionId, 1, "cv.pdf", "application/pdf", 10, 1, Instant.EPOCH);
+		when(resumeService.listAdaptedFromAnalyses(List.of(analysisId))).thenReturn(List.of(new ResumeSummary(UUID.randomUUID(),
+				"CV", Instant.EPOCH, ResumeOrigin.ADAPTED, analysisId, false, 80, List.of(version))));
+
+		assertThat(service.analysisOfGeneratedVersion(jobPostingId, versionId)).contains(analysisId);
+		assertThat(service.analysisOfGeneratedVersion(jobPostingId, UUID.randomUUID())).isEmpty();
 	}
 
 	private AnalysisQueryServiceImpl newService() {

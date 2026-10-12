@@ -118,4 +118,10 @@ databaseChangeLog:
   - include:
       file: db/changelog/changes/00000000000065_prompt_template_cover_letter.yaml
   - include:
+      file: db/changelog/changes/00000000000066_stage_movement_stage_at.yaml
+  - include:
+      file: db/changelog/changes/00000000000067_job_assistant.yaml
+  - include:
       file: db/changelog/changes/00000000000068_prompt_template_resume_structuring_v12.yaml
+  - include:
+      file: db/changelog/changes/00000000000069_prompt_template_resume_structuring_v13.yaml

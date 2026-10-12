@@ -3,6 +3,7 @@ package com.diegohaefliger.atsresumeoptimizer.coverletter.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -12,18 +13,15 @@ import com.diegohaefliger.atsresumeoptimizer.ai.AiResult;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiUsage;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterDraft;
-import com.diegohaefliger.atsresumeoptimizer.analysis.AnalysisSnapshot;
-import com.diegohaefliger.atsresumeoptimizer.analysis.AnalysisSnapshotPort;
-import com.diegohaefliger.atsresumeoptimizer.analysis.domain.AnalysisId;
-import com.diegohaefliger.atsresumeoptimizer.analysis.domain.AnalysisStatus;
+import com.diegohaefliger.atsresumeoptimizer.analysis.application.AnalysisQueryService;
 import com.diegohaefliger.atsresumeoptimizer.coverletter.domain.CoverLetter;
-import com.diegohaefliger.atsresumeoptimizer.coverletter.domain.CoverLetterRequiresAdaptedResumeException;
-import com.diegohaefliger.atsresumeoptimizer.coverletter.domain.CoverLetterRequiresJobException;
+import com.diegohaefliger.atsresumeoptimizer.coverletter.domain.CoverLetterJobNotFoundException;
+import com.diegohaefliger.atsresumeoptimizer.coverletter.domain.CoverLetterNotFoundException;
+import com.diegohaefliger.atsresumeoptimizer.coverletter.domain.CoverLetterRequiresJobResumeException;
 import com.diegohaefliger.atsresumeoptimizer.job.JobOffer;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeService;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionText;
-import com.diegohaefliger.atsresumeoptimizer.scoring.domain.AnalysisMode;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -41,15 +39,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class CoverLetterServiceImplTest {
 
-	private static final AnalysisId ANALYSIS_ID = new AnalysisId(UUID.randomUUID());
+	private static final UUID ANALYSIS_ID = UUID.randomUUID();
 	private static final UUID JOB_ID = UUID.randomUUID();
-	private static final UUID ADAPTED_VERSION_ID = UUID.randomUUID();
+	private static final UUID VERSION_ID = UUID.randomUUID();
 	private static final Instant NOW = Instant.parse("2026-10-07T12:00:00Z");
 
 	@Mock
 	private CoverLetterRepository repository;
 	@Mock
-	private AnalysisSnapshotPort analysisSnapshots;
+	private AnalysisQueryService analysisQueryService;
 	@Mock
 	private JobStructuringService jobStructuringService;
 	@Mock
@@ -61,44 +59,61 @@ class CoverLetterServiceImplTest {
 
 	@BeforeEach
 	void setUp() {
-		service = new CoverLetterServiceImpl(repository, new CoverLetterEntityMapperImpl(), analysisSnapshots,
+		service = new CoverLetterServiceImpl(repository, new CoverLetterEntityMapperImpl(), analysisQueryService,
 				jobStructuringService, resumeService, aiPort, Clock.fixed(NOW, ZoneOffset.UTC));
 	}
 
 	@Test
-	void writesTheCoverLetterFromTheAdaptedResumeAndSavesItForTheJob() {
-		jobMatch();
-		when(resumeService.latestAdaptedVersion(ANALYSIS_ID.value())).thenReturn(Optional.of(ADAPTED_VERSION_ID));
-		when(resumeService.getVersionText(ADAPTED_VERSION_ID)).thenReturn(new ResumeVersionText("currículo adaptado", null));
+	void writesANewCoverLetterFromTheChosenResumeKeepingThePreviousOnes() {
 		when(jobStructuringService.offer(JOB_ID)).thenReturn(Optional.of(job()));
+		when(analysisQueryService.analysisOfGeneratedVersion(JOB_ID, VERSION_ID)).thenReturn(Optional.of(ANALYSIS_ID));
+		when(resumeService.getVersionText(VERSION_ID)).thenReturn(new ResumeVersionText("currículo adaptado", null));
 		when(jobStructuringService.selectedKeywords(JOB_ID)).thenReturn(List.of("Java", "Kafka"));
-		when(repository.findByJobPostingId(JOB_ID)).thenReturn(Optional.empty());
 		when(aiPort.writeCoverLetter(any())).thenReturn(new AiResult<>(new CoverLetterDraft("  Texto da apresentação.  "),
 				new AiUsage("OpenAI", "gpt-4o-mini", 300, 120, new BigDecimal("0.0010"), false)));
 		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-		CoverLetter saved = service.generate(ANALYSIS_ID);
+		CoverLetter saved = service.generate(JOB_ID, VERSION_ID);
 
 		ArgumentCaptor<CoverLetterBrief> brief = ArgumentCaptor.forClass(CoverLetterBrief.class);
 		verify(aiPort).writeCoverLetter(brief.capture());
 		assertThat(brief.getValue()).isEqualTo(new CoverLetterBrief("Dev Java", "Cielo", "texto da vaga",
 				List.of("Java", "Kafka"), "currículo adaptado"));
 		assertThat(saved.jobPostingId()).isEqualTo(JOB_ID);
-		assertThat(saved.analysisId()).isEqualTo(ANALYSIS_ID.value());
+		assertThat(saved.analysisId()).isEqualTo(ANALYSIS_ID);
+		assertThat(saved.resumeVersionId()).isEqualTo(VERSION_ID);
 		assertThat(saved.content()).isEqualTo("Texto da apresentação.");
 		assertThat(saved.aiModel()).isEqualTo("gpt-4o-mini");
-		assertThat(saved.updatedAt()).isEqualTo(NOW);
+		assertThat(saved.createdAt()).isEqualTo(NOW);
+		verify(repository, never()).findByIdAndJobPostingId(any(), any());
 	}
 
 	@Test
-	void replacesTheCoverLetterAlreadySavedForTheJob() {
-		jobMatch();
+	void refusesAResumeThatWasNotGeneratedForTheJob() {
+		when(jobStructuringService.offer(JOB_ID)).thenReturn(Optional.of(job()));
+		when(analysisQueryService.analysisOfGeneratedVersion(JOB_ID, VERSION_ID)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> service.generate(JOB_ID, VERSION_ID))
+				.isInstanceOf(CoverLetterRequiresJobResumeException.class);
+		verifyNoInteractions(aiPort, repository);
+	}
+
+	@Test
+	void refusesAnUnknownJob() {
+		when(jobStructuringService.offer(JOB_ID)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> service.generate(JOB_ID, VERSION_ID)).isInstanceOf(CoverLetterJobNotFoundException.class);
+		verifyNoInteractions(aiPort);
+	}
+
+	@Test
+	void editsOneCoverLetterOfTheJob() {
 		CoverLetterEntity existing = new CoverLetterEntity(JOB_ID, Instant.parse("2026-10-01T00:00:00Z"));
 		existing.setContent("antiga");
-		when(repository.findByJobPostingId(JOB_ID)).thenReturn(Optional.of(existing));
+		when(repository.findByIdAndJobPostingId(existing.getId(), JOB_ID)).thenReturn(Optional.of(existing));
 		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-		CoverLetter saved = service.save(ANALYSIS_ID, "Texto editado\n");
+		CoverLetter saved = service.update(JOB_ID, existing.getId(), "Texto editado\n");
 
 		assertThat(saved.id()).isEqualTo(existing.getId());
 		assertThat(saved.content()).isEqualTo("Texto editado");
@@ -106,40 +121,22 @@ class CoverLetterServiceImplTest {
 	}
 
 	@Test
-	void refusesToWriteBeforeTheResumeIsAdapted() {
-		jobMatch();
-		when(resumeService.latestAdaptedVersion(ANALYSIS_ID.value())).thenReturn(Optional.empty());
+	void failsToEditACoverLetterOfAnotherJob() {
+		UUID id = UUID.randomUUID();
+		when(repository.findByIdAndJobPostingId(id, JOB_ID)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> service.generate(ANALYSIS_ID)).isInstanceOf(CoverLetterRequiresAdaptedResumeException.class);
-		verifyNoInteractions(aiPort);
+		assertThatThrownBy(() -> service.update(JOB_ID, id, "Texto")).isInstanceOf(CoverLetterNotFoundException.class);
 	}
 
 	@Test
-	void refusesAnAnalysisWithoutAJob() {
-		when(analysisSnapshots.find(ANALYSIS_ID)).thenReturn(Optional.of(snapshot(AnalysisMode.GENERAL)));
+	void listsTheHistoryOfTheJob() {
+		CoverLetterEntity newest = new CoverLetterEntity(JOB_ID, NOW);
+		newest.setContent("nova");
+		CoverLetterEntity oldest = new CoverLetterEntity(JOB_ID, Instant.parse("2026-10-01T00:00:00Z"));
+		oldest.setContent("antiga");
+		when(repository.findByJobPostingIdOrderByCreatedAtDesc(JOB_ID)).thenReturn(List.of(newest, oldest));
 
-		assertThatThrownBy(() -> service.generate(ANALYSIS_ID)).isInstanceOf(CoverLetterRequiresJobException.class);
-		assertThat(service.find(ANALYSIS_ID)).isEmpty();
-		verifyNoInteractions(aiPort, repository);
-	}
-
-	@Test
-	void findsTheCoverLetterOfTheAnalysisJob() {
-		jobMatch();
-		CoverLetterEntity existing = new CoverLetterEntity(JOB_ID, NOW);
-		existing.setContent("Texto");
-		when(repository.findByJobPostingId(JOB_ID)).thenReturn(Optional.of(existing));
-
-		assertThat(service.find(ANALYSIS_ID)).map(CoverLetter::content).contains("Texto");
-	}
-
-	private void jobMatch() {
-		when(analysisSnapshots.find(ANALYSIS_ID)).thenReturn(Optional.of(snapshot(AnalysisMode.JOB_MATCH)));
-		when(analysisSnapshots.jobPostingId(ANALYSIS_ID)).thenReturn(Optional.of(JOB_ID));
-	}
-
-	private static AnalysisSnapshot snapshot(AnalysisMode mode) {
-		return new AnalysisSnapshot(UUID.randomUUID(), AnalysisStatus.COMPLETED, 80, mode, "vaga", null);
+		assertThat(service.list(JOB_ID)).extracting(CoverLetter::content).containsExactly("nova", "antiga");
 	}
 
 	private static JobOffer job() {

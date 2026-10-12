@@ -487,7 +487,7 @@ class RewriteServiceImplTest {
 	}
 
 	@Test
-	void keepsTheObjectiveTheAiAdaptedToTheJobAheadOfTheSummary() {
+	void appendsTheObjectiveTheAiAdaptedToTheJobToTheEndOfTheSummary() {
 		RewriteServiceImpl service = newService();
 		AnalysisId analysisId = AnalysisId.generate();
 		ResumeSection adaptedObjective = new ResumeSection("Objetivo", ResumeSectionSemanticType.OTHER,
@@ -502,13 +502,13 @@ class RewriteServiceImplTest {
 		RewriteResult result = service.rewrite(analysisId, ResumeTemplate.CLASSIC, JobHighlight.AUTO);
 
 		assertThat(result.content().sections()).extracting(ResumeSection::title)
-				.containsExactly("Objetivo", "Resumo Profissional");
+				.containsExactly("Resumo Profissional");
 		assertThat(result.content().sections().getFirst().paragraph())
-				.isEqualTo("Atuar como Desenvolvedor Backend Java Sênior.");
+				.isEqualTo("Desenvolvedora Java. Atuar como Desenvolvedor Backend Java Sênior.");
 	}
 
 	@Test
-	void bringsTheOriginalObjectiveBackWhenTheAiDroppedIt() {
+	void appendsTheOriginalObjectiveToTheSummaryWhenTheAiDroppedIt() {
 		RewriteServiceImpl service = newService();
 		AnalysisId analysisId = AnalysisId.generate();
 		ResumeSection summary = new ResumeSection("Resumo", ResumeSectionSemanticType.SUMMARY, ResumeSectionKind.PARAGRAPH,
@@ -521,8 +521,9 @@ class RewriteServiceImplTest {
 		RewriteResult result = service.rewrite(analysisId, ResumeTemplate.CLASSIC, JobHighlight.AUTO);
 
 		assertThat(result.content().sections()).extracting(ResumeSection::title)
-				.containsExactly("OBJETIVO", "Resumo Profissional");
-		assertThat(result.content().sections().getFirst().paragraph()).isEqualTo("Atuar como desenvolvedora.");
+				.containsExactly("Resumo Profissional");
+		assertThat(result.content().sections().getFirst().paragraph())
+				.isEqualTo("Desenvolvedora Java. Atuar como desenvolvedora.");
 	}
 
 	@Test

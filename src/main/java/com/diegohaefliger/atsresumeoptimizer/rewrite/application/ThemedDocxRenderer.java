@@ -77,7 +77,7 @@ class ThemedDocxRenderer implements DocxTemplateRenderer {
 			}
 			case KEY_VALUE -> {
 				for (KeyValueLine line : section.keyValues()) {
-					addRunsParagraph(document, keyValueRuns(line), 0, LINE_SPACING_AFTER, 0);
+					addRunsParagraph(document, keyValueRuns(line, section.semanticType() != ResumeSectionSemanticType.SOFT_SKILLS), 0, LINE_SPACING_AFTER, 0);
 				}
 			}
 			case RICH_LINES -> {
@@ -109,11 +109,11 @@ class ThemedDocxRenderer implements DocxTemplateRenderer {
 		addRunsParagraph(document, runs, 0, italic ? 0 : LINE_SPACING_AFTER, listItem ? BULLET_INDENT : 0);
 	}
 
-	private List<Run> keyValueRuns(KeyValueLine line) {
+	private List<Run> keyValueRuns(KeyValueLine line, boolean boldLabel) {
 		if (!StringUtils.hasText(line.label())) {
 			return List.of(body(line.value() == null ? "" : line.value(), false));
 		}
-		return List.of(body(line.label() + ": ", true), body(line.value(), false));
+		return List.of(body(line.label() + ": ", boldLabel), body(line.value(), false));
 	}
 
 	private static final String RESULTS_LABEL = "Resultados:";
@@ -143,12 +143,7 @@ class ThemedDocxRenderer implements DocxTemplateRenderer {
 			return;
 		}
 		if (type == ResumeSectionSemanticType.EDUCATION) {
-			addHeadingParagraph(document, EducationEntryLayout.title(entry), null, accent);
-			if (!EducationEntryLayout.period(entry).isEmpty()) {
-				XWPFParagraph headline = document.getParagraphs().getLast();
-				addRun(headline, new Run(EducationEntryLayout.PERIOD_SEPARATOR + EducationEntryLayout.period(entry), false, false,
-						false, BODY_FONT_SIZE, accent));
-			}
+			addRunsParagraph(document, List.of(body(EducationEntryLayout.headline(entry), false)), 0, LINE_SPACING_AFTER, 0);
 		} else {
 			String heading = StringUtils.hasText(entry.period()) ? entry.heading() + " | " + entry.period() : entry.heading();
 			addHeadingParagraph(document, heading, null, accent);

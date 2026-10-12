@@ -3,6 +3,7 @@ package com.diegohaefliger.atsresumeoptimizer.selection.application;
 import com.diegohaefliger.atsresumeoptimizer.selection.SelectionStage;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcess;
 import com.diegohaefliger.atsresumeoptimizer.selection.domain.SelectionProcessData;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,7 +18,7 @@ public interface SelectionProcessService {
 
 	SelectionProcess update(UUID id, SelectionProcessData data);
 
-	SelectionProcess moveTo(UUID id, SelectionStage stage, String note);
+	SelectionProcess moveTo(UUID id, SelectionStage stage, String note, Instant stageAt);
 
 	void removeMovement(UUID id, UUID movementId);
 

@@ -1,0 +1,168 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000067-cover-letter-history
+      author: DiegoHaefliger
+      changes:
+        - dropUniqueConstraint:
+            tableName: cover_letter
+            constraintName: uq_cover_letter_job_posting
+        - addColumn:
+            tableName: cover_letter
+            columns:
+              - column:
+                  name: resume_version_id
+                  type: uuid
+        - createIndex:
+            indexName: idx_cover_letter_job_posting
+            tableName: cover_letter
+            columns:
+              - column:
+                  name: job_posting_id
+              - column:
+                  name: created_at
+  - changeSet:
+      id: 00000000000067-interview-questions
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: interview_question_set
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: job_posting_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_interview_question_set_job_posting
+                    references: job_posting(id)
+                    deleteCascade: true
+              - column:
+                  name: resume_version_id
+                  type: uuid
+              - column:
+                  name: ai_model
+                  type: varchar(100)
+              - column:
+                  name: tokens_in
+                  type: integer
+              - column:
+                  name: tokens_out
+                  type: integer
+              - column:
+                  name: cost_usd
+                  type: numeric(10,4)
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_interview_question_set_job_posting
+            tableName: interview_question_set
+            columns:
+              - column:
+                  name: job_posting_id
+              - column:
+                  name: created_at
+        - createTable:
+            tableName: interview_question
+            columns:
+              - column:
+                  name: set_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_interview_question_set
+                    references: interview_question_set(id)
+                    deleteCascade: true
+              - column:
+                  name: position
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: question
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: requirement
+                  type: text
+              - column:
+                  name: reason
+                  type: text
+              - column:
+                  name: answer_tip
+                  type: text
+        - addPrimaryKey:
+            tableName: interview_question
+            columnNames: set_id, position
+            constraintName: pk_interview_question
+  - changeSet:
+      id: 00000000000067-prompt-template-interview-questions
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM prompt_template WHERE id = '33333333-3333-3333-3333-333333333350'
+      changes:
+        - insert:
+            tableName: prompt_template
+            columns:
+              - column:
+                  name: id
+                  value: 33333333-3333-3333-3333-333333333350
+              - column:
+                  name: key
+                  value: interview-questions
+              - column:
+                  name: version
+                  valueNumeric: 1
+              - column:
+                  name: content
+                  value: |
+                    Você prepara um candidato para a entrevista técnica de uma vaga, em português do Brasil.
+
+                    Objetivo: listar as 10 perguntas técnicas com maior probabilidade de serem feitas na entrevista
+                    desta vaga, começando pela mais provável.
+
+                    Regras:
+                    - Baseie as perguntas nos requisitos da vaga: competências principais, tecnologias exigidas,
+                      senioridade e responsabilidades descritas no texto. Requisito que não está na vaga não entra.
+                    - Dê prioridade às competências principais e ao que a vaga repete ou chama de obrigatório.
+                    - Ajuste a profundidade à senioridade: vaga sênior pede trade-offs, arquitetura e casos reais;
+                      vaga júnior pede fundamentos.
+                    - Misture conceito, prática ("como você faria...") e situação real ("conte uma vez que...").
+                    - Perguntas diretas, como um entrevistador falaria. Sem perguntas comportamentais genéricas
+                      ("quais seus pontos fracos?").
+                    - "requirement": o requisito da vaga que a pergunta cobre, curto (ex.: "Kafka", "Spring Boot").
+                    - "reason": uma frase dizendo por que a pergunta tende a cair, citando o que a vaga pede.
+                    - "answerTip": uma ou duas frases de como responder bem. Quando o currículo tiver experiência
+                      ligada ao requisito, indique qual usar como exemplo. Não invente experiência que não está
+                      no currículo; sem currículo ou sem experiência ligada, dê só a linha de raciocínio esperada.
+                    - Sem markdown e sem emojis.
+
+                    Responda só com um JSON:
+                    {"questions": [{"question": "...", "requirement": "...", "reason": "...", "answerTip": "..."}]}
+                    com exatamente 10 itens.
+
+                    Vaga: {{jobTitle}}
+                    Empresa: {{company}}
+                    Senioridade: {{seniority}}
+                    Competências principais da vaga: {{priorityKeywords}}
+                    Demais requisitos da vaga: {{requirements}}
+
+                    Texto da vaga:
+                    {{jobText}}
+
+                    Currículo do candidato:
+                    {{resumeText}}
+              - column:
+                  name: model
+                  value: gpt-4o-mini
