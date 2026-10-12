@@ -2,7 +2,10 @@ package com.diegohaefliger.atsresumeoptimizer.parsing.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.diegohaefliger.atsresumeoptimizer.parsing.domain.NormalizedDocument;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ParsingResult;
+import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ParsingSignals;
+import com.diegohaefliger.atsresumeoptimizer.parsing.domain.SourceFormat;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -18,6 +21,21 @@ class ResumeAnalysisPipelineTest {
 	private final ResumeAnalysisPipeline pipeline = new ResumeAnalysisPipeline(
 			new DocumentMimeValidator(), new SectionSegmenter(), new ContactExtractor(),
 			new IconGlyphDetector(), new NoTextLayerDetector());
+
+	@Test
+	void assemblesSectionsAndContactFromAStoredReadingWithoutTheFile() {
+		ParsingSignals signals = new ParsingSignals(false, true, false, false, false, false, false, false);
+		NormalizedDocument document = new NormalizedDocument(SourceFormat.DOCX,
+				"Ana Silva\nana.silva@email.com\nEXPERIENCIA PROFISSIONAL\nDesenvolvedora Backend Java", "", null);
+
+		ParsingResult result = pipeline.assemble(document, signals);
+
+		assertThat(result.document()).isEqualTo(document);
+		assertThat(result.signals()).isEqualTo(signals);
+		assertThat(result.contact().email()).contains("ana.silva@email.com");
+		assertThat(result.sections())
+				.anyMatch(section -> section.recognized() && section.title().equalsIgnoreCase("EXPERIENCIA PROFISSIONAL"));
+	}
 
 	@Test
 	void runsExtractionDetectorsAndSegmentationOverASingleColumnResume() throws IOException {

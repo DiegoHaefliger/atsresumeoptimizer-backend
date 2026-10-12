@@ -125,3 +125,5 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000068_prompt_template_resume_structuring_v12.yaml
   - include:
       file: db/changelog/changes/00000000000069_prompt_template_resume_structuring_v13.yaml
+  - include:
+      file: db/changelog/changes/00000000000070_resume_version_parsing_signals.yaml

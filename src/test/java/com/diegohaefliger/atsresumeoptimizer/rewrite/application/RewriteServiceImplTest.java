@@ -139,7 +139,6 @@ class RewriteServiceImplTest {
 		when(analysisSnapshotPort.find(analysisId)).thenReturn(Optional.of(
 				new AnalysisSnapshot(sourceVersionId, AnalysisStatus.COMPLETED, 60, AnalysisMode.GENERAL, null, null)));
 		when(rateLimiter.tryConsume()).thenReturn(true);
-		when(resumeService.downloadContent(sourceVersionId)).thenReturn("bytes".getBytes());
 
 		Section section = new Section("EXPERIENCIA", true, "• Responsavel por testes manuais\n");
 		ParsingResult parsingResult = new ParsingResult(
@@ -148,6 +147,7 @@ class RewriteServiceImplTest {
 				List.of(section),
 				new ContactInfo(Optional.of("ana@email.com"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
 						Optional.empty()));
+		when(resumeService.parsedVersion(sourceVersionId)).thenReturn(parsingResult);
 		when(parsingPipeline.analyze(any())).thenReturn(parsingResult);
 
 		ScoringProfile scoringProfile = new ScoringProfile("v1", 1, AnalysisMode.GENERAL, Map.of(Dimension.CONTENT_QUALITY, 1.0));
@@ -171,7 +171,7 @@ class RewriteServiceImplTest {
 		UUID docxVersionId = UUID.randomUUID();
 		when(resumeService.storeAdapted(eq(sourceVersionId), any(), anyString(), any(), anyString(), anyString(),
 				anyString()))
-				.thenReturn(new ResumeVersionCreated(resumeId, docxVersionId, "key-docx", 4, "sha", null));
+				.thenReturn(new ResumeVersionCreated(resumeId, docxVersionId, 4, "sha", null));
 
 		RewriteResult result = service.rewrite(analysisId, ResumeTemplate.CLASSIC, JobHighlight.AUTO);
 
@@ -199,7 +199,6 @@ class RewriteServiceImplTest {
 		when(analysisSnapshotPort.find(analysisId)).thenReturn(Optional.of(
 				new AnalysisSnapshot(sourceVersionId, AnalysisStatus.COMPLETED, 60, AnalysisMode.GENERAL, null, null)));
 		when(rateLimiter.tryConsume()).thenReturn(true);
-		when(resumeService.downloadContent(sourceVersionId)).thenReturn("bytes".getBytes());
 
 		Section section = new Section("EXPERIENCIA", true, "• Responsavel por testes manuais\n");
 		ParsingResult parsingResult = new ParsingResult(
@@ -208,6 +207,7 @@ class RewriteServiceImplTest {
 				List.of(section),
 				new ContactInfo(Optional.of("ana@email.com"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
 						Optional.empty()));
+		when(resumeService.parsedVersion(sourceVersionId)).thenReturn(parsingResult);
 		when(parsingPipeline.analyze(any())).thenReturn(parsingResult);
 
 		ScoringProfile scoringProfile = new ScoringProfile("v1", 1, AnalysisMode.GENERAL, Map.of(Dimension.CONTENT_QUALITY, 1.0));
@@ -232,7 +232,7 @@ class RewriteServiceImplTest {
 				.thenReturn("pdf".getBytes());
 		when(resumeService.storeAdapted(eq(sourceVersionId), any(), anyString(), any(), anyString(), anyString(),
 				anyString()))
-				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), "key-docx", 4, "sha", null));
+				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), 4, "sha", null));
 
 		service.rewrite(analysisId, ResumeTemplate.CLASSIC, JobHighlight.AUTO);
 
@@ -250,7 +250,6 @@ class RewriteServiceImplTest {
 		when(analysisSnapshotPort.find(analysisId)).thenReturn(Optional.of(
 				new AnalysisSnapshot(sourceVersionId, AnalysisStatus.COMPLETED, 60, AnalysisMode.GENERAL, null, null)));
 		when(rateLimiter.tryConsume()).thenReturn(true);
-		when(resumeService.downloadContent(sourceVersionId)).thenReturn("bytes".getBytes());
 
 		// Seção sem nenhuma linha com marcador de bullet — extractBullets fica vazio.
 		Section section = new Section("EXPERIENCIA", true, "Cargo sem bullet nenhum, só um parágrafo corrido.");
@@ -260,6 +259,7 @@ class RewriteServiceImplTest {
 				List.of(section),
 				new ContactInfo(Optional.of("ana@email.com"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
 						Optional.empty()));
+		when(resumeService.parsedVersion(sourceVersionId)).thenReturn(parsingResult);
 		when(parsingPipeline.analyze(any())).thenReturn(parsingResult);
 
 		ScoringProfile scoringProfile = new ScoringProfile("v1", 1, AnalysisMode.GENERAL, Map.of(Dimension.CONTENT_QUALITY, 1.0));
@@ -277,7 +277,7 @@ class RewriteServiceImplTest {
 				.thenReturn("pdf".getBytes());
 		when(resumeService.storeAdapted(eq(sourceVersionId), any(), anyString(), any(), anyString(), anyString(),
 				anyString()))
-				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), "key-docx", 4, "sha", null));
+				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), 4, "sha", null));
 
 		RewriteResult result = service.rewrite(analysisId, ResumeTemplate.CLASSIC, JobHighlight.AUTO);
 
@@ -294,7 +294,6 @@ class RewriteServiceImplTest {
 		when(analysisSnapshotPort.find(analysisId)).thenReturn(Optional.of(
 				new AnalysisSnapshot(sourceVersionId, AnalysisStatus.COMPLETED, 60, AnalysisMode.JOB_MATCH, "Vaga de Java", null)));
 		when(rateLimiter.tryConsume()).thenReturn(true);
-		when(resumeService.downloadContent(sourceVersionId)).thenReturn("bytes".getBytes());
 
 		// Sem marcador de bullet — extractBullets fica vazio, preview de bullet fica vazio também.
 		Section section = new Section("EXPERIENCIA", true, "Responsavel por testes manuais, sem marcador de bullet.");
@@ -304,6 +303,7 @@ class RewriteServiceImplTest {
 				List.of(section),
 				new ContactInfo(Optional.of("ana@email.com"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
 						Optional.empty()));
+		when(resumeService.parsedVersion(sourceVersionId)).thenReturn(parsingResult);
 		when(parsingPipeline.analyze(any())).thenReturn(parsingResult);
 
 		JobStructured job = new JobStructured("Backend Java", "pleno", 3, null, List.of(), List.of("Kubernetes"), Map.of());
@@ -334,7 +334,7 @@ class RewriteServiceImplTest {
 				.thenReturn("pdf".getBytes());
 		when(resumeService.storeAdapted(eq(sourceVersionId), any(), anyString(), any(), anyString(), anyString(),
 				anyString()))
-				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), "key-docx", 4, "sha", null));
+				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), 4, "sha", null));
 
 		RewriteResult result = service.rewrite(analysisId, ResumeTemplate.CLASSIC, JobHighlight.AUTO);
 
@@ -354,7 +354,6 @@ class RewriteServiceImplTest {
 		when(analysisSnapshotPort.find(analysisId)).thenReturn(Optional.of(
 				new AnalysisSnapshot(sourceVersionId, AnalysisStatus.COMPLETED, 60, AnalysisMode.GENERAL, null, null)));
 		when(rateLimiter.tryConsume()).thenReturn(true);
-		when(resumeService.downloadContent(sourceVersionId)).thenReturn("bytes".getBytes());
 
 		Section section = new Section("EXPERIENCIA", true, "Parágrafo sem bullet.");
 		ParsingResult parsingResult = new ParsingResult(
@@ -363,6 +362,7 @@ class RewriteServiceImplTest {
 				List.of(section),
 				new ContactInfo(Optional.of("ana@email.com"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
 						Optional.empty()));
+		when(resumeService.parsedVersion(sourceVersionId)).thenReturn(parsingResult);
 		when(parsingPipeline.analyze(any())).thenReturn(parsingResult);
 
 		ScoringProfile scoringProfile = new ScoringProfile("v1", 1, AnalysisMode.GENERAL, Map.of(Dimension.CONTENT_QUALITY, 1.0));
@@ -386,7 +386,7 @@ class RewriteServiceImplTest {
 				.thenReturn("pdf".getBytes());
 		when(resumeService.storeAdapted(eq(sourceVersionId), any(), anyString(), any(), anyString(), anyString(),
 				anyString()))
-				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), "key-docx", 4, "sha", null));
+				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), 4, "sha", null));
 
 		service.rewrite(analysisId, ResumeTemplate.CLASSIC, JobHighlight.AUTO);
 
@@ -407,7 +407,6 @@ class RewriteServiceImplTest {
 		when(analysisSnapshotPort.find(analysisId)).thenReturn(Optional.of(
 				new AnalysisSnapshot(sourceVersionId, AnalysisStatus.COMPLETED, 60, AnalysisMode.GENERAL, null, null)));
 		when(rateLimiter.tryConsume()).thenReturn(true);
-		when(resumeService.downloadContent(sourceVersionId)).thenReturn("bytes".getBytes());
 
 		Section section = new Section("EXPERIENCIA", true, "Parágrafo sem bullet.");
 		ParsingResult parsingResult = new ParsingResult(
@@ -416,6 +415,7 @@ class RewriteServiceImplTest {
 				List.of(section),
 				new ContactInfo(Optional.of("ana@email.com"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
 						Optional.empty()));
+		when(resumeService.parsedVersion(sourceVersionId)).thenReturn(parsingResult);
 		when(parsingPipeline.analyze(any())).thenReturn(parsingResult);
 
 		ScoringProfile scoringProfile = new ScoringProfile("v1", 1, AnalysisMode.GENERAL, Map.of(Dimension.CONTENT_QUALITY, 1.0));
@@ -439,7 +439,7 @@ class RewriteServiceImplTest {
 				.thenReturn("pdf".getBytes());
 		when(resumeService.storeAdapted(eq(sourceVersionId), any(), anyString(), any(), anyString(), anyString(),
 				anyString()))
-				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), "key-docx", 4, "sha", null));
+				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), 4, "sha", null));
 
 		service.rewrite(analysisId, ResumeTemplate.CLASSIC, JobHighlight.AUTO);
 
@@ -618,13 +618,13 @@ class RewriteServiceImplTest {
 		when(analysisSnapshotPort.find(analysisId)).thenReturn(Optional.of(
 				new AnalysisSnapshot(sourceVersionId, AnalysisStatus.COMPLETED, 60, AnalysisMode.JOB_MATCH, "Vaga de Java", null)));
 		when(rateLimiter.tryConsume()).thenReturn(true);
-		when(resumeService.downloadContent(sourceVersionId)).thenReturn("bytes".getBytes());
 		ParsingResult parsingResult = new ParsingResult(
 				new NormalizedDocument(SourceFormat.PDF, rawText, rawText, 1),
 				new ParsingSignals(false, false, false, false, false, false, false, false),
 				sections,
 				new ContactInfo(Optional.of("ana@email.com"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
 						Optional.empty()));
+		when(resumeService.parsedVersion(sourceVersionId)).thenReturn(parsingResult);
 		when(parsingPipeline.analyze(any())).thenReturn(parsingResult);
 		JobStructured job = new JobStructured("Backend Java", "pleno", 3, null, List.of(), List.of("Java", "Kubernetes"), Map.of());
 		when(jobStructuringService.structureFromText("Vaga de Java")).thenReturn(new JobStructuringResult(UUID.randomUUID(), job, null));
@@ -638,7 +638,7 @@ class RewriteServiceImplTest {
 		when(pdfRenderer.render(any(), any(), any())).thenReturn("pdf".getBytes());
 		when(resumeService.storeAdapted(eq(sourceVersionId), any(), anyString(), any(), anyString(), anyString(),
 				anyString()))
-				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), "key-docx", 4, "sha", null));
+				.thenReturn(new ResumeVersionCreated(resumeId, UUID.randomUUID(), 4, "sha", null));
 		return parsingResult;
 	}
 

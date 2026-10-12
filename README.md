@@ -14,7 +14,7 @@ Backend do [ATSResumeOptimizer](https://github.com/DiegoHaefliger/atsresumeoptim
 ## Stack
 
 - Java 25 (LTS), Spring Boot, Liquibase
-- PostgreSQL e MinIO (subem via `compose.yaml`)
+- PostgreSQL (sobe via `compose.yaml`)
 - IA configurável pela tela de Configurações: OpenAI, Anthropic, Gemini ou Ollama
 
 ## Estrutura

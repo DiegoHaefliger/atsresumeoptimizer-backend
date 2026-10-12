@@ -13,7 +13,6 @@ import com.diegohaefliger.atsresumeoptimizer.ai.ResumeSection;
 import com.diegohaefliger.atsresumeoptimizer.ai.ResumeSectionKind;
 import com.diegohaefliger.atsresumeoptimizer.ai.ResumeSectionSemanticType;
 import com.diegohaefliger.atsresumeoptimizer.ai.StructuredResume;
-import com.diegohaefliger.atsresumeoptimizer.parsing.application.ResumeAnalysisPipeline;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ContactInfo;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.NormalizedDocument;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ParsingResult;
@@ -21,7 +20,6 @@ import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ParsingSignals;
 import com.diegohaefliger.atsresumeoptimizer.parsing.domain.SourceFormat;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeService;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.ComposedResume;
-import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionInfo;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.EditableResume;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.ExportedResume;
 import com.diegohaefliger.atsresumeoptimizer.rewrite.ResumeFormat;
@@ -47,8 +45,6 @@ class ResumeEditingServiceImplTest {
 	@Mock
 	private ResumeService resumeService;
 	@Mock
-	private ResumeAnalysisPipeline parsingPipeline;
-	@Mock
 	private ResumeContentStore contentStore;
 	@Mock
 	private ResumeDocumentWriter documentWriter;
@@ -69,14 +65,13 @@ class ResumeEditingServiceImplTest {
 
 		assertThat(editable).isEqualTo(stored.withTitle("Ana.pdf"));
 		verify(resumeService).assertExists(RESUME_ID, VERSION_ID);
-		verifyNoInteractions(parsingPipeline);
+		verify(resumeService, never()).parsedVersion(any());
 	}
 
 	@Test
-	void importsTheUploadedFileWhenThereIsNoSavedContent() {
+	void importsTheStoredReadingWhenThereIsNoSavedContent() {
 		when(contentStore.find(VERSION_ID)).thenReturn(Optional.empty());
-		when(resumeService.downloadContent(VERSION_ID)).thenReturn(new byte[] {1});
-		when(parsingPipeline.analyze(any())).thenReturn(new ParsingResult(
+		when(resumeService.parsedVersion(VERSION_ID)).thenReturn(new ParsingResult(
 				new NormalizedDocument(SourceFormat.PDF, "Ana Silva", "Ana Silva", 1),
 				new ParsingSignals(false, false, false, false, false, false, false, false), List.of(),
 				new ContactInfo(Optional.of("ana@email.com"), Optional.empty(), Optional.empty(), Optional.empty(),
@@ -123,45 +118,27 @@ class ResumeEditingServiceImplTest {
 	}
 
 	@Test
-	void exportsTheStoredFileAsIsWhenItAlreadyHasTheRequestedFormat() {
-		EditableResume stored = new EditableResume(null, ResumeTemplate.CLASSIC,
-				new StructuredResume("Diego Haefliger", null, List.of()), CONTACT, false);
-		when(resumeService.getVersionInfo(RESUME_ID, VERSION_ID))
-				.thenReturn(new ResumeVersionInfo(new byte[] {7}, "x.pdf", "application/pdf"));
-		when(contentStore.find(VERSION_ID)).thenReturn(Optional.of(stored));
-		when(exportName.baseName(RESUME_ID, VERSION_ID, "Diego Haefliger")).thenReturn("DiegoHaefliger_Cielo_V0001_1");
-
-		ExportedResume exported = service.export(RESUME_ID, VERSION_ID, ResumeFormat.PDF);
-
-		assertThat(exported.fileName()).isEqualTo("DiegoHaefliger_Cielo_V0001_1.pdf");
-		assertThat(exported.content()).containsExactly(7);
-		verifyNoInteractions(documentWriter);
-	}
-
-	@Test
-	void namesTheExportAfterTheCandidateReadFromTheFileWhenThereIsNoSavedContent() {
-		when(resumeService.getVersionInfo(RESUME_ID, VERSION_ID))
-				.thenReturn(new ResumeVersionInfo(new byte[] {7}, "x.pdf", "application/pdf"));
+	void namesTheExportAfterTheCandidateReadOnUploadWhenThereIsNoSavedContent() {
 		when(contentStore.find(VERSION_ID)).thenReturn(Optional.empty());
-		when(parsingPipeline.analyze(new byte[] {7})).thenReturn(new ParsingResult(
+		when(resumeService.parsedVersion(VERSION_ID)).thenReturn(new ParsingResult(
 				new NormalizedDocument(SourceFormat.PDF, "Ana Silva", "Ana Silva", 1),
 				new ParsingSignals(false, false, false, false, false, false, false, false), List.of(),
 				new ContactInfo(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
 						Optional.empty(), Optional.empty())));
 		when(exportName.baseName(RESUME_ID, VERSION_ID, "Ana Silva")).thenReturn("AnaSilva_1");
+		when(documentWriter.render(eq(ResumeTemplate.CLASSIC), any(), any()))
+				.thenReturn(new RenderedResume(new byte[] {1}, new byte[] {2}, "texto"));
 
 		ExportedResume exported = service.export(RESUME_ID, VERSION_ID, ResumeFormat.PDF);
 
 		assertThat(exported.fileName()).isEqualTo("AnaSilva_1.pdf");
-		verify(resumeService, never()).downloadContent(any());
+		verify(resumeService).assertExists(RESUME_ID, VERSION_ID);
 	}
 
 	@Test
-	void rendersTheSavedContentWhenTheRequestedFormatIsNotStored() {
+	void rendersTheExportFromTheSavedContent() {
 		EditableResume stored = new EditableResume(null, ResumeTemplate.CLASSIC,
 				new StructuredResume("Ana Silva", null, List.of()), CONTACT, false);
-		when(resumeService.getVersionInfo(RESUME_ID, VERSION_ID))
-				.thenReturn(new ResumeVersionInfo(new byte[] {7}, "x.docx", ResumeFormat.DOCX.mimeType()));
 		when(contentStore.find(VERSION_ID)).thenReturn(Optional.of(stored));
 		when(exportName.baseName(RESUME_ID, VERSION_ID, "Ana Silva")).thenReturn("AnaSilva_2");
 		when(documentWriter.render(eq(ResumeTemplate.CLASSIC), any(), eq(CONTACT)))
@@ -174,13 +151,11 @@ class ResumeEditingServiceImplTest {
 	}
 
 	@Test
-	void rerendersAStoredFileThatStillHasASeparateObjectiveSection() {
+	void rendersSavedContentThatStillHasASeparateObjectiveSection() {
 		ResumeSection objective = new ResumeSection("Objetivo", ResumeSectionSemanticType.SUMMARY,
 				ResumeSectionKind.PARAGRAPH, "Atuar como dev.", null, null, null);
 		EditableResume stored = new EditableResume(null, ResumeTemplate.CLASSIC,
 				new StructuredResume("Ana Silva", null, List.of(objective)), CONTACT, false);
-		when(resumeService.getVersionInfo(RESUME_ID, VERSION_ID))
-				.thenReturn(new ResumeVersionInfo(new byte[] {7}, "x.pdf", ResumeFormat.PDF.mimeType()));
 		when(contentStore.find(VERSION_ID)).thenReturn(Optional.of(stored));
 		when(exportName.baseName(RESUME_ID, VERSION_ID, "Ana Silva")).thenReturn("AnaSilva_3");
 		when(documentWriter.render(eq(ResumeTemplate.CLASSIC), any(), eq(CONTACT)))

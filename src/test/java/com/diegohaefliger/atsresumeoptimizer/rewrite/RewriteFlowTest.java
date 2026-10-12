@@ -43,7 +43,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * Ponta a ponta real (Postgres + MinIO via Testcontainers), IA mockada. Cobre o "pronto
+ * Ponta a ponta real (Postgres via Testcontainers), IA mockada. Cobre o "pronto
  * quando" da fase 3: POST /analyses/{id}/rewrite devolve currículo adaptado (DOCX e PDF)
  * baixável, sem fato inventado passar batido — bullet com número novo vem com needsConfirmation.
  */
@@ -107,7 +107,8 @@ class RewriteFlowTest {
 		String docxVersionId = json.get("documents").get("docxVersionId").asString();
 
 		byte[] docxContent = mockMvc
-				.perform(get("/api/v1/resumes/{resumeId}/versions/{versionId}/download", resumeId, docxVersionId))
+				.perform(get("/api/v1/resumes/{resumeId}/versions/{versionId}/export", resumeId, docxVersionId)
+						.param("format", "DOCX"))
 				.andExpect(status().isOk())
 				.andExpect(header().string("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
 				.andReturn().getResponse().getContentAsByteArray();

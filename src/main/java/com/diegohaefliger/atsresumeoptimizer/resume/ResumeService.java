@@ -1,5 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.resume;
 
+import com.diegohaefliger.atsresumeoptimizer.parsing.domain.ParsingResult;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -7,16 +8,9 @@ import java.util.UUID;
 
 public interface ResumeService {
 
-	ResumeVersionCreated storeUpload(
-			String title,
-			byte[] content,
-			String fileName,
-			String mimeType,
-			String rawText,
-			String structuredText,
-			Integer pageCount);
+	/** Para documento gerado pelo sistema: guarda o texto já conhecido e só lê do arquivo os sinais de layout. */
+	ResumeVersionCreated storeUpload(String title, byte[] content, String fileName, String mimeType, String text);
 
-	/** Valida tamanho e páginas e extrai o texto antes de {@link #storeUpload}. */
 	default ResumeVersionCreated upload(byte[] content, String fileName, String mimeType) {
 		return upload(content, fileName, mimeType, fileName);
 	}
@@ -34,7 +28,8 @@ public interface ResumeService {
 
 	List<ResumeVersionSummary> listVersions(UUID resumeId);
 
-	byte[] downloadContent(UUID resumeVersionId);
+	/** Remonta a leitura feita no upload a partir do banco; o arquivo original não é guardado. */
+	ParsingResult parsedVersion(UUID resumeVersionId);
 
 	ResumeVersionText getVersionText(UUID resumeVersionId);
 
@@ -48,8 +43,6 @@ public interface ResumeService {
 	Optional<UUID> latestAdaptedVersion(UUID analysisId);
 
 	/** Versão de outro currículo responde 404 igual a inexistente, pra não vazar existência. */
-	ResumeVersionInfo getVersionInfo(UUID resumeId, UUID resumeVersionId);
-
 	void assertExists(UUID resumeId, UUID resumeVersionId);
 
 	/** Mesma numeração de {@link #listVersions}: conta as versões já apagadas. */
@@ -62,7 +55,7 @@ public interface ResumeService {
 	/** Só um base fica favorito por vez; marcar outro desmarca o anterior. */
 	void setFavorite(UUID resumeId, boolean favorite);
 
-	/** LGPD: apaga arquivo e texto mas mantém as linhas, pra análises antigas continuarem válidas sem dado pessoal. */
+	/** LGPD: apaga o texto mas mantém as linhas, pra análises antigas continuarem válidas sem dado pessoal. */
 	void delete(UUID resumeId);
 
 	void deleteVersion(UUID resumeId, UUID resumeVersionId);

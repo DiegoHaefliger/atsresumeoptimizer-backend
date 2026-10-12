@@ -3,15 +3,11 @@ package com.diegohaefliger.atsresumeoptimizer.resume.adapter.web;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeService;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeSummary;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionCreated;
-import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionInfo;
 import com.diegohaefliger.atsresumeoptimizer.resume.ResumeVersionSummary;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,16 +45,6 @@ class ResumesController {
 	@GetMapping("/{resumeId}/versions")
 	List<ResumeVersionSummary> versions(@PathVariable UUID resumeId) {
 		return resumeService.listVersions(resumeId);
-	}
-
-	@GetMapping("/{resumeId}/versions/{versionId}/download")
-	ResponseEntity<byte[]> download(@PathVariable UUID resumeId, @PathVariable UUID versionId) {
-		ResumeVersionInfo info = resumeService.getVersionInfo(resumeId, versionId);
-		return ResponseEntity.ok()
-				.contentType(MediaType.parseMediaType(info.mimeType()))
-				.header(HttpHeaders.CONTENT_DISPOSITION,
-						ContentDisposition.attachment().filename(info.fileName()).build().toString())
-				.body(info.content());
 	}
 
 	@PutMapping("/{resumeId}/favorite")

@@ -45,6 +45,10 @@ public class ResumeAnalysisPipeline {
 				inspectors.hiddenText().hasHiddenText(stream(content)),
 				inspectors.fontConsistency().hasInconsistentFonts(stream(content)));
 
+		return assemble(document, signals);
+	}
+
+	public ParsingResult assemble(NormalizedDocument document, ParsingSignals signals) {
 		return new ParsingResult(document, signals, sectionSegmenter.segment(document.rawText()),
 				contactExtractor.extract(document.rawText()));
 	}

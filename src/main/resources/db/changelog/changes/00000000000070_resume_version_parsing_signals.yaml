@@ -1,0 +1,62 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000070-resume-version-parsing-signals
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: resume_version
+            columns:
+              - column:
+                  name: source_format
+                  type: varchar(10)
+              - column:
+                  name: no_text_layer
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: multi_column
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: has_table
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: contact_in_header_or_footer
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: has_text_box
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: has_icon_glyphs_without_unicode
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: has_hidden_text
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: has_inconsistent_fonts
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+        - dropColumn:
+            tableName: resume_version
+            columnName: storage_key
