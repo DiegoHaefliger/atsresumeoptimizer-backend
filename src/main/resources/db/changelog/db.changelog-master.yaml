@@ -131,3 +131,5 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000071_candidate_questions.yaml
   - include:
       file: db/changelog/changes/00000000000072_prompt_template_candidate_questions_v2.yaml
+  - include:
+      file: db/changelog/changes/00000000000073_google_client_settings.yaml

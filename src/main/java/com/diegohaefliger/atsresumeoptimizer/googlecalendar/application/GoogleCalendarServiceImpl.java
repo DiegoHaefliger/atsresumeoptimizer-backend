@@ -32,26 +32,46 @@ class GoogleCalendarServiceImpl implements GoogleCalendarService {
 	private final GoogleAccessTokens accessTokens;
 	private final GoogleEventLinkRepository linkRepository;
 	private final OAuthStateStore stateStore;
+	private final GoogleCredentialsStore credentialsStore;
 	private final GoogleCalendarProperties properties;
 
 	GoogleCalendarServiceImpl(GoogleAccountStore accountStore, GoogleCalendarGateway gateway, GoogleScheduleSync sync,
 			GoogleAccessTokens accessTokens, GoogleEventLinkRepository linkRepository, OAuthStateStore stateStore,
-			GoogleCalendarProperties properties) {
+			GoogleCredentialsStore credentialsStore, GoogleCalendarProperties properties) {
 		this.accountStore = accountStore;
 		this.gateway = gateway;
 		this.sync = sync;
 		this.accessTokens = accessTokens;
 		this.linkRepository = linkRepository;
 		this.stateStore = stateStore;
+		this.credentialsStore = credentialsStore;
 		this.properties = properties;
 	}
 
 	@Override
 	public GoogleConnectionStatus status() {
 		Optional<GoogleAccountEntity> account = accountStore.account();
+		Optional<GoogleCredentials> credentials = credentialsStore.current();
 		return new GoogleConnectionStatus(
-				properties.configured(), account.isPresent(), account.map(GoogleAccountEntity::getAccountEmail).orElse(null),
-				properties.redirectUri());
+				credentials.isPresent(), account.isPresent(), account.map(GoogleAccountEntity::getAccountEmail).orElse(null),
+				properties.redirectUri(), credentials.map(GoogleCredentials::clientId).orElse(null));
+	}
+
+	@Override
+	@Transactional
+	public void saveCredentials(GoogleCredentials credentials) {
+		boolean sameClient = credentialsStore.current().map(GoogleCredentials::clientId).filter(credentials.clientId()::equals).isPresent();
+		credentialsStore.save(credentials);
+		if (!sameClient) {
+			accountStore.clearConnection();
+		}
+	}
+
+	@Override
+	@Transactional
+	public void clearCredentials() {
+		credentialsStore.clear();
+		accountStore.clearConnection();
 	}
 
 	@Override
@@ -105,10 +125,7 @@ class GoogleCalendarServiceImpl implements GoogleCalendarService {
 	}
 
 	private GoogleCredentials credentials() {
-		if (!properties.configured()) {
-			throw new GoogleNotConfiguredException();
-		}
-		return new GoogleCredentials(properties.clientId(), properties.clientSecret());
+		return credentialsStore.current().orElseThrow(GoogleNotConfiguredException::new);
 	}
 
 	private void syncAfterConnecting() {

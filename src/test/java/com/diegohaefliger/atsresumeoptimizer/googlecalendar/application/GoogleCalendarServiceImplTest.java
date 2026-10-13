@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,13 +47,18 @@ class GoogleCalendarServiceImplTest {
 	@Mock
 	private GoogleEventLinkRepository linkRepository;
 
+	@Mock
+	private GoogleCredentialsStore credentialsStore;
+
 	private final OAuthStateStore stateStore =
 			new OAuthStateStore(Clock.fixed(Instant.parse("2026-10-06T12:00:00Z"), ZoneOffset.UTC));
 
 	private GoogleCalendarServiceImpl service(String clientId, String clientSecret) {
+		lenient().when(credentialsStore.current())
+				.thenReturn(clientId.isEmpty() ? Optional.empty() : Optional.of(new GoogleCredentials(clientId, clientSecret)));
 		return new GoogleCalendarServiceImpl(accountStore, gateway, sync, accessTokens, linkRepository, stateStore,
-				new GoogleCalendarProperties(
-				clientId, clientSecret, "http://localhost:8080/cb", "http://localhost:5173", "a", "t", "r", "u", "e"));
+				credentialsStore, new GoogleCalendarProperties(
+				null, null, "http://localhost:8080/cb", "http://localhost:5173", "a", "t", "r", "u", "e"));
 	}
 
 	private GoogleCalendarServiceImpl service() {
@@ -79,6 +85,34 @@ class GoogleCalendarServiceImplTest {
 		assertThat(connected.accountEmail()).isEqualTo("eu@example.com");
 		assertThat(connected.redirectUri()).isEqualTo("http://localhost:8080/cb");
 		assertThat(service("", "").status().configured()).isFalse();
+	}
+
+	@Test
+	void savingCredentialsOfAnotherClientDisconnectsTheAccount() {
+		GoogleCalendarServiceImpl service = service("antigo", "s");
+
+		service.saveCredentials(new GoogleCredentials("novo", "s2"));
+
+		verify(credentialsStore).save(new GoogleCredentials("novo", "s2"));
+		verify(accountStore).clearConnection();
+	}
+
+	@Test
+	void savingNewSecretOfTheSameClientKeepsTheAccountConnected() {
+		GoogleCalendarServiceImpl service = service();
+
+		service.saveCredentials(new GoogleCredentials("id", "outro"));
+
+		verify(credentialsStore).save(new GoogleCredentials("id", "outro"));
+		verify(accountStore, never()).clearConnection();
+	}
+
+	@Test
+	void clearingCredentialsAlsoDisconnects() {
+		service().clearCredentials();
+
+		verify(credentialsStore).clear();
+		verify(accountStore).clearConnection();
 	}
 
 	@Test

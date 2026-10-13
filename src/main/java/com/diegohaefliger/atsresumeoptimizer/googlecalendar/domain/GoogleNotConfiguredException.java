@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 public class GoogleNotConfiguredException extends BusinessException {
 
 	public GoogleNotConfiguredException() {
-		super("Integração com o Google não configurada no servidor.");
+		super("Integração com o Google ainda não configurada.");
 	}
 
 	@Override

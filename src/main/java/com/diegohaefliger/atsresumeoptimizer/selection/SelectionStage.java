@@ -4,6 +4,7 @@ public enum SelectionStage {
 	INTERESTED("Interessado"),
 	APPLIED("Candidatado"),
 	SCREENING("Triagem"),
+	HR_INTERVIEW("Entrevista RH"),
 	TECHNICAL_TEST("Teste técnico"),
 	TECHNICAL_INTERVIEW("Entrevista técnica"),
 	MANAGER_INTERVIEW("Entrevista com gestor"),

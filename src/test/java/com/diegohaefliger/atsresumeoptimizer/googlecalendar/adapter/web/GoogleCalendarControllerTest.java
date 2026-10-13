@@ -5,12 +5,14 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.application.GoogleCalendarService;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleConnectionStatus;
+import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCredentials;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleNotConfiguredException;
 import com.diegohaefliger.atsresumeoptimizer.googlecalendar.domain.GoogleCalendarItem;
 import java.time.Instant;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -36,14 +39,30 @@ class GoogleCalendarControllerTest {
 
 	@Test
 	void returnsTheStatus() throws Exception {
-		when(service.status()).thenReturn(new GoogleConnectionStatus(true, true, "eu@example.com", "http://localhost:8080/cb"));
+		when(service.status()).thenReturn(new GoogleConnectionStatus(true, true, "eu@example.com", "http://localhost:8080/cb", "id-cliente"));
 
 		mockMvc.perform(get(BASE))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.configured").value(true))
 				.andExpect(jsonPath("$.connected").value(true))
 				.andExpect(jsonPath("$.accountEmail").value("eu@example.com"))
-				.andExpect(jsonPath("$.redirectUri").value("http://localhost:8080/cb"));
+				.andExpect(jsonPath("$.redirectUri").value("http://localhost:8080/cb"))
+				.andExpect(jsonPath("$.clientId").value("id-cliente"));
+	}
+
+	@Test
+	void savesAndClearsTheClientCredentials() throws Exception {
+		mockMvc.perform(put(BASE + "/credentials").contentType(MediaType.APPLICATION_JSON)
+						.content("{\"clientId\":\"id\",\"clientSecret\":\"segredo\"}"))
+				.andExpect(status().isNoContent());
+		verify(service).saveCredentials(new GoogleCredentials("id", "segredo"));
+
+		mockMvc.perform(put(BASE + "/credentials").contentType(MediaType.APPLICATION_JSON)
+						.content("{\"clientId\":\"\",\"clientSecret\":\"segredo\"}"))
+				.andExpect(status().isBadRequest());
+
+		mockMvc.perform(delete(BASE + "/credentials")).andExpect(status().isNoContent());
+		verify(service).clearCredentials();
 	}
 
 	@Test

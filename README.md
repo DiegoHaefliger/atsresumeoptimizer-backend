@@ -91,7 +91,8 @@ uma única vez (o Google não oferece API para isso):
    autorizadas"), adicione o endereço do backend seguido de `/api/v1/google-calendar/callback`
    (local: `http://localhost:8080/api/v1/google-calendar/callback`) e salve. Endereço diferente gera
    `400: redirect_uri_mismatch`; a mudança pode levar alguns minutos para valer.
-7. Copie o ID do cliente e a chave secreta para o `.env` do backend e reinicie:
+7. Em **Configurações > Notificações > Google Agenda**, cole o ID do cliente e a chave secreta e salve (ficam no
+   banco, a chave criptografada). Alternativa para servidor: variáveis no `.env`, usadas quando nada foi salvo no app:
 
 ```properties
 GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
