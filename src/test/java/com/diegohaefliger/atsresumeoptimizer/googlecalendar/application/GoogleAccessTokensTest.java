@@ -23,9 +23,13 @@ class GoogleAccessTokensTest {
 	@Mock
 	private GoogleCalendarGateway gateway;
 
+	@Mock
+	private GoogleCredentialsStore credentialsStore;
+
 	private GoogleAccessTokens tokens(String clientId) {
-		return new GoogleAccessTokens(accountStore,
-				new GoogleCalendarProperties(clientId, "secret", "uri", "front", "a", "t", "r", "u", "e"), gateway);
+		when(credentialsStore.current())
+				.thenReturn(clientId.isEmpty() ? Optional.empty() : Optional.of(new GoogleCredentials(clientId, "secret")));
+		return new GoogleAccessTokens(accountStore, credentialsStore, gateway);
 	}
 
 	@Test

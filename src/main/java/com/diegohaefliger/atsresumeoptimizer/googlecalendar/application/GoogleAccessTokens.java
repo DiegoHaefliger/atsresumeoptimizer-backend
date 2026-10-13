@@ -13,23 +13,23 @@ class GoogleAccessTokens {
 	private static final Logger LOGGER = LoggerFactory.getLogger(GoogleAccessTokens.class);
 
 	private final GoogleAccountStore accountStore;
-	private final GoogleCalendarProperties properties;
+	private final GoogleCredentialsStore credentialsStore;
 	private final GoogleCalendarGateway gateway;
 
-	GoogleAccessTokens(GoogleAccountStore accountStore, GoogleCalendarProperties properties, GoogleCalendarGateway gateway) {
+	GoogleAccessTokens(GoogleAccountStore accountStore, GoogleCredentialsStore credentialsStore, GoogleCalendarGateway gateway) {
 		this.accountStore = accountStore;
-		this.properties = properties;
+		this.credentialsStore = credentialsStore;
 		this.gateway = gateway;
 	}
 
 	Optional<String> current() {
 		Optional<String> refreshToken = accountStore.refreshToken();
-		if (!properties.configured() || refreshToken.isEmpty()) {
+		Optional<GoogleCredentials> credentials = credentialsStore.current();
+		if (credentials.isEmpty() || refreshToken.isEmpty()) {
 			return Optional.empty();
 		}
 		try {
-			GoogleCredentials credentials = new GoogleCredentials(properties.clientId(), properties.clientSecret());
-			return Optional.of(gateway.refreshAccessToken(credentials, refreshToken.get()));
+			return Optional.of(gateway.refreshAccessToken(credentials.get(), refreshToken.get()));
 		} catch (GoogleAuthRevokedException exception) {
 			LOGGER.warn("Acesso ao Google revogado; conta desconectada.");
 			accountStore.clearConnection();
