@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000074-job-note
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: job_note
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: job_posting_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_job_note_job_posting
+                    references: job_posting(id)
+              - column:
+                  name: content
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_job_note_job_posting
+            tableName: job_note
+            columns:
+              - column:
+                  name: job_posting_id
