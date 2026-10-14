@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000076-job-note-single
+      author: DiegoHaefliger
+      changes:
+        - sql:
+            sql: >-
+              DELETE FROM job_note older USING job_note newer
+              WHERE older.job_posting_id = newer.job_posting_id
+              AND (older.updated_at, older.id) < (newer.updated_at, newer.id)
+        - dropColumn:
+            tableName: job_note
+            columnName: created_at
+        - dropIndex:
+            tableName: job_note
+            indexName: idx_job_note_job_posting
+        - addUniqueConstraint:
+            tableName: job_note
+            columnNames: job_posting_id
+            constraintName: uq_job_note_job_posting
