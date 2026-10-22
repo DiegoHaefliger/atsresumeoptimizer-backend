@@ -12,9 +12,10 @@ public record JobDetails(
 		List<String> benefits,
 		String title,
 		String seniority,
-		ContractType contractType) {
+		ContractType contractType,
+		String companyInfo) {
 
-	public static final JobDetails NONE = new JobDetails(null, null, null, null, null, List.of(), null, null, null);
+	public static final JobDetails NONE = new JobDetails(null, null, null, null, null, List.of(), null, null, null, null);
 
 	public JobDetails {
 		company = blankToNull(company);
@@ -22,9 +23,15 @@ public record JobDetails(
 		interviewUrl = blankToNull(interviewUrl);
 		title = blankToNull(title);
 		seniority = blankToNull(seniority);
+		companyInfo = blankToNull(companyInfo);
 		benefits = benefits == null
 				? List.of()
 				: benefits.stream().filter(benefit -> benefit != null && !benefit.isBlank()).map(String::strip).distinct().toList();
+	}
+
+	public JobDetails(String company, String sourceUrl, WorkModel workModel, String interviewUrl, BigDecimal salary,
+			List<String> benefits, String title, String seniority, ContractType contractType) {
+		this(company, sourceUrl, workModel, interviewUrl, salary, benefits, title, seniority, contractType, null);
 	}
 
 	private static String blankToNull(String text) {

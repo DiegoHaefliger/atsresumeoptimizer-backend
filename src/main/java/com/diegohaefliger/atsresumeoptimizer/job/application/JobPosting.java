@@ -46,6 +46,9 @@ class JobPosting {
 
 	private String benefits;
 
+	@Column(name = "company_info")
+	private String companyInfo;
+
 	@Column(name = "custom_title")
 	private String customTitle;
 
@@ -119,6 +122,9 @@ class JobPosting {
 		if (details.title() != null) {
 			this.customTitle = details.title();
 		}
+		if (details.companyInfo() != null) {
+			this.companyInfo = details.companyInfo();
+		}
 		if (details.seniority() != null) {
 			this.seniority = details.seniority();
 		}
@@ -135,6 +141,7 @@ class JobPosting {
 		this.salary = details.salary();
 		this.benefits = details.benefits().isEmpty() ? null : String.join(BENEFITS_SEPARATOR, details.benefits());
 		this.customTitle = details.title();
+		this.companyInfo = details.companyInfo();
 		this.seniority = details.seniority();
 		this.contractType = details.contractType();
 	}
@@ -210,6 +217,10 @@ class JobPosting {
 
 	String company() {
 		return company;
+	}
+
+	String companyInfo() {
+		return companyInfo;
 	}
 
 	String sourceUrl() {

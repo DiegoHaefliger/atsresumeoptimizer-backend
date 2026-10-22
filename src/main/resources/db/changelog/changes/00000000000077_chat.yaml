@@ -1,0 +1,136 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000077-chat
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: chat_conversation
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: chat_conversation_job
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: conversation_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_chat_conversation_job_conversation
+                    references: chat_conversation(id)
+                    deleteCascade: true
+              - column:
+                  name: job_posting_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_chat_conversation_job_job_posting
+                    references: job_posting(id)
+                    deleteCascade: true
+              - column:
+                  name: resume_version_id
+                  type: uuid
+                  constraints:
+                    foreignKeyName: fk_chat_conversation_job_resume_version
+                    references: resume_version(id)
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: chat_conversation_job
+            columnNames: conversation_id, job_posting_id
+            constraintName: uq_chat_conversation_job
+        - createTable:
+            tableName: chat_message
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: conversation_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_chat_message_conversation
+                    references: chat_conversation(id)
+                    deleteCascade: true
+              - column:
+                  name: role
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ai_model
+                  type: varchar(100)
+              - column:
+                  name: tokens_in
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tokens_out
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cost_usd
+                  type: numeric(12,6)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: interrupted
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_chat_message_conversation
+            tableName: chat_message
+            columns:
+              - column:
+                  name: conversation_id
+              - column:
+                  name: created_at

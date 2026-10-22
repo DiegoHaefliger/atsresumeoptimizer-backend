@@ -19,5 +19,6 @@ record CreateJobRequest(
 		@Size(max = 100) List<@Size(max = 500) String> benefits,
 		@Size(max = 255) String title,
 		@Size(max = 50) String seniority,
-		ContractType contractType) {
+		ContractType contractType,
+		@Size(max = 20000) String companyInfo) {
 }

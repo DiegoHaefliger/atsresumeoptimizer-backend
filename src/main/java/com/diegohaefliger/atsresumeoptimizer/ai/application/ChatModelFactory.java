@@ -1,10 +1,15 @@
 package com.diegohaefliger.atsresumeoptimizer.ai.application;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
+import dev.langchain4j.model.anthropic.AnthropicStreamingChatModel;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
+import dev.langchain4j.model.googleai.GoogleAiGeminiStreamingChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
+import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
@@ -21,18 +26,14 @@ class ChatModelFactory {
 
 	ChatModel create(AiRuntimeSettings settings, String modelName, int maxOutputTokens) {
 		return switch (settings.provider()) {
-			// max_tokens é legado na OpenAI e os modelos novos o rejeitam; max_completion_tokens vale para todos.
-			case OPENAI -> openAi(settings, modelName)
-					.temperature(CLASSIC_OPENAI_MODEL.matcher(modelName).find() ? settings.temperature() : null)
-					.maxCompletionTokens(CLASSIC_OPENAI_MODEL.matcher(modelName).find()
-							? maxOutputTokens
-							: Math.max(maxOutputTokens, OPENAI_REASONING_MIN_OUTPUT_TOKENS))
-					.build();
-			case OPENAI_COMPATIBLE -> openAi(settings, modelName)
-					.temperature(isReasoning(modelName) ? null : settings.temperature())
-					.maxTokens(isReasoning(modelName) ? null : maxOutputTokens)
-					.maxCompletionTokens(isReasoning(modelName) ? maxOutputTokens : null)
-					.build();
+			case OPENAI, OPENAI_COMPATIBLE -> {
+				OpenAiParams params = openAiParams(settings, modelName, maxOutputTokens);
+				yield openAi(settings, modelName)
+						.temperature(params.temperature())
+						.maxTokens(params.maxTokens())
+						.maxCompletionTokens(params.maxCompletionTokens())
+						.build();
+			}
 			// Claude 5.5 rejeita temperature diferente do padrão (HTTP 400), então não é enviada.
 			case ANTHROPIC -> AnthropicChatModel.builder()
 					.apiKey(settings.apiKey())
@@ -55,6 +56,58 @@ class ChatModelFactory {
 					.timeout(settings.timeout())
 					.build();
 		};
+	}
+
+	StreamingChatModel createStreaming(AiRuntimeSettings settings, String modelName, int maxOutputTokens) {
+		return switch (settings.provider()) {
+			case OPENAI, OPENAI_COMPATIBLE -> {
+				OpenAiParams params = openAiParams(settings, modelName, maxOutputTokens);
+				yield OpenAiStreamingChatModel.builder()
+						.apiKey(settings.apiKey())
+						.baseUrl(settings.baseUrl())
+						.modelName(modelName)
+						.timeout(settings.timeout())
+						.temperature(params.temperature())
+						.maxTokens(params.maxTokens())
+						.maxCompletionTokens(params.maxCompletionTokens())
+						.build();
+			}
+			case ANTHROPIC -> AnthropicStreamingChatModel.builder()
+					.apiKey(settings.apiKey())
+					.modelName(modelName)
+					.maxTokens(Math.max(maxOutputTokens, ANTHROPIC_MIN_OUTPUT_TOKENS))
+					.timeout(settings.timeout())
+					.build();
+			case GEMINI -> GoogleAiGeminiStreamingChatModel.builder()
+					.apiKey(settings.apiKey())
+					.modelName(modelName)
+					.temperature(settings.temperature())
+					.maxOutputTokens(maxOutputTokens)
+					.timeout(settings.timeout())
+					.build();
+			case OLLAMA -> OllamaStreamingChatModel.builder()
+					.baseUrl(settings.baseUrl())
+					.modelName(modelName)
+					.temperature(settings.temperature())
+					.numPredict(maxOutputTokens)
+					.timeout(settings.timeout())
+					.build();
+		};
+	}
+
+	// max_tokens é legado na OpenAI e os modelos novos o rejeitam; max_completion_tokens vale para todos.
+	private static OpenAiParams openAiParams(AiRuntimeSettings settings, String modelName, int maxOutputTokens) {
+		if (settings.provider() == AiProvider.OPENAI) {
+			boolean classic = CLASSIC_OPENAI_MODEL.matcher(modelName).find();
+			return new OpenAiParams(classic ? settings.temperature() : null, null,
+					classic ? maxOutputTokens : Math.max(maxOutputTokens, OPENAI_REASONING_MIN_OUTPUT_TOKENS));
+		}
+		boolean reasoning = isReasoning(modelName);
+		return new OpenAiParams(reasoning ? null : settings.temperature(), reasoning ? null : maxOutputTokens,
+				reasoning ? maxOutputTokens : null);
+	}
+
+	private record OpenAiParams(Double temperature, Integer maxTokens, Integer maxCompletionTokens) {
 	}
 
 	private static OpenAiChatModel.OpenAiChatModelBuilder openAi(AiRuntimeSettings settings, String modelName) {
