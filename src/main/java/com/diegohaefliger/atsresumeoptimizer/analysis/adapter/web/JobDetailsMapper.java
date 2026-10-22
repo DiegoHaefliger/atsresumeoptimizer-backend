@@ -16,5 +16,6 @@ interface JobDetailsMapper {
 	@Mapping(target = "title", ignore = true)
 	@Mapping(target = "seniority", ignore = true)
 	@Mapping(target = "contractType", ignore = true)
+	@Mapping(target = "companyInfo", ignore = true)
 	JobDetails toJobDetails(JobDetailsParams params);
 }

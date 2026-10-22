@@ -363,4 +363,24 @@ class JobStructuringServiceImplTest {
 
 		assertThat(offer.contractType()).isEqualTo(ContractType.PJ);
 	}
+
+	@Test
+	void keepsTheCompanyInfoWhenALaterRegistrationLeavesItBlank() {
+		JobPosting posting = new JobPosting(UUID.randomUUID(), null, "vaga", "hash", null);
+		posting.applyDetails(new JobDetails(null, null, null, null, null, null, null, null, null, "  Cultura aberta  "));
+
+		posting.applyDetails(JobDetails.NONE);
+
+		assertThat(posting.companyInfo()).isEqualTo("Cultura aberta");
+	}
+
+	@Test
+	void editingTheJobWithAnEmptyCompanyInfoErasesIt() {
+		JobPosting posting = new JobPosting(UUID.randomUUID(), null, "vaga", "hash", null);
+		posting.applyDetails(new JobDetails(null, null, null, null, null, null, null, null, null, "Cultura aberta"));
+
+		posting.replaceDetails(JobDetails.NONE);
+
+		assertThat(posting.companyInfo()).isNull();
+	}
 }

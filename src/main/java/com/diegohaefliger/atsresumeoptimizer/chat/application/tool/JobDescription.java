@@ -12,6 +12,7 @@ public class JobDescription {
 
 	private static final int MAX_JOB_TEXT = 6000;
 	private static final int MAX_RESUME_TEXT = 6000;
+	private static final int MAX_COMPANY_INFO = 4000;
 	private static final String RESUME_UNAVAILABLE = "O texto do currículo escolhido não está mais disponível.";
 	private static final String NOT_INFORMED = "não informado";
 
@@ -45,6 +46,10 @@ public class JobDescription {
 		}
 		if (!keywords.isEmpty()) {
 			text.append("Palavras-chave da vaga: %s\n".formatted(String.join(", ", keywords)));
+		}
+		if (offer.companyInfo() != null) {
+			text.append("Sobre a empresa (escrito pelo usuário: cultura e dados para entrevista):\n")
+					.append(ChatText.limit(offer.companyInfo(), MAX_COMPANY_INFO)).append("\n");
 		}
 		text.append("Texto da vaga:\n").append(ChatText.limit(offer.rawText(), MAX_JOB_TEXT));
 		return text.toString();

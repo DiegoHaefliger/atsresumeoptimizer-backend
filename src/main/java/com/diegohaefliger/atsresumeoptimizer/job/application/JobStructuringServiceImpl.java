@@ -239,7 +239,7 @@ class JobStructuringServiceImpl implements JobStructuringService {
 		return new JobOffer(posting.id(), posting.code(), title, company, posting.sourceUrl(), posting.interviewUrl(), workModel,
 				contractType, salaryMin, salaryMax, benefits,
 				conditions.location(),
-				seniority, posting.rawText());
+				seniority, posting.rawText(), posting.companyInfo());
 	}
 
 	private static JobStructured withUserDetails(JobPosting posting, JobStructured structured) {

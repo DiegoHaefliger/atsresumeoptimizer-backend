@@ -70,6 +70,23 @@ class ChatToolsTest {
 	}
 
 	@Test
+	void includesWhatTheUserWroteAboutTheCompany() {
+		JobOffer withCulture = new JobOffer(JOB_ID, 12L, "Dev Java Sênior", "Acme", null, null, null, null, null, null, List.of(),
+				null, "Sênior", "Texto da vaga.", "Cultura de autonomia e code review diário.");
+		when(jobService.listJobs()).thenReturn(List.of(new JobListing(withCulture, NOW)));
+
+		String result = new GetJobTool(lookup, new JobDescription(jobService, resumeService)).run(Map.of("codigo", "12"));
+
+		assertThat(result).contains("Sobre a empresa").contains("Cultura de autonomia e code review diário.");
+	}
+
+	@Test
+	void omitsTheCompanySectionWhenTheUserLeftItEmpty() {
+		assertThat(new GetJobTool(lookup, new JobDescription(jobService, resumeService)).run(Map.of("codigo", "12")))
+				.doesNotContain("Sobre a empresa");
+	}
+
+	@Test
 	void pointsToListJobsWhenTheCodeDoesNotExist() {
 		GetJobTool tool = new GetJobTool(lookup, new JobDescription(jobService, resumeService));
 
