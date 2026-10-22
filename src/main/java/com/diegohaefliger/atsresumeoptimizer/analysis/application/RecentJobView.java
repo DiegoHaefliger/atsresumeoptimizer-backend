@@ -25,5 +25,6 @@ public record RecentJobView(
 		ContractType contractType,
 		Integer preferenceScore,
 		Integer atsScore,
-		String companyInfo) {
+		String companyInfo,
+		List<String> benefitsMarkup) {
 }

@@ -69,7 +69,8 @@ class RecentJobServiceImpl implements RecentJobService {
 				lastUse.map(RecentJobInput::lastUsedAt).orElse(null), listing.registeredAt(), offer.company(),
 				offer.sourceUrl(), offer.workModel(), offer.interviewUrl(),
 				offer.salaryMax() != null ? offer.salaryMax() : offer.salaryMin(), offer.benefits(), offer.seniority(), offer.contractType(),
-				match != null ? match.score() : null, atsScore, offer.companyInfo());
+				match != null ? match.score() : null, atsScore, offer.companyInfo(),
+				offer.benefitsMarkup());
 	}
 
 	private Map<UUID, Integer> latestAtsScoreByJob() {
