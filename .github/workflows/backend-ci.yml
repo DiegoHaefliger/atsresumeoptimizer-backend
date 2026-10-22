@@ -56,7 +56,7 @@ jobs:
         run: ./mvnw -B -ntp org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeBom -DoutputFormat=json -DoutputName=bom -DincludeTestScope=false
 
       - name: OSV-Scanner
-        uses: google/osv-scanner-action/osv-scanner-action@v2.0.3
+        uses: google/osv-scanner-action/osv-scanner-action@v2.7.0
         with:
           scan-args: |-
             --sbom=target/bom.json
