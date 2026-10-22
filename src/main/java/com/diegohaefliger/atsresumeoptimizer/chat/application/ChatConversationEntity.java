@@ -46,6 +46,10 @@ class ChatConversationEntity {
 		return updatedAt;
 	}
 
+	void touch(Instant now) {
+		this.updatedAt = now;
+	}
+
 	void rename(String title, Instant now) {
 		this.title = title;
 		this.updatedAt = now;

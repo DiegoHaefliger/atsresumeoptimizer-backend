@@ -49,6 +49,14 @@ class ChatMessageEntity {
 		this.createdAt = now;
 	}
 
+	void recordAiResult(String aiModel, int tokensIn, int tokensOut, BigDecimal costUsd, boolean interrupted) {
+		this.aiModel = aiModel;
+		this.tokensIn = tokensIn;
+		this.tokensOut = tokensOut;
+		this.costUsd = costUsd;
+		this.interrupted = interrupted;
+	}
+
 	public UUID getId() {
 		return id;
 	}
