@@ -34,7 +34,7 @@
 		<pdfbox.version>3.0.7</pdfbox.version>
 		<poi.version>6.0.0</poi.version>
 		<tika.version>3.3.2</tika.version>
-		<languagetool.version>6.6</languagetool.version>
+		<languagetool.version>6.8</languagetool.version>
 		<uuid-creator.version>6.1.1</uuid-creator.version>
 		<springdoc.version>3.1.1</springdoc.version>
 		<guava.version>33.4.0-jre</guava.version>
