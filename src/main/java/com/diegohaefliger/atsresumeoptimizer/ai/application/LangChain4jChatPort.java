@@ -201,7 +201,9 @@ class LangChain4jChatPort implements ChatPort {
 			throw new AiCallException("Resposta do chat interrompida", interrupted);
 		} catch (ExecutionException failure) {
 			LOGGER.warn("Falha no streaming do chat com {}", resolved.provider(), failure.getCause());
-			throw new AiCallException("Falha ao chamar " + resolved.provider().label() + " para o chat", failure.getCause());
+			throw new AiCallException(
+					"%s não respondeu. Tente de novo ou revise a chave em Configurações.".formatted(resolved.provider().label()),
+					failure.getCause());
 		}
 	}
 
