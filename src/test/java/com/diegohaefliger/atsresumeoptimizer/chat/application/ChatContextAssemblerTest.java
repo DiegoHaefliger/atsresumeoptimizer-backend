@@ -45,7 +45,7 @@ class ChatContextAssemblerTest {
 
 		String context = assembler.contextFor(CONVERSATION);
 
-		assertThat(context).contains("Vaga #7 — Dev Kotlin").contains("Vaga de Kotlin.").contains("Currículo de Fulano");
+		assertThat(context).contains("Vaga V0007 — Dev Kotlin").contains("Vaga de Kotlin.").contains("Currículo de Fulano");
 	}
 
 	@Test

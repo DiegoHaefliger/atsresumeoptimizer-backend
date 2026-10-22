@@ -46,7 +46,7 @@ class GetJobAnalysisTool extends AbstractJobTool {
 	}
 
 	private static String report(JobOffer offer, AnalysisReportView view) {
-		StringBuilder text = new StringBuilder("Análise do currículo para a vaga #%d:\n".formatted(offer.code()));
+		StringBuilder text = new StringBuilder("Análise do currículo para a vaga %s:\n".formatted(ChatJobLookup.display(offer.code())));
 		text.append("Nota geral: %s\n".formatted(view.score() == null || view.score().overall() == null ? "indisponível" : view.score().overall()));
 		if (view.score() != null && !view.score().dimensions().isEmpty()) {
 			text.append("Notas por dimensão: ").append(view.score().dimensions().stream()

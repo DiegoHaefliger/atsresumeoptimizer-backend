@@ -20,14 +20,14 @@ abstract class AbstractJobTool implements ChatTool {
 
 	@Override
 	public List<Parameter> parameters() {
-		return List.of(new Parameter(CODE, "Código numérico da vaga, o número depois do # (ex.: 12). Veja em list_jobs."));
+		return List.of(new Parameter(CODE, "Código da vaga como o app mostra (ex.: V0012). Veja em list_jobs."));
 	}
 
 	@Override
 	public String label(Map<String, String> arguments) {
 		String code = arguments.getOrDefault(CODE, "");
 		return jobs.byCode(code)
-				.map(offer -> "%s #%d — %s".formatted(action, offer.code(), offer.title()))
+				.map(offer -> "%s %s — %s".formatted(action, ChatJobLookup.display(offer.code()), offer.title()))
 				.orElse("%s %s".formatted(action, code));
 	}
 

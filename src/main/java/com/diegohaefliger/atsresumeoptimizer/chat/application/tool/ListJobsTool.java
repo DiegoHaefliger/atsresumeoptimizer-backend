@@ -58,7 +58,7 @@ class ListJobsTool implements ChatTool {
 			}
 		}
 		return offers.stream()
-				.map(offer -> "#%d | %s | %s | %s | etapa: %s".formatted(offer.code(), offer.title(),
+				.map(offer -> "%s | %s | %s | %s | etapa: %s".formatted(ChatJobLookup.display(offer.code()), offer.title(),
 						offer.company() == null ? "empresa não informada" : offer.company(),
 						offer.seniority() == null ? "senioridade não informada" : offer.seniority(),
 						stageByJob.getOrDefault(offer.jobPostingId(), "sem processo")))

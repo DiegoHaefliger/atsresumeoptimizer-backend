@@ -40,7 +40,7 @@ class GetJobResumeTool extends AbstractJobTool {
 		return generated.stream()
 				.flatMap(resume -> resume.versions().stream())
 				.max(Comparator.comparing(ResumeVersionSummary::createdAt))
-				.map(version -> "Currículo gerado para a vaga #%d:\n%s".formatted(offer.code(),
+				.map(version -> "Currículo gerado para a vaga %s:\n%s".formatted(ChatJobLookup.display(offer.code()),
 						ChatText.limit(resumes.getVersionText(version.id()).rawText(), MAX_RESUME_TEXT)))
 				.orElse(NO_RESUME);
 	}

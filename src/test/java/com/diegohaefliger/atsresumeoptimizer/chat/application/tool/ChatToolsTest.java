@@ -54,17 +54,19 @@ class ChatToolsTest {
 
 		String result = new ListJobsTool(lookup, processes).run(Map.of());
 
-		assertThat(result).isEqualTo("#12 | Dev Java Sênior | Acme | Sênior | etapa: Entrevista técnica");
+		assertThat(result).isEqualTo("V0012 | Dev Java Sênior | Acme | Sênior | etapa: Entrevista técnica");
 	}
 
 	@Test
 	void findsAJobByCodeWithOrWithoutTheHash() {
 		GetJobTool tool = new GetJobTool(lookup, new JobDescription(jobService, resumeService));
 
-		assertThat(tool.run(Map.of("codigo", "12"))).contains("Vaga #12 — Dev Java Sênior").contains("Java, Spring")
+		assertThat(tool.run(Map.of("codigo", "12"))).contains("Vaga V0012 — Dev Java Sênior").contains("Java, Spring")
 				.contains("Procuramos pessoa com Java e Spring.");
 		assertThat(tool.run(Map.of("codigo", "#12"))).contains("Acme");
-		assertThat(tool.label(Map.of("codigo", "12"))).isEqualTo("Lendo a vaga #12 — Dev Java Sênior");
+		assertThat(tool.run(Map.of("codigo", "V0012"))).contains("Acme");
+		assertThat(tool.run(Map.of("codigo", "v12"))).contains("Acme");
+		assertThat(tool.label(Map.of("codigo", "12"))).isEqualTo("Lendo a vaga V0012 — Dev Java Sênior");
 	}
 
 	@Test

@@ -31,7 +31,7 @@ public class JobDescription {
 		List<String> keywords = jobService.keywords(offer.jobPostingId());
 		List<String> selected = jobService.selectedKeywords(offer.jobPostingId());
 		StringBuilder text = new StringBuilder();
-		text.append("Vaga #%d — %s\n".formatted(offer.code(), offer.title()));
+		text.append("Vaga %s — %s\n".formatted(ChatJobLookup.display(offer.code()), offer.title()));
 		text.append("Empresa: %s\n".formatted(orNotInformed(offer.company())));
 		text.append("Senioridade: %s\n".formatted(orNotInformed(offer.seniority())));
 		text.append("Local: %s\n".formatted(orNotInformed(offer.location())));
