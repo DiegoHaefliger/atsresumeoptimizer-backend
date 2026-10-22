@@ -25,6 +25,8 @@ class ChatMessageController {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChatMessageController.class);
 	private static final long STREAM_TIMEOUT_MS = 10 * 60 * 1000L;
+	private static final String TOOLS_UNAVAILABLE =
+			"Este modelo não consulta os dados sozinho: só enxergo as vagas anexadas com @.";
 	private static final String UNEXPECTED_ERROR = "Não deu para concluir a resposta. Tente de novo.";
 
 	private final ChatReplyService service;
@@ -53,6 +55,16 @@ class ChatMessageController {
 				@Override
 				public boolean onToken(String token) {
 					return emit(emitter, "token", new TokenEvent(token));
+				}
+
+				@Override
+				public void onToolUse(String label) {
+					emit(emitter, "tool", new ToolEvent(label));
+				}
+
+				@Override
+				public void onToolsUnavailable() {
+					emit(emitter, "notice", new NoticeEvent(TOOLS_UNAVAILABLE));
 				}
 
 				@Override

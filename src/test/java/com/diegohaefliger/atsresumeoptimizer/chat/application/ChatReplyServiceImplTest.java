@@ -34,7 +34,8 @@ class ChatReplyServiceImplTest {
 
 	private final ChatMessageStore store = mock(ChatMessageStore.class);
 	private final ChatPort chatPort = mock(ChatPort.class);
-	private final ChatReplyServiceImpl service = new ChatReplyServiceImpl(store, chatPort);
+	private final ChatContextAssembler contextAssembler = mock(ChatContextAssembler.class);
+	private final ChatReplyServiceImpl service = new ChatReplyServiceImpl(store, chatPort, contextAssembler);
 	private final Recorder recorder = new Recorder();
 
 	private static ChatMessage message(ChatRole role, String content) {
@@ -44,6 +45,8 @@ class ChatReplyServiceImplTest {
 	private PendingReply pending(String question, List<ChatMessage> history) {
 		when(store.addUserMessage(CONVERSATION, question)).thenReturn(message(ChatRole.USER, question));
 		when(store.recent(eq(CONVERSATION), anyInt())).thenReturn(history);
+		when(contextAssembler.contextFor(CONVERSATION)).thenReturn("Vagas anexadas: nenhuma");
+		when(contextAssembler.tools()).thenReturn(List.of());
 		return service.send(CONVERSATION, question);
 	}
 

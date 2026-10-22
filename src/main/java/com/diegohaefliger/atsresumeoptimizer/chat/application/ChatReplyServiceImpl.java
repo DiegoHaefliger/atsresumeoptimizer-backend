@@ -5,6 +5,7 @@ import com.diegohaefliger.atsresumeoptimizer.ai.AiUsage;
 import com.diegohaefliger.atsresumeoptimizer.ai.ChatBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.ChatPort;
 import com.diegohaefliger.atsresumeoptimizer.ai.ChatReply;
+import com.diegohaefliger.atsresumeoptimizer.ai.ChatStreamListener;
 import com.diegohaefliger.atsresumeoptimizer.ai.ChatTurn;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatMessage;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatRole;
@@ -27,16 +28,19 @@ class ChatReplyServiceImpl implements ChatReplyService {
 
 	private final ChatMessageStore store;
 	private final ChatPort chatPort;
+	private final ChatContextAssembler contextAssembler;
 
-	ChatReplyServiceImpl(ChatMessageStore store, ChatPort chatPort) {
+	ChatReplyServiceImpl(ChatMessageStore store, ChatPort chatPort, ChatContextAssembler contextAssembler) {
 		this.store = store;
 		this.chatPort = chatPort;
+		this.contextAssembler = contextAssembler;
 	}
 
 	@Override
 	public PendingReply send(UUID conversationId, String content) {
 		ChatMessage userMessage = store.addUserMessage(conversationId, content);
-		ChatBrief brief = new ChatBrief("", withinBudget(store.recent(conversationId, HISTORY_MESSAGE_LIMIT)));
+		ChatBrief brief = new ChatBrief(contextAssembler.contextFor(conversationId),
+				withinBudget(store.recent(conversationId, HISTORY_MESSAGE_LIMIT)), contextAssembler.tools());
 		return new Pending(conversationId, userMessage, brief);
 	}
 
@@ -76,9 +80,22 @@ class ChatReplyServiceImpl implements ChatReplyService {
 		public void run(ChatReplyListener listener) {
 			StringBuilder streamed = new StringBuilder();
 			try {
-				ChatReply reply = chatPort.stream(brief, token -> {
-					streamed.append(token);
-					return listener.onToken(token);
+				ChatReply reply = chatPort.stream(brief, new ChatStreamListener() {
+					@Override
+					public boolean onToken(String token) {
+						streamed.append(token);
+						return listener.onToken(token);
+					}
+
+					@Override
+					public void onToolUse(String label) {
+						listener.onToolUse(label);
+					}
+
+					@Override
+					public void onToolsUnavailable() {
+						listener.onToolsUnavailable();
+					}
 				});
 				if (reply.text().isBlank()) {
 					if (!reply.interrupted()) {
