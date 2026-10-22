@@ -326,4 +326,67 @@ class LangChain4jChatPortTest {
 		assertThat(reply.text()).isEqualTo("sem ferramentas");
 		assertThat(recorder.toolsUnavailable).isTrue();
 	}
+
+	private static StreamingChatModel textOnlyModel(List<ChatRequest> seen) {
+		return new StreamingChatModel() {
+			@Override
+			public void chat(ChatRequest request, StreamingChatResponseHandler handler) {
+				seen.add(request);
+				boolean hasImage = request.messages().stream().anyMatch(message -> message instanceof dev.langchain4j.data.message.UserMessage user
+						&& user.contents().stream().anyMatch(content -> content instanceof dev.langchain4j.data.message.ImageContent));
+				if (hasImage) {
+					handler.onError(new IllegalStateException("model does not support image input"));
+					return;
+				}
+				handler.onPartialResponse("só texto");
+				handler.onCompleteResponse(ChatResponse.builder().aiMessage(AiMessage.from("só texto")).build());
+			}
+		};
+	}
+
+	@Test
+	void sendsTheImagesToTheModelWhenItSeesThem() {
+		List<ChatRequest> seen = new ArrayList<>();
+		givenChain(resolved(AiProvider.OPENAI, new StreamingChatModel() {
+			@Override
+			public void chat(ChatRequest request, StreamingChatResponseHandler handler) {
+				seen.add(request);
+				handler.onPartialResponse("vi");
+				handler.onCompleteResponse(ChatResponse.builder().aiMessage(AiMessage.from("vi")).build());
+			}
+		}));
+		ChatBrief brief = new ChatBrief("", List.of(new ChatTurn(ChatTurn.Speaker.USER, "veja",
+				List.of(new com.diegohaefliger.atsresumeoptimizer.ai.ChatImage("image/png", "AAAA")))));
+
+		port.stream(brief, token -> true);
+
+		var user = (dev.langchain4j.data.message.UserMessage) seen.getFirst().messages().getLast();
+		assertThat(user.contents()).hasSize(2);
+		assertThat(user.contents().getLast()).isInstanceOf(dev.langchain4j.data.message.ImageContent.class);
+	}
+
+	@Test
+	void retriesWithoutImagesWhenTheModelCannotSeeThem() {
+		List<ChatRequest> seen = new ArrayList<>();
+		givenChain(resolved(AiProvider.OLLAMA, textOnlyModel(seen)));
+		ChatBrief brief = new ChatBrief("", List.of(new ChatTurn(ChatTurn.Speaker.USER, "veja",
+				List.of(new com.diegohaefliger.atsresumeoptimizer.ai.ChatImage("image/png", "AAAA")))));
+		boolean[] imagesUnavailable = {false};
+
+		ChatReply reply = port.stream(brief, new ChatStreamListener() {
+			@Override
+			public boolean onToken(String token) {
+				return true;
+			}
+
+			@Override
+			public void onImagesUnavailable() {
+				imagesUnavailable[0] = true;
+			}
+		});
+
+		assertThat(reply.text()).isEqualTo("só texto");
+		assertThat(imagesUnavailable[0]).isTrue();
+		assertThat(seen).hasSize(2);
+	}
 }

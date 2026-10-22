@@ -45,6 +45,9 @@ class ChatConversationServiceImplTest {
 	private ChatMessageRepository messages;
 
 	@Mock
+	private ChatFileRepository files;
+
+	@Mock
 	private JobStructuringService jobService;
 
 	@Mock
@@ -54,8 +57,9 @@ class ChatConversationServiceImplTest {
 	private JobOffer offer;
 
 	private ChatConversationServiceImpl service() {
-		return new ChatConversationServiceImpl(conversations, attachments, messages,
-				Mappers.getMapper(ChatEntityMapper.class), jobService, resumeService, Clock.fixed(NOW, ZoneOffset.UTC));
+		ChatEntityMapper mapper = Mappers.getMapper(ChatEntityMapper.class);
+		return new ChatConversationServiceImpl(conversations, attachments, messages, new ChatMessageAssembler(files, mapper),
+				mapper, jobService, resumeService, Clock.fixed(NOW, ZoneOffset.UTC));
 	}
 
 	private ChatConversationEntity existingConversation() {

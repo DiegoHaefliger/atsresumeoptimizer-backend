@@ -3,9 +3,11 @@ package com.diegohaefliger.atsresumeoptimizer.chat.application;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatAttachment;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatConversation;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatConversationDetail;
+import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatFile;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatMessage;
 import java.util.List;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper
 interface ChatEntityMapper {
@@ -18,13 +20,16 @@ interface ChatEntityMapper {
 
 	List<ChatAttachment> toAttachments(List<ChatAttachmentEntity> entities);
 
-	List<ChatMessage> toMessages(List<ChatMessageEntity> entities);
-
+	@Mapping(target = "files", ignore = true)
 	ChatMessage toDomain(ChatMessageEntity entity);
 
+	ChatFile toDomain(ChatFileEntity entity);
+
+	List<ChatFile> toFiles(List<ChatFileEntity> entities);
+
 	default ChatConversationDetail toDetail(
-			ChatConversationEntity conversation, List<ChatAttachmentEntity> attachments, List<ChatMessageEntity> messages) {
+			ChatConversationEntity conversation, List<ChatAttachmentEntity> attachments, List<ChatMessage> messages) {
 		return new ChatConversationDetail(conversation.getId(), conversation.getTitle(), conversation.getCreatedAt(),
-				conversation.getUpdatedAt(), toAttachments(attachments), toMessages(messages));
+				conversation.getUpdatedAt(), toAttachments(attachments), messages);
 	}
 }

@@ -35,19 +35,20 @@ class ChatReplyServiceImplTest {
 	private final ChatMessageStore store = mock(ChatMessageStore.class);
 	private final ChatPort chatPort = mock(ChatPort.class);
 	private final ChatContextAssembler contextAssembler = mock(ChatContextAssembler.class);
-	private final ChatReplyServiceImpl service = new ChatReplyServiceImpl(store, chatPort, contextAssembler);
+	private final ChatFileIntake fileIntake = mock(ChatFileIntake.class);
+	private final ChatReplyServiceImpl service = new ChatReplyServiceImpl(store, chatPort, contextAssembler, fileIntake);
 	private final Recorder recorder = new Recorder();
 
 	private static ChatMessage message(ChatRole role, String content) {
-		return new ChatMessage(UUID.randomUUID(), role, content, null, 0, 0, BigDecimal.ZERO, false, NOW);
+		return new ChatMessage(UUID.randomUUID(), role, content, null, 0, 0, BigDecimal.ZERO, false, NOW, List.of());
 	}
 
 	private PendingReply pending(String question, List<ChatMessage> history) {
-		when(store.addUserMessage(CONVERSATION, question)).thenReturn(message(ChatRole.USER, question));
+		when(store.addUserMessage(CONVERSATION, question, List.of())).thenReturn(message(ChatRole.USER, question));
 		when(store.recent(eq(CONVERSATION), anyInt())).thenReturn(history);
 		when(contextAssembler.contextFor(CONVERSATION)).thenReturn("Vagas anexadas: nenhuma");
 		when(contextAssembler.tools()).thenReturn(List.of());
-		return service.send(CONVERSATION, question);
+		return service.send(CONVERSATION, question, List.of());
 	}
 
 	private static int anyInt() {
@@ -101,7 +102,7 @@ class ChatReplyServiceImplTest {
 
 		assertThat(pending.userMessage()).isSameAs(question);
 		assertThat(recorder.done.content()).isEqualTo("nova resposta");
-		verify(store, never()).addUserMessage(any(), any());
+		verify(store, never()).addUserMessage(any(), any(), any());
 	}
 
 	@Test
@@ -168,7 +169,7 @@ class ChatReplyServiceImplTest {
 	@Test
 	void dropsTheOldestMessagesWhenTheHistoryIsOverBudget() {
 		streams("ok");
-		String big = "x".repeat(ChatReplyServiceImpl.HISTORY_CHAR_BUDGET / 2 + 1);
+		String big = "x".repeat(ChatHistoryBuilder.CHAR_BUDGET / 2 + 1);
 		List<ChatMessage> history = List.of(message(ChatRole.USER, "antiga"), message(ChatRole.ASSISTANT, big),
 				message(ChatRole.USER, big));
 		pending("pergunta", history).run(recorder);

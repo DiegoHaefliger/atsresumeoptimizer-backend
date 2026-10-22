@@ -2,6 +2,7 @@ package com.diegohaefliger.atsresumeoptimizer.chat.domain;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record ChatMessage(
@@ -13,5 +14,10 @@ public record ChatMessage(
 		int tokensOut,
 		BigDecimal costUsd,
 		boolean interrupted,
-		Instant createdAt) {
+		Instant createdAt,
+		List<ChatFile> files) {
+
+	public ChatMessage {
+		files = files == null ? List.of() : List.copyOf(files);
+	}
 }

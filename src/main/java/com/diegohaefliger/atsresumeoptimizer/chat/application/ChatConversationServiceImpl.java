@@ -22,17 +22,20 @@ class ChatConversationServiceImpl implements ChatConversationService {
 	private final ChatConversationRepository conversations;
 	private final ChatAttachmentRepository attachments;
 	private final ChatMessageRepository messages;
+	private final ChatMessageAssembler assembler;
 	private final ChatEntityMapper mapper;
 	private final JobStructuringService jobService;
 	private final ResumeService resumeService;
 	private final Clock clock;
 
 	ChatConversationServiceImpl(ChatConversationRepository conversations, ChatAttachmentRepository attachments,
-			ChatMessageRepository messages, ChatEntityMapper mapper, JobStructuringService jobService,
+			ChatMessageRepository messages, ChatMessageAssembler assembler, ChatEntityMapper mapper,
+			JobStructuringService jobService,
 			ResumeService resumeService, Clock clock) {
 		this.conversations = conversations;
 		this.attachments = attachments;
 		this.messages = messages;
+		this.assembler = assembler;
 		this.mapper = mapper;
 		this.jobService = jobService;
 		this.resumeService = resumeService;
@@ -57,7 +60,7 @@ class ChatConversationServiceImpl implements ChatConversationService {
 	public ChatConversationDetail get(UUID conversationId) {
 		ChatConversationEntity conversation = require(conversationId);
 		return mapper.toDetail(conversation, attachments.findByConversationIdOrderByCreatedAtAsc(conversationId),
-				messages.findByConversationIdOrderByCreatedAtAsc(conversationId));
+				assembler.assemble(messages.findByConversationIdOrderByCreatedAtAsc(conversationId)));
 	}
 
 	@Override

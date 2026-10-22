@@ -12,7 +12,10 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -68,35 +71,47 @@ class LangChain4jChatPort implements ChatPort {
 		if (chain.isEmpty()) {
 			throw new AiCallException(NO_PROVIDER_CONFIGURED, null);
 		}
-		List<ChatMessage> messages = messages(template, brief);
+		boolean hasImages = brief.history().stream().anyMatch(turn -> !turn.images().isEmpty());
+		boolean hasTools = !brief.tools().isEmpty();
+		List<Attempt> attempts = new ArrayList<>(List.of(new Attempt(false, false)));
+		if (hasImages) {
+			attempts.add(new Attempt(true, false));
+		}
+		if (hasTools) {
+			attempts.add(new Attempt(false, true));
+		}
+		if (hasImages && hasTools) {
+			attempts.add(new Attempt(true, true));
+		}
 		AiCallException lastFailure = null;
 		for (ResolvedStreamingModel resolved : chain) {
 			AtomicBoolean emitted = new AtomicBoolean();
-			try {
-				return streamFrom(resolved, messages, brief.tools(), listener, emitted);
-			} catch (AiCallException failure) {
-				if (emitted.get()) {
-					throw failure;
-				}
-				lastFailure = failure;
-				LOGGER.warn("Provedor {} ({}) falhou no chat antes do primeiro token", resolved.provider(),
-						resolved.modelName());
-			}
-			if (!brief.tools().isEmpty()) {
+			for (Attempt attempt : attempts) {
+				List<ChatMessage> messages = messages(template, brief, attempt.dropImages());
+				List<ChatTool> tools = attempt.dropTools() ? List.of() : brief.tools();
 				try {
-					ChatReply withoutTools = streamFrom(resolved, messages, List.of(), listener, emitted);
-					listener.onToolsUnavailable();
-					return withoutTools;
+					ChatReply reply = streamFrom(resolved, messages, tools, listener, emitted);
+					if (attempt.dropImages()) {
+						listener.onImagesUnavailable();
+					}
+					if (attempt.dropTools()) {
+						listener.onToolsUnavailable();
+					}
+					return reply;
 				} catch (AiCallException failure) {
 					if (emitted.get()) {
 						throw failure;
 					}
 					lastFailure = failure;
+					LOGGER.warn("Provedor {} ({}) falhou no chat antes do primeiro token (sem imagens: {}, sem ferramentas: {})",
+							resolved.provider(), resolved.modelName(), attempt.dropImages(), attempt.dropTools());
 				}
 			}
-			LOGGER.warn("Tentando o próximo provedor da fila para o chat");
 		}
 		throw lastFailure;
+	}
+
+	private record Attempt(boolean dropImages, boolean dropTools) {
 	}
 
 	private ChatReply streamFrom(ResolvedStreamingModel resolved, List<ChatMessage> initial, List<ChatTool> tools,
@@ -218,13 +233,25 @@ class LangChain4jChatPort implements ChatPort {
 				ModelPricing.costUsd(resolved.provider(), resolved.modelName(), tokensIn, tokensOut), false);
 	}
 
-	private static List<ChatMessage> messages(PromptTemplate template, ChatBrief brief) {
+	private static List<ChatMessage> messages(PromptTemplate template, ChatBrief brief, boolean dropImages) {
 		String system = brief.context().isBlank() ? template.getContent() : template.getContent() + CONTEXT_HEADER + brief.context();
 		List<ChatMessage> messages = new ArrayList<>();
 		messages.add(SystemMessage.from(system));
 		for (ChatTurn turn : brief.history()) {
-			messages.add(turn.speaker() == ChatTurn.Speaker.USER ? UserMessage.from(turn.text()) : AiMessage.from(turn.text()));
+			messages.add(turn.speaker() == ChatTurn.Speaker.USER ? userMessage(turn, dropImages) : AiMessage.from(turn.text()));
 		}
 		return messages;
+	}
+
+	private static UserMessage userMessage(ChatTurn turn, boolean dropImages) {
+		if (dropImages || turn.images().isEmpty()) {
+			return UserMessage.from(turn.text());
+		}
+		List<Content> contents = new ArrayList<>();
+		if (!turn.text().isBlank()) {
+			contents.add(TextContent.from(turn.text()));
+		}
+		turn.images().forEach(image -> contents.add(ImageContent.from(image.base64Data(), image.mimeType())));
+		return UserMessage.from(contents);
 	}
 }

@@ -3,6 +3,7 @@ package com.diegohaefliger.atsresumeoptimizer.chat.adapter.web;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatRole;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 record MessageResponse(
@@ -14,5 +15,6 @@ record MessageResponse(
 		int tokensOut,
 		BigDecimal costUsd,
 		boolean interrupted,
-		Instant createdAt) {
+		Instant createdAt,
+		List<FileResponse> files) {
 }

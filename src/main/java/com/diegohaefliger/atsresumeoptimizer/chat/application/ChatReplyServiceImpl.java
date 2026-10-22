@@ -6,22 +6,21 @@ import com.diegohaefliger.atsresumeoptimizer.ai.ChatBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.ChatPort;
 import com.diegohaefliger.atsresumeoptimizer.ai.ChatReply;
 import com.diegohaefliger.atsresumeoptimizer.ai.ChatStreamListener;
-import com.diegohaefliger.atsresumeoptimizer.ai.ChatTurn;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatMessage;
-import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatRole;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import com.diegohaefliger.atsresumeoptimizer.chat.domain.InvalidChatFileException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
 class ChatReplyServiceImpl implements ChatReplyService {
 
 	static final int HISTORY_MESSAGE_LIMIT = 40;
-	static final int HISTORY_CHAR_BUDGET = 48_000;
+	static final String EMPTY_MESSAGE = "Escreva uma mensagem ou anexe um arquivo.";
 	static final String EMPTY_REPLY = "A IA não devolveu resposta. Tente de novo.";
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChatReplyServiceImpl.class);
@@ -29,16 +28,23 @@ class ChatReplyServiceImpl implements ChatReplyService {
 	private final ChatMessageStore store;
 	private final ChatPort chatPort;
 	private final ChatContextAssembler contextAssembler;
+	private final ChatFileIntake fileIntake;
 
-	ChatReplyServiceImpl(ChatMessageStore store, ChatPort chatPort, ChatContextAssembler contextAssembler) {
+	ChatReplyServiceImpl(ChatMessageStore store, ChatPort chatPort, ChatContextAssembler contextAssembler,
+			ChatFileIntake fileIntake) {
 		this.store = store;
 		this.chatPort = chatPort;
 		this.contextAssembler = contextAssembler;
+		this.fileIntake = fileIntake;
 	}
 
 	@Override
-	public PendingReply send(UUID conversationId, String content) {
-		return pendingFor(conversationId, store.addUserMessage(conversationId, content));
+	public PendingReply send(UUID conversationId, String content, List<ChatUpload> uploads) {
+		List<PreparedChatFile> attachments = fileIntake.prepare(uploads);
+		if (content.isBlank() && attachments.isEmpty()) {
+			throw new InvalidChatFileException(EMPTY_MESSAGE, HttpStatus.BAD_REQUEST);
+		}
+		return pendingFor(conversationId, store.addUserMessage(conversationId, content, attachments));
 	}
 
 	@Override
@@ -47,24 +53,11 @@ class ChatReplyServiceImpl implements ChatReplyService {
 	}
 
 	private PendingReply pendingFor(UUID conversationId, ChatMessage userMessage) {
-		ChatBrief brief = new ChatBrief(contextAssembler.contextFor(conversationId),
-				withinBudget(store.recent(conversationId, HISTORY_MESSAGE_LIMIT)), contextAssembler.tools());
+		List<ChatMessage> recent = store.recent(conversationId, HISTORY_MESSAGE_LIMIT);
+		Map<UUID, List<ChatFileEntity>> files = store.filesOf(recent.stream().filter(ChatHistoryBuilder::hasFiles).map(ChatMessage::id).toList());
+		ChatBrief brief = new ChatBrief(contextAssembler.contextFor(conversationId), ChatHistoryBuilder.build(recent, files),
+				contextAssembler.tools());
 		return new Pending(conversationId, userMessage, brief);
-	}
-
-	private static List<ChatTurn> withinBudget(List<ChatMessage> history) {
-		Deque<ChatTurn> kept = new ArrayDeque<>();
-		int used = 0;
-		for (int index = history.size() - 1; index >= 0; index--) {
-			ChatMessage message = history.get(index);
-			used += message.content().length();
-			if (used > HISTORY_CHAR_BUDGET && !kept.isEmpty()) {
-				break;
-			}
-			kept.addFirst(new ChatTurn(
-					message.role() == ChatRole.USER ? ChatTurn.Speaker.USER : ChatTurn.Speaker.ASSISTANT, message.content()));
-		}
-		return List.copyOf(kept);
 	}
 
 	private final class Pending implements PendingReply {
@@ -103,6 +96,11 @@ class ChatReplyServiceImpl implements ChatReplyService {
 					@Override
 					public void onToolsUnavailable() {
 						listener.onToolsUnavailable();
+					}
+
+					@Override
+					public void onImagesUnavailable() {
+						listener.onImagesUnavailable();
 					}
 				});
 				if (reply.text().isBlank()) {

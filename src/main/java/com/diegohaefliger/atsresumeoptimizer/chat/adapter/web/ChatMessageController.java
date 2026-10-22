@@ -2,23 +2,31 @@ package com.diegohaefliger.atsresumeoptimizer.chat.adapter.web;
 
 import com.diegohaefliger.atsresumeoptimizer.chat.application.ChatReplyListener;
 import com.diegohaefliger.atsresumeoptimizer.chat.application.ChatReplyService;
+import com.diegohaefliger.atsresumeoptimizer.chat.application.ChatUpload;
 import com.diegohaefliger.atsresumeoptimizer.chat.application.PendingReply;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatMessage;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.MediaType;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+@Validated
 @RestController
 @RequestMapping("/api/v1/chat/conversations/{conversationId}/messages")
 class ChatMessageController {
@@ -27,6 +35,8 @@ class ChatMessageController {
 	private static final long STREAM_TIMEOUT_MS = 10 * 60 * 1000L;
 	private static final String TOOLS_UNAVAILABLE =
 			"Este modelo não consulta os dados sozinho: só enxergo as vagas anexadas com @.";
+	private static final String IMAGES_UNAVAILABLE =
+			"Este modelo não enxerga imagens: respondi só com o texto da mensagem.";
 	private static final String UNEXPECTED_ERROR = "Não deu para concluir a resposta. Tente de novo.";
 
 	private final ChatReplyService service;
@@ -40,9 +50,20 @@ class ChatMessageController {
 		this.executor = executor;
 	}
 
-	@PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
 	SseEmitter send(@PathVariable UUID conversationId, @Valid @RequestBody SendMessageRequest request) {
-		return open(service.send(conversationId, request.content()));
+		return open(service.send(conversationId, request.content(), List.of()));
+	}
+
+	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	SseEmitter sendWithFiles(@PathVariable UUID conversationId,
+			@RequestParam(defaultValue = "") @Size(max = SendMessageRequest.MAX_CONTENT) String content,
+			@RequestParam(name = "files", required = false) List<MultipartFile> files) throws IOException {
+		List<ChatUpload> uploads = new ArrayList<>();
+		for (MultipartFile file : files == null ? List.<MultipartFile>of() : files) {
+			uploads.add(new ChatUpload(file.getOriginalFilename(), file.getBytes()));
+		}
+		return open(service.send(conversationId, content.strip(), uploads));
 	}
 
 	@PostMapping(value = "/regenerate", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -73,6 +94,11 @@ class ChatMessageController {
 				@Override
 				public void onToolsUnavailable() {
 					emit(emitter, "notice", new NoticeEvent(TOOLS_UNAVAILABLE));
+				}
+
+				@Override
+				public void onImagesUnavailable() {
+					emit(emitter, "notice", new NoticeEvent(IMAGES_UNAVAILABLE));
 				}
 
 				@Override

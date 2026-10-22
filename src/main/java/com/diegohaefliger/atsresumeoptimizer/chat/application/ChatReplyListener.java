@@ -13,6 +13,9 @@ public interface ChatReplyListener {
 	default void onToolsUnavailable() {
 	}
 
+	default void onImagesUnavailable() {
+	}
+
 	void onDone(ChatMessage assistantMessage);
 
 	void onError(String message);

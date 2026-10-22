@@ -28,8 +28,10 @@ class ChatMessageStoreTest {
 
 	private final ChatConversationRepository conversations = mock(ChatConversationRepository.class);
 	private final ChatMessageRepository messages = mock(ChatMessageRepository.class);
-	private final ChatMessageStore store = new ChatMessageStore(conversations, messages,
-			Mappers.getMapper(ChatEntityMapper.class), Clock.fixed(NOW, ZoneOffset.UTC));
+	private final ChatFileRepository files = mock(ChatFileRepository.class);
+	private final ChatEntityMapper mapper = Mappers.getMapper(ChatEntityMapper.class);
+	private final ChatMessageStore store = new ChatMessageStore(conversations, messages, files,
+			new ChatMessageAssembler(files, mapper), mapper, Clock.fixed(NOW, ZoneOffset.UTC));
 
 	private ChatConversationEntity conversation(String title) {
 		ChatConversationEntity entity = new ChatConversationEntity(title, NOW.minusSeconds(600));
@@ -42,7 +44,7 @@ class ChatMessageStoreTest {
 	void namesAFreshConversationAfterTheFirstQuestion() {
 		ChatConversationEntity entity = conversation(ChatConversationServiceImpl.DEFAULT_TITLE);
 
-		store.addUserMessage(entity.getId(), "Como me preparo para a entrevista?\nTenho pouco tempo.");
+		store.addUserMessage(entity.getId(), "Como me preparo para a entrevista?\nTenho pouco tempo.", List.of());
 
 		assertThat(entity.getTitle()).isEqualTo("Como me preparo para a entrevista?");
 		assertThat(entity.getUpdatedAt()).isEqualTo(NOW);
@@ -52,9 +54,23 @@ class ChatMessageStoreTest {
 	void shortensALongFirstQuestionInTheTitle() {
 		ChatConversationEntity entity = conversation(ChatConversationServiceImpl.DEFAULT_TITLE);
 
-		store.addUserMessage(entity.getId(), "a".repeat(200));
+		store.addUserMessage(entity.getId(), "a".repeat(200), List.of());
 
 		assertThat(entity.getTitle()).hasSize(60).endsWith("…");
+	}
+
+	@Test
+	void namesAConversationAfterTheFirstFileWhenThereIsNoText() {
+		ChatConversationEntity entity = conversation(ChatConversationServiceImpl.DEFAULT_TITLE);
+		PreparedChatFile screenshot = new PreparedChatFile(com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatFileKind.IMAGE,
+				"erro-na-tela.png", "image/png", 3, new byte[] {1, 2, 3}, null);
+		when(files.saveAll(org.mockito.ArgumentMatchers.<Iterable<ChatFileEntity>>any()))
+				.thenAnswer(call -> List.copyOf((java.util.Collection<ChatFileEntity>) call.getArgument(0)));
+
+		ChatMessage saved = store.addUserMessage(entity.getId(), "", List.of(screenshot));
+
+		assertThat(entity.getTitle()).isEqualTo("erro-na-tela.png");
+		assertThat(saved.files()).singleElement().satisfies(file -> assertThat(file.fileName()).isEqualTo("erro-na-tela.png"));
 	}
 
 	@Test
@@ -62,7 +78,7 @@ class ChatMessageStoreTest {
 		ChatConversationEntity entity = conversation(ChatConversationServiceImpl.DEFAULT_TITLE);
 		when(messages.existsByConversationId(entity.getId())).thenReturn(true);
 
-		store.addUserMessage(entity.getId(), "outra pergunta");
+		store.addUserMessage(entity.getId(), "outra pergunta", List.of());
 
 		assertThat(entity.getTitle()).isEqualTo(ChatConversationServiceImpl.DEFAULT_TITLE);
 		assertThat(entity.getUpdatedAt()).isEqualTo(NOW);
@@ -72,7 +88,7 @@ class ChatMessageStoreTest {
 	void keepsATitleTheUserChose() {
 		ChatConversationEntity entity = conversation("Fit cultural");
 
-		store.addUserMessage(entity.getId(), "oi");
+		store.addUserMessage(entity.getId(), "oi", List.of());
 
 		assertThat(entity.getTitle()).isEqualTo("Fit cultural");
 	}
@@ -139,6 +155,6 @@ class ChatMessageStoreTest {
 		UUID id = UUID.randomUUID();
 		when(conversations.findById(id)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> store.addUserMessage(id, "oi")).isInstanceOf(UnknownConversationException.class);
+		assertThatThrownBy(() -> store.addUserMessage(id, "oi", List.of())).isInstanceOf(UnknownConversationException.class);
 	}
 }

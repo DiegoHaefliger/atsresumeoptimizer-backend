@@ -8,9 +8,12 @@ import com.diegohaefliger.atsresumeoptimizer.chat.domain.UnknownConversationExce
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,29 +25,35 @@ class ChatMessageStore {
 
 	private final ChatConversationRepository conversations;
 	private final ChatMessageRepository messages;
+	private final ChatFileRepository files;
+	private final ChatMessageAssembler assembler;
 	private final ChatEntityMapper mapper;
 	private final Clock clock;
 
-	ChatMessageStore(ChatConversationRepository conversations, ChatMessageRepository messages, ChatEntityMapper mapper,
-			Clock clock) {
+	ChatMessageStore(ChatConversationRepository conversations, ChatMessageRepository messages, ChatFileRepository files,
+			ChatMessageAssembler assembler, ChatEntityMapper mapper, Clock clock) {
 		this.conversations = conversations;
 		this.messages = messages;
+		this.files = files;
+		this.assembler = assembler;
 		this.mapper = mapper;
 		this.clock = clock;
 	}
 
 	@Transactional
-	ChatMessage addUserMessage(UUID conversationId, String content) {
+	ChatMessage addUserMessage(UUID conversationId, String content, List<PreparedChatFile> attachments) {
 		ChatConversationEntity conversation = conversations.findById(conversationId)
 				.orElseThrow(() -> new UnknownConversationException(conversationId));
 		Instant now = clock.instant();
 		if (ChatConversationServiceImpl.DEFAULT_TITLE.equals(conversation.getTitle())
 				&& !messages.existsByConversationId(conversationId)) {
-			conversation.rename(titleFrom(content), now);
+			conversation.rename(titleFrom(content.isBlank() ? attachments.getFirst().fileName() : content), now);
 		} else {
 			conversation.touch(now);
 		}
-		return mapper.toDomain(messages.save(new ChatMessageEntity(conversationId, ChatRole.USER, content, now)));
+		ChatMessageEntity message = messages.save(new ChatMessageEntity(conversationId, ChatRole.USER, content, now));
+		List<ChatFileEntity> saved = files.saveAll(attachments.stream().map(file -> new ChatFileEntity(message.getId(), file)).toList());
+		return ChatMessageAssembler.attach(mapper.toDomain(message), mapper.toFiles(saved));
 	}
 
 	@Transactional
@@ -66,15 +75,24 @@ class ChatMessageStore {
 			throw new NothingToRegenerateException();
 		}
 		conversations.findById(conversationId).ifPresent(conversation -> conversation.touch(clock.instant()));
-		return mapper.toDomain(newestFirst.getFirst());
+		return assembler.assemble(newestFirst.getFirst());
 	}
 
 	@Transactional(readOnly = true)
 	List<ChatMessage> recent(UUID conversationId, int limit) {
-		List<ChatMessage> newestFirst = new ArrayList<>(
-				mapper.toMessages(messages.findByConversationIdOrderByCreatedAtDesc(conversationId, Limit.of(limit))));
+		List<ChatMessageEntity> newestFirst = new ArrayList<>(
+				messages.findByConversationIdOrderByCreatedAtDesc(conversationId, Limit.of(limit)));
 		Collections.reverse(newestFirst);
-		return newestFirst;
+		return assembler.assemble(newestFirst);
+	}
+
+	@Transactional(readOnly = true)
+	Map<UUID, List<ChatFileEntity>> filesOf(Collection<UUID> messageIds) {
+		if (messageIds.isEmpty()) {
+			return Map.of();
+		}
+		return files.findByMessageIdInOrderByIdAsc(messageIds).stream()
+				.collect(Collectors.groupingBy(ChatFileEntity::getMessageId));
 	}
 
 	private static String titleFrom(String content) {

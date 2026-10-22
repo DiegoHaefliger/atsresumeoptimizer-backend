@@ -143,3 +143,5 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000077_chat.yaml
   - include:
       file: db/changelog/changes/00000000000078_prompt_template_chat_recruiter.yaml
+  - include:
+      file: db/changelog/changes/00000000000079_chat_message_file.yaml

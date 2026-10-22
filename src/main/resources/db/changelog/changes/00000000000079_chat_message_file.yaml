@@ -1,0 +1,54 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000079-chat-message-file
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: chat_message_file
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: message_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_chat_message_file_message
+                    references: chat_message(id)
+                    deleteCascade: true
+              - column:
+                  name: kind
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mime_type
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: size_bytes
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content
+                  type: bytea
+              - column:
+                  name: extracted_text
+                  type: text
+        - createIndex:
+            indexName: idx_chat_message_file_message
+            tableName: chat_message_file
+            columns:
+              - column:
+                  name: message_id

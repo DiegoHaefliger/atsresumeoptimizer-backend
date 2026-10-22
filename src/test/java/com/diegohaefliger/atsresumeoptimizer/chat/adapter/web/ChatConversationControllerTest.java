@@ -74,7 +74,7 @@ class ChatConversationControllerTest {
 		UUID versionId = UUID.randomUUID();
 		when(service.get(ID)).thenReturn(new ChatConversationDetail(ID, "Entrevista", NOW, NOW,
 				List.of(new ChatAttachment(JOB_ID, versionId)),
-				List.of(new ChatMessage(UUID.randomUUID(), ChatRole.USER, "oi", null, 0, 0, BigDecimal.ZERO, false, NOW))));
+				List.of(new ChatMessage(UUID.randomUUID(), ChatRole.USER, "oi", null, 0, 0, BigDecimal.ZERO, false, NOW, List.of()))));
 
 		mockMvc.perform(get(URL + "/" + ID))
 				.andExpect(status().isOk())
