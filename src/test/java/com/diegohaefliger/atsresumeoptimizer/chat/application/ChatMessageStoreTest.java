@@ -4,13 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatMessage;
+import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatRole;
+import com.diegohaefliger.atsresumeoptimizer.chat.domain.NothingToRegenerateException;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.UnknownConversationException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -83,6 +89,49 @@ class ChatMessageStoreTest {
 		assertThat(saved.tokensIn()).isEqualTo(100);
 		assertThat(saved.costUsd()).isEqualByComparingTo("0.002");
 		assertThat(saved.interrupted()).isTrue();
+	}
+
+	private void givenNewestFirst(ChatConversationEntity conversation, ChatMessageEntity... newestFirst) {
+		when(messages.findByConversationIdOrderByCreatedAtDesc(any(), any())).thenReturn(new ArrayList<>(List.of(newestFirst)));
+	}
+
+	@Test
+	void dropsTheLastAnswerAndReopensTheQuestionToRegenerate() {
+		ChatConversationEntity conversation = conversation("Entrevista");
+		ChatMessageEntity answer = new ChatMessageEntity(conversation.getId(), ChatRole.ASSISTANT, "resposta ruim", NOW);
+		ChatMessageEntity question = new ChatMessageEntity(conversation.getId(), ChatRole.USER, "minha pergunta", NOW);
+		givenNewestFirst(conversation, answer, question);
+
+		ChatMessage reopened = store.reopenLastQuestion(conversation.getId());
+
+		assertThat(reopened.content()).isEqualTo("minha pergunta");
+		verify(messages).delete(answer);
+	}
+
+	@Test
+	void reopensAQuestionThatNeverGotAnAnswer() {
+		ChatConversationEntity conversation = conversation("Entrevista");
+		ChatMessageEntity question = new ChatMessageEntity(conversation.getId(), ChatRole.USER, "sem resposta", NOW);
+		givenNewestFirst(conversation, question);
+
+		assertThat(store.reopenLastQuestion(conversation.getId()).content()).isEqualTo("sem resposta");
+		verify(messages, never()).delete(any(ChatMessageEntity.class));
+	}
+
+	@Test
+	void refusesToRegenerateAnEmptyConversation() {
+		ChatConversationEntity conversation = conversation("Entrevista");
+		givenNewestFirst(conversation);
+
+		assertThatThrownBy(() -> store.reopenLastQuestion(conversation.getId())).isInstanceOf(NothingToRegenerateException.class);
+	}
+
+	@Test
+	void refusesToRegenerateWhenOnlyAnAnswerRemains() {
+		ChatConversationEntity conversation = conversation("Entrevista");
+		givenNewestFirst(conversation, new ChatMessageEntity(conversation.getId(), ChatRole.ASSISTANT, "solta", NOW));
+
+		assertThatThrownBy(() -> store.reopenLastQuestion(conversation.getId())).isInstanceOf(NothingToRegenerateException.class);
 	}
 
 	@Test

@@ -3,6 +3,7 @@ package com.diegohaefliger.atsresumeoptimizer.chat.application;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiUsage;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatMessage;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.ChatRole;
+import com.diegohaefliger.atsresumeoptimizer.chat.domain.NothingToRegenerateException;
 import com.diegohaefliger.atsresumeoptimizer.chat.domain.UnknownConversationException;
 import java.time.Clock;
 import java.time.Instant;
@@ -53,6 +54,19 @@ class ChatMessageStore {
 		message.recordAiResult(usage.model(), usage.tokensIn(), usage.tokensOut(), usage.costUsd(), interrupted);
 		conversations.findById(conversationId).ifPresent(conversation -> conversation.touch(now));
 		return mapper.toDomain(messages.save(message));
+	}
+
+	@Transactional
+	ChatMessage reopenLastQuestion(UUID conversationId) {
+		List<ChatMessageEntity> newestFirst = messages.findByConversationIdOrderByCreatedAtDesc(conversationId, Limit.of(2));
+		if (!newestFirst.isEmpty() && newestFirst.getFirst().getRole() == ChatRole.ASSISTANT) {
+			messages.delete(newestFirst.removeFirst());
+		}
+		if (newestFirst.isEmpty() || newestFirst.getFirst().getRole() != ChatRole.USER) {
+			throw new NothingToRegenerateException();
+		}
+		conversations.findById(conversationId).ifPresent(conversation -> conversation.touch(clock.instant()));
+		return mapper.toDomain(newestFirst.getFirst());
 	}
 
 	@Transactional(readOnly = true)

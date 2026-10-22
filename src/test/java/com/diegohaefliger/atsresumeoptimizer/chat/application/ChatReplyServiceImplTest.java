@@ -86,6 +86,25 @@ class ChatReplyServiceImplTest {
 	}
 
 	@Test
+	void regeneratesTheAnswerToTheLastQuestionWithoutSavingItAgain() {
+		streams("nova resposta");
+		ChatMessage question = message(ChatRole.USER, "pergunta antiga");
+		when(store.reopenLastQuestion(CONVERSATION)).thenReturn(question);
+		when(store.recent(eq(CONVERSATION), anyInt())).thenReturn(List.of(question));
+		when(contextAssembler.contextFor(CONVERSATION)).thenReturn("Vagas anexadas: nenhuma");
+		when(contextAssembler.tools()).thenReturn(List.of());
+		when(store.addAssistantMessage(CONVERSATION, "nova resposta", USAGE, false))
+				.thenReturn(message(ChatRole.ASSISTANT, "nova resposta"));
+
+		PendingReply pending = service.regenerate(CONVERSATION);
+		pending.run(recorder);
+
+		assertThat(pending.userMessage()).isSameAs(question);
+		assertThat(recorder.done.content()).isEqualTo("nova resposta");
+		verify(store, never()).addUserMessage(any(), any());
+	}
+
+	@Test
 	void keepsWhatWasAlreadySentWhenTheListenerLeaves() {
 		streams("um ", "dois ", "três");
 		recorder.stopAfter = 2;

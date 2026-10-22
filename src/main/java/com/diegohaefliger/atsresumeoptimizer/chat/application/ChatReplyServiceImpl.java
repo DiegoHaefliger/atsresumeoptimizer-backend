@@ -38,7 +38,15 @@ class ChatReplyServiceImpl implements ChatReplyService {
 
 	@Override
 	public PendingReply send(UUID conversationId, String content) {
-		ChatMessage userMessage = store.addUserMessage(conversationId, content);
+		return pendingFor(conversationId, store.addUserMessage(conversationId, content));
+	}
+
+	@Override
+	public PendingReply regenerate(UUID conversationId) {
+		return pendingFor(conversationId, store.reopenLastQuestion(conversationId));
+	}
+
+	private PendingReply pendingFor(UUID conversationId, ChatMessage userMessage) {
 		ChatBrief brief = new ChatBrief(contextAssembler.contextFor(conversationId),
 				withinBudget(store.recent(conversationId, HISTORY_MESSAGE_LIMIT)), contextAssembler.tools());
 		return new Pending(conversationId, userMessage, brief);

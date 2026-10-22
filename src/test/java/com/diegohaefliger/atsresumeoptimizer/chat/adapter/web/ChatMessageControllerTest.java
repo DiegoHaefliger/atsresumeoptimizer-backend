@@ -110,6 +110,35 @@ class ChatMessageControllerTest {
 	}
 
 	@Test
+	void regeneratesTheLastAnswerAsAStream() throws Exception {
+		when(service.regenerate(CONVERSATION)).thenReturn(new PendingReply() {
+			@Override
+			public ChatMessage userMessage() {
+				return message(ChatRole.USER, "pergunta");
+			}
+
+			@Override
+			public void run(ChatReplyListener listener) {
+				listener.onToken("de novo");
+				listener.onDone(message(ChatRole.ASSISTANT, "de novo"));
+			}
+		});
+		MvcResult started = mockMvc.perform(post(URL + "/regenerate")).andExpect(request().asyncStarted()).andReturn();
+
+		String body = mockMvc.perform(asyncDispatch(started)).andReturn().getResponse()
+				.getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+		assertThat(body).contains("event:token").contains("event:done").contains("de novo");
+	}
+
+	@Test
+	void answers409WhenThereIsNothingToRegenerate() throws Exception {
+		when(service.regenerate(CONVERSATION)).thenThrow(new com.diegohaefliger.atsresumeoptimizer.chat.domain.NothingToRegenerateException());
+
+		mockMvc.perform(post(URL + "/regenerate")).andExpect(status().isConflict());
+	}
+
+	@Test
 	void rejectsABlankQuestion() throws Exception {
 		mockMvc.perform(post(URL).contentType("application/json").content("{\"content\":\"  \"}"))
 				.andExpect(status().isBadRequest());

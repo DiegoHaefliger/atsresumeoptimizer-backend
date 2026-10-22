@@ -42,7 +42,15 @@ class ChatMessageController {
 
 	@PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
 	SseEmitter send(@PathVariable UUID conversationId, @Valid @RequestBody SendMessageRequest request) {
-		PendingReply pending = service.send(conversationId, request.content());
+		return open(service.send(conversationId, request.content()));
+	}
+
+	@PostMapping(value = "/regenerate", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	SseEmitter regenerate(@PathVariable UUID conversationId) {
+		return open(service.regenerate(conversationId));
+	}
+
+	private SseEmitter open(PendingReply pending) {
 		SseEmitter emitter = new SseEmitter(STREAM_TIMEOUT_MS);
 		executor.execute(() -> stream(pending, emitter));
 		return emitter;
