@@ -3,7 +3,9 @@ package com.diegohaefliger.atsresumeoptimizer.ai.application;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.Optional;
 
 /** Preço aproximado, só pra comparar custo entre modelos; não é a fatura do provedor. */
 final class ModelPricing {
@@ -18,6 +20,10 @@ final class ModelPricing {
 			Map.entry("gpt-4.1-nano", perMillion(0.10, 0.40)),
 			Map.entry("gpt-4.1-mini", perMillion(0.40, 1.60)),
 			Map.entry("gpt-4.1", perMillion(2.00, 8.00)),
+			Map.entry("gpt-5-nano", perMillion(0.05, 0.40)),
+			Map.entry("gpt-5-mini", perMillion(0.25, 2.00)),
+			Map.entry("gpt-5", perMillion(1.25, 10.00)),
+			Map.entry("o4-mini", perMillion(1.10, 4.40)),
 			Map.entry("claude-fable-5-1", perMillion(10.00, 50.00)),
 			Map.entry("claude-opus-5-5", perMillion(4.00, 20.00)),
 			Map.entry("claude-opus-5", perMillion(5.00, 25.00)),
@@ -26,9 +32,13 @@ final class ModelPricing {
 			Map.entry("claude-opus-4-6", perMillion(5.00, 25.00)),
 			Map.entry("claude-sonnet-5-5", perMillion(2.00, 10.00)),
 			Map.entry("claude-sonnet-5", perMillion(2.00, 10.00)),
+			Map.entry("claude-opus-4-5", perMillion(5.00, 25.00)),
 			Map.entry("claude-sonnet-4-6", perMillion(3.00, 15.00)),
+			Map.entry("claude-sonnet-4-5", perMillion(3.00, 15.00)),
 			Map.entry("claude-haiku-4-5", perMillion(1.00, 5.00)),
+			Map.entry("gemini-2.5-flash-lite", perMillion(0.10, 0.40)),
 			Map.entry("gemini-2.5-flash", perMillion(0.30, 2.50)),
+			Map.entry("gemini-2.0-flash", perMillion(0.10, 0.40)),
 			Map.entry("gemini-2.5-pro", perMillion(1.25, 10.00)));
 
 	private ModelPricing() {
@@ -38,10 +48,28 @@ final class ModelPricing {
 		if (provider == AiProvider.OLLAMA) {
 			return BigDecimal.ZERO;
 		}
-		Price price = PRICES_USD_PER_TOKEN.getOrDefault(model, DEFAULT_PRICE);
+		Price price = priceOf(model).orElse(DEFAULT_PRICE);
 		BigDecimal inputCost = price.perInputToken().multiply(BigDecimal.valueOf(tokensIn));
 		BigDecimal outputCost = price.perOutputToken().multiply(BigDecimal.valueOf(tokensOut));
 		return inputCost.add(outputCost).setScale(COST_SCALE, RoundingMode.HALF_UP);
+	}
+
+	static boolean hasPrice(String model) {
+		return priceOf(model).isPresent();
+	}
+
+	private static Optional<Price> priceOf(String model) {
+		if (model == null) {
+			return Optional.empty();
+		}
+		Price exact = PRICES_USD_PER_TOKEN.get(model);
+		if (exact != null) {
+			return Optional.of(exact);
+		}
+		return PRICES_USD_PER_TOKEN.entrySet().stream()
+				.filter(entry -> model.startsWith(entry.getKey() + "-"))
+				.max(Comparator.comparingInt(entry -> entry.getKey().length()))
+				.map(Map.Entry::getValue);
 	}
 
 	private static Price perMillion(double input, double output) {
