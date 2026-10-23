@@ -1,6 +1,7 @@
 package com.diegohaefliger.atsresumeoptimizer.analysis.application;
 
 import com.diegohaefliger.atsresumeoptimizer.scoring.domain.AnalysisMode;
+import com.diegohaefliger.atsresumeoptimizer.ai.ModelUsage;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -38,4 +39,15 @@ interface AnalysisRepository extends JpaRepository<AnalysisEntity, UUID> {
 			where a.jobPostingId is not null
 			""")
 	List<AnalysisJobRef> findAllJobRefs();
+
+	@Query("""
+			select new com.diegohaefliger.atsresumeoptimizer.ai.ModelUsage(
+			       a.aiModel, coalesce(sum(a.tokensIn), 0L), coalesce(sum(a.tokensOut), 0L),
+			       coalesce(sum(a.costUsd), 0bd), count(a),
+			       coalesce(sum(case when coalesce(a.tokensIn, 0) + coalesce(a.tokensOut, 0) = 0 then 1L else 0L end), 0L))
+			from AnalysisEntity a
+			where a.jobPostingId = :jobPostingId
+			group by a.aiModel
+			""")
+	List<ModelUsage> usageByModelForJobPostingId(@Param("jobPostingId") UUID jobPostingId);
 }

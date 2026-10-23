@@ -131,6 +131,12 @@ class AnalysisQueryServiceImpl implements AnalysisQueryService {
 
 	@Override
 	@Transactional(readOnly = true)
+	public List<UUID> analysisIds(UUID jobPostingId) {
+		return analysisRepository.findIdsByJobPostingId(jobPostingId);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
 	public Optional<UUID> analysisOfGeneratedVersion(UUID jobPostingId, UUID resumeVersionId) {
 		return generatedResumes(jobPostingId).stream()
 				.filter(resume -> resume.versions().stream().anyMatch(version -> version.id().equals(resumeVersionId)))

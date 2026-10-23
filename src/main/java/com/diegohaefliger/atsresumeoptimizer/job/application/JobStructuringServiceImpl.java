@@ -145,6 +145,7 @@ class JobStructuringServiceImpl implements JobStructuringService {
 		JobPosting posting = existing.orElseGet(
 				() -> JobPosting.unstructured(jobText, textHash));
 		posting.structure(aiResult.value().title(), serialize(aiResult.value()));
+		posting.recordAiUsage(aiResult.usage());
 		if (synthetic) {
 			posting.markSynthetic();
 		}

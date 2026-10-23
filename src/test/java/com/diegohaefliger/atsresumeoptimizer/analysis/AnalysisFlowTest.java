@@ -162,6 +162,19 @@ class AnalysisFlowTest {
 		mockMvc.perform(get("/api/v1/resumes"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[?(@.id == '%s')].versions[0].id".formatted(resumeId)).value(resumeVersionId));
+
+		mockMvc.perform(get("/api/v1/jobs/{jobId}/cost", jobId))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.stages[0].stage").value("JOB_ANALYSIS"))
+				.andExpect(jsonPath("$.stages[0].executed").value(true))
+				.andExpect(jsonPath("$.stages[0].tokensIn").value(org.hamcrest.Matchers.greaterThanOrEqualTo(120)))
+				.andExpect(jsonPath("$.stages[0].models[0]").value("gpt-4o-mini"))
+				.andExpect(jsonPath("$.stages[1].executed").value(false))
+				.andExpect(jsonPath("$.stages[2].executed").value(false))
+				.andExpect(jsonPath("$.totalCostUsd").value(org.hamcrest.Matchers.greaterThanOrEqualTo(0.001)))
+				.andExpect(jsonPath("$.estimated").value(false));
+
+		mockMvc.perform(get("/api/v1/jobs/{jobId}/cost", java.util.UUID.randomUUID())).andExpect(status().isNotFound());
 	}
 
 	private byte[] pdfWithPageCount(int pageCount) throws Exception {

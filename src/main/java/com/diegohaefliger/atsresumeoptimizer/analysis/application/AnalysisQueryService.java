@@ -17,4 +17,6 @@ public interface AnalysisQueryService {
 
 	/** Vazio quando a versão não é de um currículo gerado pra vaga. */
 	Optional<UUID> analysisOfGeneratedVersion(UUID jobPostingId, UUID resumeVersionId);
+
+	List<UUID> analysisIds(UUID jobPostingId);
 }

@@ -1,5 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.job.application;
 
+import com.diegohaefliger.atsresumeoptimizer.ai.AiUsage;
 import com.diegohaefliger.atsresumeoptimizer.job.ContractType;
 import com.diegohaefliger.atsresumeoptimizer.job.JobDetails;
 import com.diegohaefliger.atsresumeoptimizer.job.WorkModel;
@@ -84,6 +85,18 @@ class JobPosting {
 
 	private boolean synthetic;
 
+	@Column(name = "ai_model")
+	private String aiModel;
+
+	@Column(name = "tokens_in")
+	private Integer tokensIn;
+
+	@Column(name = "tokens_out")
+	private Integer tokensOut;
+
+	@Column(name = "cost_usd")
+	private BigDecimal costUsd;
+
 	protected JobPosting() {
 	}
 
@@ -98,6 +111,16 @@ class JobPosting {
 
 	static JobPosting unstructured(String rawText, String textHash) {
 		return new JobPosting(UuidCreator.getTimeOrderedEpoch(), null, rawText, textHash, null);
+	}
+
+	void recordAiUsage(AiUsage usage) {
+		if (usage.cached() || usage.model() == null) {
+			return;
+		}
+		this.aiModel = usage.model();
+		this.tokensIn = (tokensIn == null ? 0 : tokensIn) + usage.tokensIn();
+		this.tokensOut = (tokensOut == null ? 0 : tokensOut) + usage.tokensOut();
+		this.costUsd = (costUsd == null ? BigDecimal.ZERO : costUsd).add(usage.costUsd());
 	}
 
 	void applyDetails(JobDetails details) {
