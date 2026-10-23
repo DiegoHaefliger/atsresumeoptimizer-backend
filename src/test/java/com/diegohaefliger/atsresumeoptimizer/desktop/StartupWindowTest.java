@@ -19,6 +19,15 @@ class StartupWindowTest {
 		assertThat(texts).contains(DesktopBrand.NAME).anyMatch(text -> text.contains("primeira vez"));
 	}
 
+	@Test
+	void showsTheBuildVersion() {
+		List<String> texts = new ArrayList<>();
+		collectLabelTexts(StartupWindow.content(new StartupWindow.ProgressStrip()), texts);
+
+		assertThat(DesktopBrand.version()).isPresent();
+		assertThat(texts).contains("Versão " + DesktopBrand.version().get());
+	}
+
 	private static void collectLabelTexts(Container container, List<String> texts) {
 		for (Component child : container.getComponents()) {
 			if (child instanceof JLabel label && label.getText() != null) {

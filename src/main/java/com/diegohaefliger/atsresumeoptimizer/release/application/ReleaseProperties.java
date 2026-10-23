@@ -9,7 +9,7 @@ record ReleaseProperties(
 		@DefaultValue("true") boolean enabled,
 		@DefaultValue("DiegoHaefliger/atsresumeoptimizer") String repository,
 		@DefaultValue("https://api.github.com") String apiUrl,
-		@DefaultValue("6h") Duration cacheTtl,
+		@DefaultValue("1h") Duration cacheTtl,
 		@DefaultValue("30m") Duration failureRetry,
 		@DefaultValue("5s") Duration timeout) {
 

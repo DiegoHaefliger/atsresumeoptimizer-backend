@@ -83,6 +83,7 @@ final class StartupWindow {
 		text.setOpaque(false);
 		text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
 		text.add(label(DesktopBrand.NAME, Font.BOLD, 20, TEXT));
+		DesktopBrand.version().ifPresent(version -> text.add(label("Versão " + version, Font.PLAIN, 12, MUTED)));
 		text.add(Box.createVerticalStrut(6));
 		text.add(label("Abrindo o aplicativo...", Font.PLAIN, 14, TEXT));
 		text.add(Box.createVerticalStrut(2));
