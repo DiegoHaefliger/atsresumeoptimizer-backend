@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000084-job-posting-origin
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: job_posting
+            columns:
+              - column:
+                  name: origin
+                  type: varchar(20)
+                  defaultValue: MANUAL
+                  constraints:
+                    nullable: false

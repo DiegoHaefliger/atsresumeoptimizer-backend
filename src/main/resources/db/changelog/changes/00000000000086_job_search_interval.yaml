@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000086-job-search-interval
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: job_preference
+            columns:
+              - column:
+                  name: search_interval_hours
+                  type: int
+                  defaultValueNumeric: 12
+                  constraints:
+                    nullable: false

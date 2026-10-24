@@ -82,4 +82,66 @@ class JobPreferenceControllerTest {
 
 		verifyNoInteractions(preferenceService);
 	}
+
+	@Test
+	void savesTheSearchSettingsAlongWithThePreferences() throws Exception {
+		when(preferenceService.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		mockMvc.perform(put("/api/v1/job-preference")
+						.contentType("application/json")
+						.content("""
+								{"searchKeywords":["  Java  ",""],"searchPostedWithin":"PAST_MONTH",
+								 "searchMaxResults":40,"searchMinAdherence":60,"searchEnabled":true,"searchIntervalHours":24}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.searchKeywords.length()").value(1))
+				.andExpect(jsonPath("$.searchKeywords[0]").value("Java"))
+				.andExpect(jsonPath("$.searchPostedWithin").value("PAST_MONTH"))
+				.andExpect(jsonPath("$.searchMaxResults").value(40))
+				.andExpect(jsonPath("$.searchMinAdherence").value(60))
+				.andExpect(jsonPath("$.searchEnabled").value(true))
+				.andExpect(jsonPath("$.searchIntervalHours").value(24));
+	}
+
+	@Test
+	void appliesTheSearchDefaultsWhenTheyAreOmitted() throws Exception {
+		when(preferenceService.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		mockMvc.perform(put("/api/v1/job-preference").contentType("application/json").content("{}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.searchPostedWithin").value("PAST_WEEK"))
+				.andExpect(jsonPath("$.searchMaxResults").value(50))
+				.andExpect(jsonPath("$.searchMinAdherence").value(70))
+				.andExpect(jsonPath("$.searchEnabled").value(false))
+				.andExpect(jsonPath("$.searchIntervalHours").value(12));
+	}
+
+	@Test
+	void rejectsEnablingTheSearchWithoutKeywords() throws Exception {
+		mockMvc.perform(put("/api/v1/job-preference")
+						.contentType("application/json")
+						.content("{\"searchEnabled\":true}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.detail").value("Informe ao menos um cargo ou palavra-chave para ativar a busca."));
+
+		verifyNoInteractions(preferenceService);
+	}
+
+	@Test
+	void rejectsAnUnsupportedSearchInterval() throws Exception {
+		mockMvc.perform(put("/api/v1/job-preference").contentType("application/json").content("{\"searchIntervalHours\":7}"))
+				.andExpect(status().isBadRequest());
+
+		verifyNoInteractions(preferenceService);
+	}
+
+	@Test
+	void rejectsSearchLimitsOutOfRange() throws Exception {
+		mockMvc.perform(put("/api/v1/job-preference").contentType("application/json").content("{\"searchMaxResults\":500}"))
+				.andExpect(status().isBadRequest());
+		mockMvc.perform(put("/api/v1/job-preference").contentType("application/json").content("{\"searchMinAdherence\":101}"))
+				.andExpect(status().isBadRequest());
+
+		verifyNoInteractions(preferenceService);
+	}
 }

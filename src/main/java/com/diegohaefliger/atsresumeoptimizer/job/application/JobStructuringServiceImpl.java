@@ -127,7 +127,7 @@ class JobStructuringServiceImpl implements JobStructuringService {
 	@Transactional(readOnly = true)
 	public List<JobListing> listJobs() {
 		return repository.findTop100BySyntheticFalseAndHiddenAtIsNullOrderByCreatedAtDesc().stream()
-				.map(posting -> new JobListing(toOffer(posting), posting.createdAt()))
+				.map(posting -> new JobListing(toOffer(posting), posting.createdAt(), posting.origin()))
 				.toList();
 	}
 

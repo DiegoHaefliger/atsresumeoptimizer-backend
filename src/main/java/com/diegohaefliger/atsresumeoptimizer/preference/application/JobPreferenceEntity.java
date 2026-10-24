@@ -52,6 +52,29 @@ class JobPreferenceEntity {
 	@Column(name = "avoided_companies")
 	private List<String> avoidedCompanies;
 
+	@JdbcTypeCode(SqlTypes.ARRAY)
+	@Column(name = "search_keywords")
+	private List<String> searchKeywords;
+
+	@JdbcTypeCode(SqlTypes.ARRAY)
+	@Column(name = "search_excluded_keywords")
+	private List<String> searchExcludedKeywords;
+
+	@Column(name = "search_posted_within")
+	private String searchPostedWithin;
+
+	@Column(name = "search_max_results")
+	private int searchMaxResults;
+
+	@Column(name = "search_min_adherence")
+	private int searchMinAdherence;
+
+	@Column(name = "search_enabled")
+	private boolean searchEnabled;
+
+	@Column(name = "search_interval_hours")
+	private int searchIntervalHours;
+
 	@Column(name = "updated_at")
 	private Instant updatedAt;
 
@@ -132,6 +155,62 @@ class JobPreferenceEntity {
 
 	public void setAvoidedCompanies(List<String> avoidedCompanies) {
 		this.avoidedCompanies = avoidedCompanies;
+	}
+
+	public List<String> getSearchKeywords() {
+		return searchKeywords;
+	}
+
+	public void setSearchKeywords(List<String> searchKeywords) {
+		this.searchKeywords = searchKeywords;
+	}
+
+	public List<String> getSearchExcludedKeywords() {
+		return searchExcludedKeywords;
+	}
+
+	public void setSearchExcludedKeywords(List<String> searchExcludedKeywords) {
+		this.searchExcludedKeywords = searchExcludedKeywords;
+	}
+
+	public String getSearchPostedWithin() {
+		return searchPostedWithin;
+	}
+
+	public void setSearchPostedWithin(String searchPostedWithin) {
+		this.searchPostedWithin = searchPostedWithin;
+	}
+
+	public int getSearchMaxResults() {
+		return searchMaxResults;
+	}
+
+	public void setSearchMaxResults(int searchMaxResults) {
+		this.searchMaxResults = searchMaxResults;
+	}
+
+	public int getSearchMinAdherence() {
+		return searchMinAdherence;
+	}
+
+	public void setSearchMinAdherence(int searchMinAdherence) {
+		this.searchMinAdherence = searchMinAdherence;
+	}
+
+	public boolean isSearchEnabled() {
+		return searchEnabled;
+	}
+
+	public void setSearchEnabled(boolean searchEnabled) {
+		this.searchEnabled = searchEnabled;
+	}
+
+	public int getSearchIntervalHours() {
+		return searchIntervalHours;
+	}
+
+	public void setSearchIntervalHours(int searchIntervalHours) {
+		this.searchIntervalHours = searchIntervalHours;
 	}
 
 	public Instant getUpdatedAt() {

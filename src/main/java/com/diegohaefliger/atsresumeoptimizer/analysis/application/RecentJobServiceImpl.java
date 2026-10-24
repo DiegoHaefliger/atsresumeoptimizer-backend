@@ -70,7 +70,7 @@ class RecentJobServiceImpl implements RecentJobService {
 				offer.sourceUrl(), offer.workModel(), offer.interviewUrl(),
 				offer.salaryMax() != null ? offer.salaryMax() : offer.salaryMin(), offer.benefits(), offer.seniority(), offer.contractType(),
 				match != null ? match.score() : null, atsScore, offer.companyInfo(),
-				offer.benefitsMarkup());
+				offer.benefitsMarkup(), listing.origin());
 	}
 
 	private Map<UUID, Integer> latestAtsScoreByJob() {

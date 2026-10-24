@@ -151,3 +151,11 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000081_prompt_template_chat_recruiter_v2.yaml
   - include:
       file: db/changelog/changes/00000000000082_job_posting_ai_usage.yaml
+  - include:
+      file: db/changelog/changes/00000000000083_job_search_preference.yaml
+  - include:
+      file: db/changelog/changes/00000000000084_job_posting_origin.yaml
+  - include:
+      file: db/changelog/changes/00000000000085_job_suggestion.yaml
+  - include:
+      file: db/changelog/changes/00000000000086_job_search_interval.yaml
