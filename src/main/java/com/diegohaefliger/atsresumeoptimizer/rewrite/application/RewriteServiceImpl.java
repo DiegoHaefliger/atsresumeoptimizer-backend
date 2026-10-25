@@ -170,6 +170,7 @@ class RewriteServiceImpl implements RewriteService {
 		} catch (DroppedContentException firstAttempt) {
 			LOGGER.warn("Reescrita: {}, pedindo de novo à IA", firstAttempt.getMessage());
 			extraUsages.add(structureResult.usage());
+			progressTracker.advance(analysisId.value(), RewritePhase.REFINING);
 			structureResult = structure(originalText,
 					correctionInstructions + DROPPED_CONTENT_RETRY_INSTRUCTION.formatted(firstAttempt.getMessage()), jobFocus);
 			try {
@@ -182,6 +183,7 @@ class RewriteServiceImpl implements RewriteService {
 		if (!uncovered.isEmpty()) {
 			LOGGER.info("Reescrita: competências prioritárias fora dos bullets, pedindo de novo à IA: {}", uncovered);
 			extraUsages.add(structureResult.usage());
+			progressTracker.advance(analysisId.value(), RewritePhase.REFINING);
 			structureResult = structure(originalText,
 					correctionInstructions + UNCOVERED_SKILLS_RETRY_INSTRUCTION.formatted(skillNames(uncovered)), jobFocus);
 			try {
@@ -193,7 +195,7 @@ class RewriteServiceImpl implements RewriteService {
 		StructuredResume ordered =
 				new JobRelevanceOrdering(relevanceKeywords(jobFocus)).apply(RedundantParentheticalCleaner.apply(guarded));
 		StructuredResume contentModel = StructuredResumeSanitizer.sanitizeGrammar(
-				CanonicalSections.apply(ObjectiveMerger.mergeIntoSummary(ordered, parsingResult.sections()))
+				CanonicalSections.apply(SoftSkillDeduplicator.apply(ObjectiveMerger.mergeIntoSummary(ordered, parsingResult.sections())))
 						.withName(header.resolveName(ordered.name(), originalText)));
 		List<BulletRewriteView> views = buildBulletViews(parsingResult, contentModel);
 

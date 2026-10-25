@@ -151,3 +151,23 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000081_prompt_template_chat_recruiter_v2.yaml
   - include:
       file: db/changelog/changes/00000000000082_job_posting_ai_usage.yaml
+  - include:
+      file: db/changelog/changes/00000000000083_job_search_preference.yaml
+  - include:
+      file: db/changelog/changes/00000000000084_job_posting_origin.yaml
+  - include:
+      file: db/changelog/changes/00000000000085_job_suggestion.yaml
+  - include:
+      file: db/changelog/changes/00000000000086_job_search_interval.yaml
+  - include:
+      file: db/changelog/changes/00000000000087_job_search_cron.yaml
+  - include:
+      file: db/changelog/changes/00000000000088_job_search_sites.yaml
+  - include:
+      file: db/changelog/changes/00000000000089_job_search_more_sites.yaml
+  - include:
+      file: db/changelog/changes/00000000000090_job_suggestion_external_id_length.yaml
+  - include:
+      file: db/changelog/changes/00000000000091_job_search_remotar_site.yaml
+  - include:
+      file: db/changelog/changes/00000000000092_search_and_listing_indexes.yaml

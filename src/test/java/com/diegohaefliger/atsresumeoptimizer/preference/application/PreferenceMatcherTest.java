@@ -135,6 +135,34 @@ class PreferenceMatcherTest {
 				.isEqualTo(MatchStatus.MATCH);
 	}
 
+	@Test
+	void scoresTheSearchKeywordsAgainstTheTitleThenTheDescription() {
+		JobPreference preference = preference().searchKeywords(List.of("Desenvolvedor Java")).build();
+		JobOffer inTitle = offer().title("Desenvolvedor Back-end Java").build();
+		JobOffer inText = offer().title("Engenheiro de software").rawText("Vamos usar Java e desenvolvedor sênior").build();
+		JobOffer absent = offer().title("Analista de dados").rawText("SQL e Python").build();
+
+		assertThat(statusOf(preference, inTitle, PreferenceCriterion.KEYWORDS)).isEqualTo(MatchStatus.MATCH);
+		assertThat(statusOf(preference, inText, PreferenceCriterion.KEYWORDS)).isEqualTo(MatchStatus.PARTIAL);
+		assertThat(statusOf(preference, absent, PreferenceCriterion.KEYWORDS)).isEqualTo(MatchStatus.MISMATCH);
+	}
+
+	@Test
+	void penalizesAJobThatMentionsAnExcludedKeyword() {
+		JobPreference preference = preference().searchKeywords(List.of("Java")).searchExcludedKeywords(List.of("PHP")).build();
+		JobOffer offer = offer().rawText("Java no dia a dia, PHP legado").build();
+
+		assertThat(statusOf(preference, offer, PreferenceCriterion.KEYWORDS)).isEqualTo(MatchStatus.MISMATCH);
+	}
+
+	@Test
+	void acceptsAJobWithoutExcludedTermsWhenThereAreNoKeywords() {
+		JobPreference preference = preference().searchExcludedKeywords(List.of("PHP")).build();
+
+		assertThat(statusOf(preference, offer().rawText("Java").build(), PreferenceCriterion.KEYWORDS))
+				.isEqualTo(MatchStatus.MATCH);
+	}
+
 	private MatchStatus statusOf(JobPreference preference, JobOffer offer, PreferenceCriterion criterion) {
 		return criterion(preference, offer, criterion).status();
 	}
@@ -163,6 +191,18 @@ class PreferenceMatcherTest {
 		private List<String> locations = List.of();
 		private List<String> preferredCompanies = List.of();
 		private List<String> avoidedCompanies = List.of();
+		private List<String> searchKeywords = List.of();
+		private List<String> searchExcludedKeywords = List.of();
+
+		PreferenceBuilder searchKeywords(List<String> value) {
+			searchKeywords = value;
+			return this;
+		}
+
+		PreferenceBuilder searchExcludedKeywords(List<String> value) {
+			searchExcludedKeywords = value;
+			return this;
+		}
 
 		PreferenceBuilder workModels(List<WorkModel> value) {
 			workModels = value;
@@ -206,11 +246,13 @@ class PreferenceMatcherTest {
 
 		JobPreference build() {
 			return new JobPreference(workModels, List.of(), minSalary, desiredSalary, benefits, seniorities, locations,
-					preferredCompanies, avoidedCompanies);
+					preferredCompanies, avoidedCompanies, searchKeywords, searchExcludedKeywords, null, null, null, null, null,
+					null);
 		}
 	}
 
 	private static final class OfferBuilder {
+		private String title = "Backend Java";
 		private String company;
 		private WorkModel workModel;
 		private ContractType contractType;
@@ -242,6 +284,11 @@ class PreferenceMatcherTest {
 			return this;
 		}
 
+		OfferBuilder title(String value) {
+			title = value;
+			return this;
+		}
+
 		OfferBuilder benefits(List<String> value) {
 			benefits = value;
 			return this;
@@ -263,7 +310,7 @@ class PreferenceMatcherTest {
 		}
 
 		JobOffer build() {
-			return new JobOffer(UUID.randomUUID(), 1L, "Backend Java", company, null, null, workModel, contractType, salaryMin,
+			return new JobOffer(UUID.randomUUID(), 1L, title, company, null, null, workModel, contractType, salaryMin,
 					salaryMax, benefits, location, seniority, rawText);
 		}
 	}

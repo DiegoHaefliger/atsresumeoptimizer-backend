@@ -24,7 +24,7 @@ interface AnalysisRepository extends JpaRepository<AnalysisEntity, UUID> {
 
 	@Query("""
 			select new com.diegohaefliger.atsresumeoptimizer.analysis.application.RecentJobInput(
-			       a.jobPostingId, a.targetRole, a.jobDescription, a.createdAt)
+			       a.jobPostingId, a.targetRole, a.createdAt)
 			from AnalysisEntity a
 			where a.mode = :mode
 			  and a.jobPostingId is not null

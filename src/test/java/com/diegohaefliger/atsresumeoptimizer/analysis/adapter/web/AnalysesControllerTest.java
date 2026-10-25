@@ -181,13 +181,15 @@ class AnalysesControllerTest {
 		UUID jobId = UUID.randomUUID();
 		when(recentJobService.recentJobs()).thenReturn(List.of(new RecentJobView(jobId, 7L, "Backend Java", "Backend Java",
 				"Vaga de backend", Instant.parse("2026-10-03T13:00:00Z"), Instant.parse("2026-10-01T10:00:00Z"), "Acme", "https://acme.com/vaga", WorkModel.REMOTE,
-				"https://meet.example.com/1", new java.math.BigDecimal("8000"), List.of("VR"), "Pleno", com.diegohaefliger.atsresumeoptimizer.job.ContractType.CLT, 80, 91, null, List.of())));
+				"https://meet.example.com/1", new java.math.BigDecimal("8000"), List.of("VR"), "Pleno", com.diegohaefliger.atsresumeoptimizer.job.ContractType.CLT, 80, 91, null, List.of(),
+				com.diegohaefliger.atsresumeoptimizer.job.JobOrigin.AUTOMATIC_SEARCH)));
 
 		mockMvc.perform(get("/api/v1/analyses/recent-jobs"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].id").value(jobId.toString()))
 				.andExpect(jsonPath("$[0].title").value("Backend Java"))
 				.andExpect(jsonPath("$[0].code").value(7))
+				.andExpect(jsonPath("$[0].origin").value("AUTOMATIC_SEARCH"))
 				.andExpect(jsonPath("$[0].jobDescription").value("Vaga de backend"))
 				.andExpect(jsonPath("$[0].company").value("Acme"))
 				.andExpect(jsonPath("$[0].interviewUrl").value("https://meet.example.com/1"))

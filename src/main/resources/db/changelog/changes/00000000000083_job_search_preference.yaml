@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000083-job-search-preference
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: job_preference
+            columns:
+              - column:
+                  name: search_keywords
+                  type: text[]
+                  defaultValueComputed: "'{}'"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: search_excluded_keywords
+                  type: text[]
+                  defaultValueComputed: "'{}'"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: search_posted_within
+                  type: varchar(20)
+                  defaultValue: PAST_WEEK
+                  constraints:
+                    nullable: false
+              - column:
+                  name: search_max_results
+                  type: int
+                  defaultValueNumeric: 50
+                  constraints:
+                    nullable: false
+              - column:
+                  name: search_min_adherence
+                  type: int
+                  defaultValueNumeric: 70
+                  constraints:
+                    nullable: false
+              - column:
+                  name: search_enabled
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

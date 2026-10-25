@@ -3,6 +3,7 @@ package com.diegohaefliger.atsresumeoptimizer.job.application;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiUsage;
 import com.diegohaefliger.atsresumeoptimizer.job.ContractType;
 import com.diegohaefliger.atsresumeoptimizer.job.JobDetails;
+import com.diegohaefliger.atsresumeoptimizer.job.JobOrigin;
 import com.diegohaefliger.atsresumeoptimizer.job.WorkModel;
 import com.github.f4b6a3.uuid.UuidCreator;
 import jakarta.persistence.Column;
@@ -85,6 +86,9 @@ class JobPosting {
 
 	private boolean synthetic;
 
+	@Enumerated(EnumType.STRING)
+	private JobOrigin origin = JobOrigin.MANUAL;
+
 	@Column(name = "ai_model")
 	private String aiModel;
 
@@ -154,6 +158,9 @@ class JobPosting {
 		if (details.contractType() != null) {
 			this.contractType = details.contractType();
 		}
+		if (details.origin() == JobOrigin.AUTOMATIC_SEARCH) {
+			this.origin = details.origin();
+		}
 	}
 
 	void replaceDetails(JobDetails details) {
@@ -212,6 +219,10 @@ class JobPosting {
 
 	void showInRecent() {
 		this.hiddenAt = null;
+	}
+
+	JobOrigin origin() {
+		return origin;
 	}
 
 	boolean isSynthetic() {

@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000087-job-search-cron
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: job_preference
+            columns:
+              - column:
+                  name: search_cron
+                  type: varchar(100)
+                  defaultValue: "0 0 8,20 * * *"
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: >
+              update job_preference set search_cron = case search_interval_hours
+              when 6 then '0 0 */6 * * *'
+              when 24 then '0 0 8 * * *'
+              else '0 0 8,20 * * *' end
+        - dropColumn:
+            tableName: job_preference
+            columnName: search_interval_hours

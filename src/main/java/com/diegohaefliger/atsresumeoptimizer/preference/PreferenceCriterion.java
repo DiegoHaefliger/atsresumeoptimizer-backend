@@ -7,7 +7,8 @@ public enum PreferenceCriterion {
 	BENEFITS(15),
 	COMPANY(15),
 	SENIORITY(10),
-	LOCATION(10);
+	LOCATION(10),
+	KEYWORDS(15);
 
 	private final int weight;
 

@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 import com.diegohaefliger.atsresumeoptimizer.job.ContractType;
 import com.diegohaefliger.atsresumeoptimizer.job.WorkModel;
 import com.diegohaefliger.atsresumeoptimizer.preference.domain.JobPreference;
+import com.diegohaefliger.atsresumeoptimizer.preference.PostedWithin;
+import com.diegohaefliger.atsresumeoptimizer.preference.SearchSite;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -59,5 +61,24 @@ class JobPreferenceServiceImplTest {
 		verify(repository).save(existing);
 		assertThat(existing.getAvoidedCompanies()).containsExactly("Acme");
 		assertThat(existing.getContractTypes()).containsExactly("PJ");
+	}
+
+	@Test
+	void persistsTheSearchSettingsOnTheSameRow() {
+		var service = new JobPreferenceServiceImpl(repository, new JobPreferenceEntityMapperImpl());
+		JobPreferenceEntity existing = new JobPreferenceEntity(UUID.randomUUID());
+		when(repository.findFirstByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
+		var withSearch = new JobPreference(List.of(), List.of(), null, null, List.of(), List.of(), List.of(), List.of(),
+				List.of(), List.of("Java"), List.of("estágio"), PostedWithin.PAST_MONTH, 30, 80, true, "0 0 */6 * * *", List.of(SearchSite.GUPY));
+
+		JobPreference saved = service.save(withSearch);
+
+		assertThat(existing.getSearchKeywords()).containsExactly("Java");
+		assertThat(existing.getSearchPostedWithin()).isEqualTo("PAST_MONTH");
+		assertThat(existing.getSearchMaxResults()).isEqualTo(30);
+		assertThat(existing.getSearchMinAdherence()).isEqualTo(80);
+		assertThat(existing.isSearchEnabled()).isTrue();
+		assertThat(existing.getSearchCron()).isEqualTo("0 0 */6 * * *");
+		assertThat(saved).isEqualTo(withSearch);
 	}
 }

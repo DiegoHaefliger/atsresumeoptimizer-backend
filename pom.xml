@@ -232,6 +232,11 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.23.2</version>
+		</dependency>
+		<dependency>
 			<groupId>org.mapstruct</groupId>
 			<artifactId>mapstruct</artifactId>
 			<version>${mapstruct.version}</version>
@@ -282,6 +287,20 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
+	<repositories>
+		<!-- O POM pai do LanguageTool injeta esse repositório de snapshots (timeout); tudo que usamos está no Central -->
+		<repository>
+			<id>repo.languagetool.org</id>
+			<url>https://repo.languagetool.org/artifactory/languagetool-os-snapshot/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
 
 	<build>
 		<plugins>

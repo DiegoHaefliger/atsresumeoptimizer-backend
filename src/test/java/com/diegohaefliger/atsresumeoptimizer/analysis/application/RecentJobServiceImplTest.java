@@ -56,7 +56,7 @@ class RecentJobServiceImplTest {
 				new JobListing(offer(newJob, "Engenheiro de Dados", null, null), WEDNESDAY),
 				new JobListing(offer(usedJob, "Backend Sênior", "Acme", WorkModel.REMOTE), MONDAY)));
 		when(analysisRepository.findLatestJobInputsByMode(AnalysisMode.JOB_MATCH))
-				.thenReturn(List.of(new RecentJobInput(usedJob, "Backend Sênior (Billing)", "vaga", FRIDAY)));
+				.thenReturn(List.of(new RecentJobInput(usedJob, "Backend Sênior (Billing)", FRIDAY)));
 		when(preferenceMatchService.matchAll(anyCollection()))
 				.thenReturn(Map.of(usedJob, new PreferenceMatch(75, List.of())));
 

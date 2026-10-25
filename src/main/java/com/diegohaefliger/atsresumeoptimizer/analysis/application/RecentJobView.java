@@ -1,6 +1,7 @@
 package com.diegohaefliger.atsresumeoptimizer.analysis.application;
 
 import com.diegohaefliger.atsresumeoptimizer.job.ContractType;
+import com.diegohaefliger.atsresumeoptimizer.job.JobOrigin;
 import com.diegohaefliger.atsresumeoptimizer.job.WorkModel;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,5 +27,6 @@ public record RecentJobView(
 		Integer preferenceScore,
 		Integer atsScore,
 		String companyInfo,
-		List<String> benefitsMarkup) {
+		List<String> benefitsMarkup,
+		JobOrigin origin) {
 }

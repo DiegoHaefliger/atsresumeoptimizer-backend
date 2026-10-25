@@ -9,7 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 interface ResumeRepository extends JpaRepository<Resume, UUID> {
 
-	List<Resume> findTop50ByTitleNotOrderByCreatedAtDesc(String scrubbedPlaceholder);
+	List<Resume> findByOriginAndTitleNot(ResumeOrigin origin, String scrubbedPlaceholder);
+
+	List<Resume> findTop50ByOriginAndTitleNotOrderByCreatedAtDesc(ResumeOrigin origin, String scrubbedPlaceholder);
 
 	List<Resume> findByOriginAndSourceAnalysisIdInAndTitleNotOrderByCreatedAtDesc(ResumeOrigin origin,
 			Collection<UUID> sourceAnalysisIds, String scrubbedPlaceholder);

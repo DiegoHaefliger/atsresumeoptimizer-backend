@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -34,7 +35,8 @@ class PreferenceMatcher {
 						benefits(preference, offer),
 						company(preference, offer),
 						seniority(preference, offer),
-						location(preference, offer))
+						location(preference, offer),
+						keywords(preference, offer))
 				.flatMap(Optional::stream)
 				.toList();
 		if (criteria.isEmpty()) {
@@ -172,6 +174,38 @@ class PreferenceMatcher {
 				? MatchStatus.MATCH
 				: MatchStatus.MISMATCH;
 		return result(PreferenceCriterion.LOCATION, status, "Vaga: " + offer.location());
+	}
+
+	private Optional<CriterionMatch> keywords(JobPreference preference, JobOffer offer) {
+		if (preference.searchKeywords().isEmpty() && preference.searchExcludedKeywords().isEmpty()) {
+			return Optional.empty();
+		}
+		String title = normalized(offer.title());
+		String text = normalized(Objects.toString(offer.title(), "") + " " + Objects.toString(offer.rawText(), ""));
+		Optional<String> excluded = firstPresent(preference.searchExcludedKeywords(), text);
+		if (excluded.isPresent()) {
+			return result(PreferenceCriterion.KEYWORDS, MatchStatus.MISMATCH, "Vaga cita \"" + excluded.get() + "\", que você quer evitar");
+		}
+		if (preference.searchKeywords().isEmpty()) {
+			return result(PreferenceCriterion.KEYWORDS, MatchStatus.MATCH, "Nenhum termo evitado na vaga");
+		}
+		Optional<String> inTitle = firstPresent(preference.searchKeywords(), title);
+		if (inTitle.isPresent()) {
+			return result(PreferenceCriterion.KEYWORDS, MatchStatus.MATCH, "Cargo bate com \"" + inTitle.get() + "\"");
+		}
+		Optional<String> inText = firstPresent(preference.searchKeywords(), text);
+		return inText.isPresent()
+				? result(PreferenceCriterion.KEYWORDS, MatchStatus.PARTIAL, "Descrição cita \"" + inText.get() + "\"")
+				: result(PreferenceCriterion.KEYWORDS, MatchStatus.MISMATCH, "Nenhum dos seus cargos ou palavras-chave aparece na vaga");
+	}
+
+	private Optional<String> firstPresent(List<String> terms, String normalizedText) {
+		return terms.stream().filter(term -> containsAllWords(normalizedText, normalized(term))).findFirst();
+	}
+
+	private boolean containsAllWords(String normalizedText, String normalizedTerm) {
+		List<String> words = Stream.of(normalizedTerm.split(" ")).filter(word -> !word.isBlank()).toList();
+		return !words.isEmpty() && words.stream().allMatch(word -> NormalizedText.containsWord(normalizedText, word));
 	}
 
 	private boolean containsName(List<String> names, String normalizedOffered) {

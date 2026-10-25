@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000088-job-search-sites
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: job_preference
+            columns:
+              - column:
+                  name: search_sites
+                  type: text[]
+                  defaultValueComputed: "'{LINKEDIN,GUPY,PROGRAMATHOR}'"
+                  constraints:
+                    nullable: false

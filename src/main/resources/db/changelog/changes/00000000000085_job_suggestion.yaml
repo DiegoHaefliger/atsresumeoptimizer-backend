@@ -1,0 +1,140 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000085-job-suggestion
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: job_suggestion
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: source
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: external_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: url
+                  type: text
+              - column:
+                  name: title
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: company
+                  type: varchar(255)
+              - column:
+                  name: location
+                  type: varchar(255)
+              - column:
+                  name: posted_on
+                  type: date
+              - column:
+                  name: description
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: dedup_key
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: score
+                  type: int
+              - column:
+                  name: status
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: found_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: decided_at
+                  type: timestamptz
+              - column:
+                  name: job_posting_id
+                  type: uuid
+        - createIndex:
+            tableName: job_suggestion
+            indexName: ux_job_suggestion_source_external_id
+            unique: true
+            columns:
+              - column:
+                  name: source
+              - column:
+                  name: external_id
+        - createIndex:
+            tableName: job_suggestion
+            indexName: ix_job_suggestion_dedup_key
+            columns:
+              - column:
+                  name: dedup_key
+        - createIndex:
+            tableName: job_suggestion
+            indexName: ix_job_suggestion_status_found_at
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: found_at
+        - createTable:
+            tableName: job_search_run
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: triggered_by
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: started_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: finished_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: read_count
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: added_count
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: duplicate_count
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: below_adherence_count
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: error
+                  type: text

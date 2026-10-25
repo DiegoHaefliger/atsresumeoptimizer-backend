@@ -82,4 +82,77 @@ class JobPreferenceControllerTest {
 
 		verifyNoInteractions(preferenceService);
 	}
+
+	@Test
+	void savesTheSearchSettingsAlongWithThePreferences() throws Exception {
+		when(preferenceService.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		mockMvc.perform(put("/api/v1/job-preference")
+						.contentType("application/json")
+						.content("""
+								{"searchKeywords":["  Java  ",""],"searchPostedWithin":"PAST_MONTH",
+								 "searchMaxResults":40,"searchMinAdherence":60,"searchEnabled":true,"searchCron":"0 0 6 * * *",
+								 "searchSites":["GUPY","GUPY","PROGRAMATHOR"]}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.searchKeywords.length()").value(1))
+				.andExpect(jsonPath("$.searchKeywords[0]").value("Java"))
+				.andExpect(jsonPath("$.searchPostedWithin").value("PAST_MONTH"))
+				.andExpect(jsonPath("$.searchMaxResults").value(40))
+				.andExpect(jsonPath("$.searchMinAdherence").value(60))
+				.andExpect(jsonPath("$.searchEnabled").value(true))
+				.andExpect(jsonPath("$.searchCron").value("0 0 6 * * *"))
+				.andExpect(jsonPath("$.searchSites.length()").value(2))
+				.andExpect(jsonPath("$.searchSites[0]").value("GUPY"))
+				.andExpect(jsonPath("$.searchSites[1]").value("PROGRAMATHOR"));
+	}
+
+	@Test
+	void appliesTheSearchDefaultsWhenTheyAreOmitted() throws Exception {
+		when(preferenceService.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		mockMvc.perform(put("/api/v1/job-preference").contentType("application/json").content("{}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.searchPostedWithin").value("PAST_WEEK"))
+				.andExpect(jsonPath("$.searchMaxResults").value(50))
+				.andExpect(jsonPath("$.searchMinAdherence").value(70))
+				.andExpect(jsonPath("$.searchEnabled").value(false))
+				.andExpect(jsonPath("$.searchCron").value("0 0 8,20 * * *"))
+				.andExpect(jsonPath("$.searchSites.length()").value(6));
+	}
+
+	@Test
+	void rejectsAScheduleThatRunsMoreOftenThanHourly() throws Exception {
+		mockMvc.perform(put("/api/v1/job-preference").contentType("application/json")
+						.content("{\"searchCron\":\"0 */30 * * * *\"}"))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void rejectsAnInvalidSchedule() throws Exception {
+		mockMvc.perform(put("/api/v1/job-preference").contentType("application/json")
+						.content("{\"searchCron\":\"toda hora\"}"))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void rejectsEnablingTheSearchWithoutKeywords() throws Exception {
+		mockMvc.perform(put("/api/v1/job-preference")
+						.contentType("application/json")
+						.content("{\"searchEnabled\":true}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.detail").value("Informe ao menos um cargo ou palavra-chave para ativar a busca."));
+
+		verifyNoInteractions(preferenceService);
+	}
+
+	@Test
+	void rejectsSearchLimitsOutOfRange() throws Exception {
+		mockMvc.perform(put("/api/v1/job-preference").contentType("application/json").content("{\"searchMaxResults\":500}"))
+				.andExpect(status().isBadRequest());
+		mockMvc.perform(put("/api/v1/job-preference").contentType("application/json").content("{\"searchMinAdherence\":101}"))
+				.andExpect(status().isBadRequest());
+
+		verifyNoInteractions(preferenceService);
+	}
 }
