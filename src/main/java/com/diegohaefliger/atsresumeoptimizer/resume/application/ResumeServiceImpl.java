@@ -120,7 +120,10 @@ class ResumeServiceImpl implements ResumeService {
 	@Override
 	@Transactional(readOnly = true)
 	public List<ResumeSummary> listResumes() {
-		return summarize(resumeRepository.findTop50ByTitleNotOrderByCreatedAtDesc(Resume.SCRUBBED_PLACEHOLDER)).stream()
+		List<Resume> listed = new ArrayList<>(resumeRepository.findByOriginAndTitleNot(ResumeOrigin.BASE, Resume.SCRUBBED_PLACEHOLDER));
+		listed.addAll(resumeRepository.findTop50ByOriginAndTitleNotOrderByCreatedAtDesc(ResumeOrigin.ADAPTED, Resume.SCRUBBED_PLACEHOLDER));
+		listed.sort(Comparator.comparing(Resume::createdAt).reversed());
+		return summarize(listed).stream()
 				.sorted(Comparator.comparing(ResumeSummary::favorite).reversed())
 				.toList();
 	}

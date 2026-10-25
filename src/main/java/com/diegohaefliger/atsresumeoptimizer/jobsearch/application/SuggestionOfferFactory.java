@@ -27,7 +27,9 @@ class SuggestionOfferFactory {
 		String head = NormalizedText.of(job.title() + " " + job.location() + " "
 				+ detail.description().substring(0, Math.min(DESCRIPTION_HEAD, detail.description().length())));
 		return new JobOffer(UUID.randomUUID(), null, job.title(), blankToNull(job.company()), job.url(), null,
-				workModel(head), contractType(detail.employmentType()), null, null, List.of(),
+				detail.workModel() != null ? detail.workModel() : workModel(head),
+				detail.contractType() != null ? detail.contractType() : contractType(detail.employmentType()), detail.salary().min(),
+				detail.salary().max(), List.of(),
 				blankToNull(job.location()), seniority(job.title(), detail.seniorityLevel()).orElse(null),
 				detail.description());
 	}
@@ -68,7 +70,17 @@ class SuggestionOfferFactory {
 		if (JUNIOR.matcher(normalized).find() || JUNIOR.matcher(NormalizedText.of(level)).find()) {
 			return Optional.of("Júnior");
 		}
-		return Optional.empty();
+		return levelSeniority(level);
+	}
+
+	private Optional<String> levelSeniority(String level) {
+		return switch (NormalizedText.of(level)) {
+			case "senior" -> Optional.of("Sênior");
+			case "pleno" -> Optional.of("Pleno");
+			case "especialista" -> Optional.of("Especialista");
+			case "tech lead" -> Optional.of("Tech Lead");
+			default -> Optional.empty();
+		};
 	}
 
 	private static String blankToNull(String text) {

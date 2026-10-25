@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000090-job-suggestion-external-id-length
+      author: DiegoHaefliger
+      changes:
+        - modifyDataType:
+            tableName: job_suggestion
+            columnName: external_id
+            newDataType: varchar(500)

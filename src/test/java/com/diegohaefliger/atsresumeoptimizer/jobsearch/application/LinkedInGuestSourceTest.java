@@ -25,7 +25,8 @@ import org.springframework.web.client.RestClient;
 class LinkedInGuestSourceTest {
 
 	private final JobSearchProperties properties = new JobSearchProperties("https://linkedin.test", "test-agent",
-			Duration.ZERO, Duration.ZERO, Duration.ofSeconds(1), "Brazil");
+			Duration.ZERO, Duration.ZERO, Duration.ofSeconds(1), "Brazil", "https://gupy.test",
+			"https://programathor.test", "https://infojobs.test", "https://vagas.test", "https://api.remotar.test", "https://remotar.test");
 
 	private MockRestServiceServer server;
 	private LinkedInGuestSource source;

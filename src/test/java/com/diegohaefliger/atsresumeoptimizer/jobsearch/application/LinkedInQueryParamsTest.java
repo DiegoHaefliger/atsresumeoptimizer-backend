@@ -22,6 +22,16 @@ class LinkedInQueryParamsTest {
 	}
 
 	@Test
+	void mapsTheHourOptionsToSeconds() {
+		var hours = java.util.Map.of(PostedWithin.PAST_HOUR, "r3600", PostedWithin.PAST_2_HOURS, "r7200",
+				PostedWithin.PAST_6_HOURS, "r21600", PostedWithin.PAST_12_HOURS, "r43200");
+
+		hours.forEach((postedWithin, code) -> assertThat(LinkedInQueryParams
+				.of(new SourceQuery("java", "Brazil", postedWithin, List.of(), List.of(), List.of(), 0)))
+				.containsEntry("f_TPR", code));
+	}
+
+	@Test
 	void leavesOutTheFiltersThatWereNotChosen() {
 		var query = new SourceQuery("java", "Brazil", PostedWithin.ANY, List.of(), List.of(), List.of(), 0);
 

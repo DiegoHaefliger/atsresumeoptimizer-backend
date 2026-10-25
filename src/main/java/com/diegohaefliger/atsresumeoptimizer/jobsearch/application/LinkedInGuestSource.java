@@ -4,6 +4,8 @@ import java.net.http.HttpClient;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -20,6 +22,7 @@ class LinkedInGuestSource implements JobSource {
 	private static final String SEARCH_PATH = "/jobs-guest/jobs/api/seeMoreJobPostings/search";
 	private static final String DETAIL_PATH = "/jobs-guest/jobs/api/jobPosting/{id}";
 	private static final int TOO_MANY_REQUESTS = 429;
+	private static final Pattern JOB_ID = Pattern.compile("(\\d{7,})(?:[/?#]|$)");
 
 	private final RestClient http;
 
@@ -38,6 +41,17 @@ class LinkedInGuestSource implements JobSource {
 	@Override
 	public String name() {
 		return NAME;
+	}
+
+	@Override
+	public String label() {
+		return "LinkedIn";
+	}
+
+	@Override
+	public Optional<String> externalIdOf(String url) {
+		Matcher matcher = JOB_ID.matcher(url == null ? "" : url);
+		return matcher.find() ? Optional.of(matcher.group(1)) : Optional.empty();
 	}
 
 	@Override
@@ -80,7 +94,7 @@ class LinkedInGuestSource implements JobSource {
 		try {
 			return request.get();
 		} catch (RestClientException exception) {
-			throw new JobSourceException("Não deu pra consultar o LinkedIn: " + exception.getMessage(), exception);
+			throw new JobSourceException("Não deu pra acessar o LinkedIn. O site pode estar fora do ar ou sem conexão.", exception);
 		}
 	}
 

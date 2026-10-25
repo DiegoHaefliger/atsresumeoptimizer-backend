@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 import com.diegohaefliger.atsresumeoptimizer.job.ContractType;
+import com.diegohaefliger.atsresumeoptimizer.job.JobOffer;
 import com.diegohaefliger.atsresumeoptimizer.job.WorkModel;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +28,17 @@ class SuggestionOfferFactoryTest {
 		assertThat(factory.offer(job("Jr Developer", "Brazil"), detail("texto", null, null)).seniority()).isEqualTo("Júnior");
 		assertThat(factory.offer(job("Tech Lead Backend", "Brazil"), detail("texto", null, null)).seniority())
 				.isEqualTo("Tech Lead");
+	}
+
+	@Test
+	void carriesTheSalaryTheSourceInformed() {
+		SourceJobDetail detail = new SourceJobDetail("texto", null, null, null, null, null,
+				new SalaryRange(new java.math.BigDecimal("10000"), new java.math.BigDecimal("12000")));
+
+		JobOffer offer = factory.offer(job("Dev Java", "Brazil"), detail);
+
+		assertThat(offer.salaryMin()).isEqualByComparingTo("10000");
+		assertThat(offer.salaryMax()).isEqualByComparingTo("12000");
 	}
 
 	@Test

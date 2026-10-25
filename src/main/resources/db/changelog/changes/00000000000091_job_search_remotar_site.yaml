@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000091-job-search-remotar-site
+      author: DiegoHaefliger
+      changes:
+        - sql:
+            sql: >
+              update job_preference set search_sites = array_append(search_sites, 'REMOTAR')
+        - addDefaultValue:
+            tableName: job_preference
+            columnName: search_sites
+            defaultValueComputed: "'{LINKEDIN,GUPY,PROGRAMATHOR,INFOJOBS,VAGAS,REMOTAR}'"

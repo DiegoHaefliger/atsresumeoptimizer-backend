@@ -10,6 +10,7 @@ import com.diegohaefliger.atsresumeoptimizer.preference.PreferenceCriterion;
 import com.diegohaefliger.atsresumeoptimizer.preference.PreferenceMatch;
 import com.diegohaefliger.atsresumeoptimizer.preference.domain.JobPreference;
 import com.diegohaefliger.atsresumeoptimizer.preference.PostedWithin;
+import com.diegohaefliger.atsresumeoptimizer.preference.SearchSite;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,7 +29,7 @@ class PreferenceAdherenceFilterImplTest {
 	private PreferenceMatcher matcher;
 
 	private final JobPreference preference = new JobPreference(List.of(), List.of(), null, null, List.of(), List.of(),
-			List.of(), List.of(), List.of(), List.of("Java"), List.of(), PostedWithin.PAST_WEEK, 50, 70, true, 12);
+			List.of(), List.of(), List.of(), List.of("Java"), List.of(), PostedWithin.PAST_WEEK, 50, 70, true, "0 0 */12 * * *", List.of());
 
 	private static JobOffer offer() {
 		return new JobOffer(UUID.randomUUID(), null, "Dev", null, null, null, null, null, null, null, List.of(), null,

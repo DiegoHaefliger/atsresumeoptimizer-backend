@@ -11,6 +11,7 @@ import com.diegohaefliger.atsresumeoptimizer.jobsearch.JobSuggestionService;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.InvalidSuggestionStateException;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.JobSuggestion;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.JobSuggestionNotFoundException;
+import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionCounts;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionStatus;
 import com.diegohaefliger.atsresumeoptimizer.job.JobDetails;
 import com.diegohaefliger.atsresumeoptimizer.job.JobOrigin;
@@ -19,16 +20,20 @@ import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 @Service
 class JobSuggestionServiceImpl implements JobSuggestionService {
 
+	private static final Sort BY_SCORE_THEN_NEWEST = Sort.by(Sort.Order.desc("score").nullsLast(), Sort.Order.desc("foundAt"));
+
 	private final SuggestionRepository repository;
 	private final SuggestionEntityMapper mapper;
 	private final JobStructuringService jobService;
+	private final BackgroundJobStructurer structurer;
 	private final Clock clock;
 
 	JobSuggestionServiceImpl(SuggestionRepository repository, SuggestionEntityMapper mapper,
-			JobStructuringService jobService, Clock clock) {
+			JobStructuringService jobService, BackgroundJobStructurer structurer, Clock clock) {
 		this.repository = repository;
 		this.mapper = mapper;
 		this.jobService = jobService;
+		this.structurer = structurer;
 		this.clock = clock;
 	}
 
@@ -41,8 +46,7 @@ class JobSuggestionServiceImpl implements JobSuggestionService {
 	@Override
 	@Transactional(readOnly = true)
 	public List<JobSuggestion> belowAdherence() {
-		Sort byScore = Sort.by(Sort.Order.desc("score").nullsLast(), Sort.Order.desc("foundAt"));
-		return repository.findByStatus(SuggestionStatus.FILTERED, byScore).stream().map(mapper::toDomain).toList();
+		return list(SuggestionStatus.FILTERED);
 	}
 
 	@Override
@@ -53,8 +57,9 @@ class JobSuggestionServiceImpl implements JobSuggestionService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public long countNew() {
-		return repository.countByStatus(SuggestionStatus.NEW);
+	public SuggestionCounts counts() {
+		return new SuggestionCounts(repository.countByStatus(SuggestionStatus.NEW),
+				repository.countByStatus(SuggestionStatus.FILTERED), repository.countByStatus(SuggestionStatus.DISCARDED));
 	}
 
 	@Override
@@ -64,7 +69,10 @@ class JobSuggestionServiceImpl implements JobSuggestionService {
 		if (suggestion.getStatus() == SuggestionStatus.PROMOTED) {
 			return suggestion.getJobPostingId();
 		}
-		UUID jobId = jobService.registerAndStructure(jobText(suggestion), details(suggestion)).id();
+		String text = jobText(suggestion);
+		JobDetails details = details(suggestion);
+		UUID jobId = jobService.register(text, details);
+		structurer.structureAfterCommit(text, details);
 		suggestion.setStatus(SuggestionStatus.PROMOTED);
 		suggestion.setJobPostingId(jobId);
 		suggestion.setDecidedAt(Instant.now(clock));
@@ -97,7 +105,7 @@ class JobSuggestionServiceImpl implements JobSuggestionService {
 	}
 
 	private List<JobSuggestion> list(SuggestionStatus status) {
-		return repository.findByStatusOrderByFoundAtDesc(status).stream().map(mapper::toDomain).toList();
+		return repository.findByStatus(status, BY_SCORE_THEN_NEWEST).stream().map(mapper::toDomain).toList();
 	}
 
 	private SuggestionEntity find(UUID id) {
@@ -108,7 +116,7 @@ class JobSuggestionServiceImpl implements JobSuggestionService {
 		String header = suggestion.getTitle()
 				+ (suggestion.getCompany() == null ? "" : "\n" + suggestion.getCompany())
 				+ (suggestion.getLocation() == null ? "" : " · " + suggestion.getLocation());
-		return header + "\n\n" + suggestion.getDescription();
+		return header + "\n\n" + JobDescriptionFormatter.format(HtmlText.decoded(suggestion.getDescription()));
 	}
 
 	private static JobDetails details(SuggestionEntity suggestion) {

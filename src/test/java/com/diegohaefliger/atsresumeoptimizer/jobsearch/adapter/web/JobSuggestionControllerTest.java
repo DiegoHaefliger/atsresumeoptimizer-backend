@@ -20,6 +20,7 @@ import com.diegohaefliger.atsresumeoptimizer.jobsearch.JobSuggestionService;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.InvalidSuggestionStateException;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.JobSuggestion;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.JobSuggestionNotFoundException;
+import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionCounts;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionStatus;
 
 @WebMvcTest(JobSuggestionController.class)
@@ -63,12 +64,14 @@ class JobSuggestionControllerTest {
 	}
 
 	@Test
-	void countsTheNewSuggestions() throws Exception {
-		when(suggestionService.countNew()).thenReturn(4L);
+	void countsTheSuggestionsOfEachTab() throws Exception {
+		when(suggestionService.counts()).thenReturn(new SuggestionCounts(4, 2, 1));
 
 		mockMvc.perform(get("/api/v1/job-suggestions/count"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.count").value(4));
+				.andExpect(jsonPath("$.newSuggestions").value(4))
+				.andExpect(jsonPath("$.belowAdherence").value(2))
+				.andExpect(jsonPath("$.discarded").value(1));
 	}
 
 	@Test

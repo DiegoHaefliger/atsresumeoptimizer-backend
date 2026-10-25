@@ -18,8 +18,9 @@ final class LinkedInQueryParams {
 			ContractType.INTERNSHIP, "I", ContractType.TEMPORARY, "T");
 	private static final Map<String, String> EXPERIENCE_CODES = Map.of("junior", "2", "pleno", "3", "senior", "4",
 			"especialista", "4", "tech lead", "4");
-	private static final Map<PostedWithin, String> POSTED_CODES = Map.of(PostedWithin.PAST_24_HOURS, "r86400",
-			PostedWithin.PAST_WEEK, "r604800", PostedWithin.PAST_MONTH, "r2592000");
+	private static final Map<PostedWithin, String> POSTED_CODES = Map.of(PostedWithin.PAST_HOUR, "r3600",
+			PostedWithin.PAST_2_HOURS, "r7200", PostedWithin.PAST_6_HOURS, "r21600", PostedWithin.PAST_12_HOURS, "r43200",
+			PostedWithin.PAST_24_HOURS, "r86400", PostedWithin.PAST_WEEK, "r604800", PostedWithin.PAST_MONTH, "r2592000");
 
 	private LinkedInQueryParams() {
 	}

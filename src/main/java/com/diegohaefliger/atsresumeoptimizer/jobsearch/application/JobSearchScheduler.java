@@ -13,7 +13,7 @@ class JobSearchScheduler {
 		this.runService = runService;
 	}
 
-	@Scheduled(fixedDelayString = "${app.job-search.check-interval:PT15M}",
+	@Scheduled(fixedDelayString = "${app.job-search.check-interval:PT1M}",
 			initialDelayString = "${app.job-search.initial-delay:PT1M}")
 	void runWhenDue() {
 		runService.startIfDue();

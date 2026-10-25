@@ -20,7 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.JobSearchRunService;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.RunTrigger;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SearchAlreadyRunningException;
-import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SearchDisabledException;
+import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.IncompleteSearchCriteriaException;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SearchRun;
 
 @WebMvcTest(JobSearchController.class)
@@ -41,10 +41,13 @@ class JobSearchControllerTest {
 	}
 
 	@Test
-	void answersConflictWhenTheSearchIsOff() throws Exception {
-		doThrow(new SearchDisabledException()).when(runService).startManual();
+	void answersUnprocessableWhenThePreferencesAreIncomplete() throws Exception {
+		doThrow(new IncompleteSearchCriteriaException(java.util.List.of("Senioridade", "Localização")))
+				.when(runService).startManual();
 
-		mockMvc.perform(post("/api/v1/job-search/run")).andExpect(status().isConflict());
+		mockMvc.perform(post("/api/v1/job-search/run"))
+				.andExpect(status().isUnprocessableEntity())
+				.andExpect(jsonPath("$.detail").value("Preencha nas Preferências antes de buscar: Senioridade, Localização."));
 	}
 
 	@Test

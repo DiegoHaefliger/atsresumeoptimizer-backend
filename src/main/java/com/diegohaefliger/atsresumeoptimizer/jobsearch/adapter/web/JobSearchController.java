@@ -29,7 +29,9 @@ class JobSearchController {
 
 	@GetMapping("/status")
 	SearchStatusResponse status() {
-		return new SearchStatusResponse(runService.running(), runService.lastRun().map(mapper::toResponse).orElse(null));
+		return new SearchStatusResponse(runService.running(), runService.lastRun().map(mapper::toResponse).orElse(null),
+				runService.nextRun().orElse(null),
+				runService.running() ? mapper.toResponse(runService.progress()) : null);
 	}
 
 	@GetMapping("/runs")

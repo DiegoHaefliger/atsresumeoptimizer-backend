@@ -11,8 +11,6 @@ import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionStatus;
 
 interface SuggestionRepository extends JpaRepository<SuggestionEntity, UUID> {
 
-	List<SuggestionEntity> findByStatusOrderByFoundAtDesc(SuggestionStatus status);
-
 	List<SuggestionEntity> findByStatus(SuggestionStatus status, Sort sort);
 
 	long countByStatus(SuggestionStatus status);

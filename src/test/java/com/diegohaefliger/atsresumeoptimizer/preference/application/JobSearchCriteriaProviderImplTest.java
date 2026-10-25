@@ -6,8 +6,8 @@ import static org.mockito.Mockito.when;
 import com.diegohaefliger.atsresumeoptimizer.job.WorkModel;
 import com.diegohaefliger.atsresumeoptimizer.preference.JobSearchCriteria;
 import com.diegohaefliger.atsresumeoptimizer.preference.PostedWithin;
+import com.diegohaefliger.atsresumeoptimizer.preference.SearchSite;
 import com.diegohaefliger.atsresumeoptimizer.preference.domain.JobPreference;
-import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +24,7 @@ class JobSearchCriteriaProviderImplTest {
 	void reusesThePreferenceFieldsAndAddsTheSearchOnes() {
 		when(preferenceService.current()).thenReturn(new JobPreference(List.of(WorkModel.REMOTE), List.of(), null, null,
 				List.of(), List.of("Pleno"), List.of("Curitiba"), List.of(), List.of(), List.of("Java"), List.of("estágio"),
-				PostedWithin.PAST_MONTH, 30, 80, true, 6));
+				PostedWithin.PAST_MONTH, 30, 80, true, "0 0 */6 * * *", List.of(SearchSite.GUPY)));
 
 		JobSearchCriteria criteria = new JobSearchCriteriaProviderImpl(preferenceService).current();
 
@@ -34,7 +34,8 @@ class JobSearchCriteriaProviderImplTest {
 		assertThat(criteria.workModels()).containsExactly(WorkModel.REMOTE);
 		assertThat(criteria.postedWithin()).isEqualTo(PostedWithin.PAST_MONTH);
 		assertThat(criteria.minAdherence()).isEqualTo(80);
-		assertThat(criteria.interval()).isEqualTo(Duration.ofHours(6));
+		assertThat(criteria.cron()).isEqualTo("0 0 */6 * * *");
+		assertThat(criteria.sites()).containsExactly(SearchSite.GUPY);
 		assertThat(criteria.enabled()).isTrue();
 	}
 }

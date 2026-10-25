@@ -72,8 +72,12 @@ class JobPreferenceEntity {
 	@Column(name = "search_enabled")
 	private boolean searchEnabled;
 
-	@Column(name = "search_interval_hours")
-	private int searchIntervalHours;
+	@Column(name = "search_cron")
+	private String searchCron;
+
+	@JdbcTypeCode(SqlTypes.ARRAY)
+	@Column(name = "search_sites")
+	private List<String> searchSites;
 
 	@Column(name = "updated_at")
 	private Instant updatedAt;
@@ -205,12 +209,20 @@ class JobPreferenceEntity {
 		this.searchEnabled = searchEnabled;
 	}
 
-	public int getSearchIntervalHours() {
-		return searchIntervalHours;
+	public String getSearchCron() {
+		return searchCron;
 	}
 
-	public void setSearchIntervalHours(int searchIntervalHours) {
-		this.searchIntervalHours = searchIntervalHours;
+	public void setSearchCron(String searchCron) {
+		this.searchCron = searchCron;
+	}
+
+	public List<String> getSearchSites() {
+		return searchSites;
+	}
+
+	public void setSearchSites(List<String> searchSites) {
+		this.searchSites = searchSites;
 	}
 
 	public Instant getUpdatedAt() {

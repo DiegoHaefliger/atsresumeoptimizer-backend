@@ -14,8 +14,6 @@ import org.jsoup.nodes.Element;
 final class LinkedInHtmlParser {
 
 	private static final Pattern JOB_URN = Pattern.compile("urn:li:jobPosting:(\\d+)");
-	private static final Pattern BLANK_LINES = Pattern.compile("\\n{3,}");
-	private static final Pattern PADDING_SPACES = Pattern.compile("(?m)^[ \\t]+|[ \\t]+$");
 
 	private LinkedInHtmlParser() {
 	}
@@ -51,15 +49,7 @@ final class LinkedInHtmlParser {
 				employment = value;
 			}
 		}
-		return Optional.of(new SourceJobDetail(plainText(markup), seniority, employment));
-	}
-
-	private static String plainText(Element markup) {
-		Element copy = markup.clone();
-		copy.select("li").before("• ").after("\n");
-		copy.select("p, ul, ol").after("\n\n");
-		String text = PADDING_SPACES.matcher(copy.wholeText()).replaceAll("");
-		return BLANK_LINES.matcher(text).replaceAll("\n\n").strip();
+		return Optional.of(new SourceJobDetail(HtmlText.plain(markup), seniority, employment));
 	}
 
 	private static String text(Element parent, String selector) {

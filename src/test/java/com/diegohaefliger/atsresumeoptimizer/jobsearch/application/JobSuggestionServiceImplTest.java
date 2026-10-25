@@ -24,10 +24,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.InvalidSuggestionStateException;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.JobSuggestionNotFoundException;
+import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionCounts;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionStatus;
 import com.diegohaefliger.atsresumeoptimizer.job.JobDetails;
 import com.diegohaefliger.atsresumeoptimizer.job.JobOrigin;
-import com.diegohaefliger.atsresumeoptimizer.job.JobRegistration;
 import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,12 +41,15 @@ class JobSuggestionServiceImplTest {
 	@Mock
 	private JobStructuringService jobService;
 
+	@Mock
+	private BackgroundJobStructurer structurer;
+
 	private JobSuggestionServiceImpl service;
 	private SuggestionEntity suggestion;
 
 	@BeforeEach
 	void setUp() {
-		service = new JobSuggestionServiceImpl(repository, new SuggestionEntityMapperImpl(), jobService,
+		service = new JobSuggestionServiceImpl(repository, new SuggestionEntityMapperImpl(), jobService, structurer,
 				Clock.fixed(NOW, ZoneOffset.UTC));
 		suggestion = new SuggestionEntity(UUID.randomUUID());
 		suggestion.setSource("LINKEDIN");
@@ -55,7 +58,7 @@ class JobSuggestionServiceImplTest {
 		suggestion.setTitle("Dev Java");
 		suggestion.setCompany("Acme");
 		suggestion.setLocation("Curitiba, Brazil");
-		suggestion.setDescription("Descrição da vaga");
+		suggestion.setDescription("Vamos construir APIs de pagamento");
 		suggestion.setStatus(SuggestionStatus.NEW);
 	}
 
@@ -67,15 +70,15 @@ class JobSuggestionServiceImplTest {
 	void promotingRegistersAJobTaggedAsAutomaticSearch() {
 		found();
 		UUID jobId = UUID.randomUUID();
-		when(jobService.registerAndStructure(anyString(), any(JobDetails.class)))
-				.thenReturn(new JobRegistration(jobId, "Dev Java", null, List.of()));
+		when(jobService.register(anyString(), any(JobDetails.class))).thenReturn(jobId);
 
 		UUID promoted = service.promote(suggestion.getId());
 
 		ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<JobDetails> details = ArgumentCaptor.forClass(JobDetails.class);
-		verify(jobService).registerAndStructure(text.capture(), details.capture());
-		assertThat(text.getValue()).isEqualTo("Dev Java\nAcme · Curitiba, Brazil\n\nDescrição da vaga");
+		verify(jobService).register(text.capture(), details.capture());
+		verify(structurer).structureAfterCommit(text.getValue(), details.getValue());
+		assertThat(text.getValue()).isEqualTo("Dev Java\nAcme · Curitiba, Brazil\n\nVamos construir APIs de pagamento");
 		assertThat(details.getValue().origin()).isEqualTo(JobOrigin.AUTOMATIC_SEARCH);
 		assertThat(details.getValue().sourceUrl()).isEqualTo("https://www.linkedin.com/jobs/view/dev-java-111");
 		assertThat(details.getValue().company()).isEqualTo("Acme");
@@ -83,6 +86,32 @@ class JobSuggestionServiceImplTest {
 		assertThat(suggestion.getStatus()).isEqualTo(SuggestionStatus.PROMOTED);
 		assertThat(suggestion.getJobPostingId()).isEqualTo(jobId);
 		assertThat(suggestion.getDecidedAt()).isEqualTo(NOW);
+	}
+
+	@Test
+	void promotingOrganizesTheDescriptionIntoTopics() {
+		found();
+		suggestion.setDescription("Responsabilidades:\n• Criar APIs\n• Revisar código");
+		when(jobService.register(anyString(), any(JobDetails.class))).thenReturn(UUID.randomUUID());
+
+		service.promote(suggestion.getId());
+
+		ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+		verify(jobService).register(text.capture(), any(JobDetails.class));
+		assertThat(text.getValue()).endsWith("**Responsabilidades**\n- Criar APIs\n- Revisar código");
+	}
+
+	@Test
+	void promotingCleansEntitiesSavedInTheDescriptionByAnEarlierSearch() {
+		found();
+		suggestion.setDescription("Experiência em&nbsp;Java;&nbsp;Spring");
+		when(jobService.register(anyString(), any(JobDetails.class))).thenReturn(UUID.randomUUID());
+
+		service.promote(suggestion.getId());
+
+		ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+		verify(jobService).register(text.capture(), any(JobDetails.class));
+		assertThat(text.getValue()).endsWith("Experiência em Java; Spring");
 	}
 
 	@Test
@@ -94,15 +123,14 @@ class JobSuggestionServiceImplTest {
 
 		assertThat(service.promote(suggestion.getId())).isEqualTo(jobId);
 
-		verify(jobService, never()).registerAndStructure(anyString(), any());
+		verify(jobService, never()).register(anyString(), any());
 	}
 
 	@Test
 	void aDiscardedSuggestionCanStillBePromoted() {
 		found();
 		suggestion.setStatus(SuggestionStatus.DISCARDED);
-		when(jobService.registerAndStructure(anyString(), any(JobDetails.class)))
-				.thenReturn(new JobRegistration(UUID.randomUUID(), null, null, List.of()));
+		when(jobService.register(anyString(), any(JobDetails.class))).thenReturn(UUID.randomUUID());
 
 		service.promote(suggestion.getId());
 
@@ -162,11 +190,22 @@ class JobSuggestionServiceImplTest {
 	}
 
 	@Test
+	void sortsEveryTabByHighestScoreThenNewest() {
+		when(repository.findByStatus(any(SuggestionStatus.class), any(Sort.class))).thenReturn(List.of());
+
+		service.newSuggestions();
+
+		var sort = org.mockito.ArgumentCaptor.forClass(Sort.class);
+		org.mockito.Mockito.verify(repository).findByStatus(eq(SuggestionStatus.NEW), sort.capture());
+		assertThat(sort.getValue().stream().map(order -> order.getProperty() + ":" + order.getDirection()))
+				.containsExactly("score:DESC", "foundAt:DESC");
+	}
+
+	@Test
 	void aSuggestionBelowTheMinimumCanStillBePromoted() {
 		found();
 		suggestion.setStatus(SuggestionStatus.FILTERED);
-		when(jobService.registerAndStructure(anyString(), any(JobDetails.class)))
-				.thenReturn(new JobRegistration(UUID.randomUUID(), null, null, List.of()));
+		when(jobService.register(anyString(), any(JobDetails.class))).thenReturn(UUID.randomUUID());
 
 		service.promote(suggestion.getId());
 
@@ -174,11 +213,13 @@ class JobSuggestionServiceImplTest {
 	}
 
 	@Test
-	void listsOnlyTheNewSuggestionsAndCountsThem() {
-		when(repository.findByStatusOrderByFoundAtDesc(SuggestionStatus.NEW)).thenReturn(List.of(suggestion));
+	void listsOnlyTheNewSuggestionsAndCountsEachTab() {
+		when(repository.findByStatus(eq(SuggestionStatus.NEW), any(Sort.class))).thenReturn(List.of(suggestion));
 		when(repository.countByStatus(SuggestionStatus.NEW)).thenReturn(3L);
+		when(repository.countByStatus(SuggestionStatus.FILTERED)).thenReturn(5L);
+		when(repository.countByStatus(SuggestionStatus.DISCARDED)).thenReturn(2L);
 
 		assertThat(service.newSuggestions()).hasSize(1);
-		assertThat(service.countNew()).isEqualTo(3);
+		assertThat(service.counts()).isEqualTo(new SuggestionCounts(3, 5, 2));
 	}
 }

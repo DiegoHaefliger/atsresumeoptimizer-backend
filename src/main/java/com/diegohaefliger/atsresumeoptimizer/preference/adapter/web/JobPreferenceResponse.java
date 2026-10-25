@@ -3,6 +3,7 @@ package com.diegohaefliger.atsresumeoptimizer.preference.adapter.web;
 import com.diegohaefliger.atsresumeoptimizer.job.ContractType;
 import com.diegohaefliger.atsresumeoptimizer.job.WorkModel;
 import com.diegohaefliger.atsresumeoptimizer.preference.PostedWithin;
+import com.diegohaefliger.atsresumeoptimizer.preference.SearchSite;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -22,5 +23,6 @@ record JobPreferenceResponse(
 		int searchMaxResults,
 		int searchMinAdherence,
 		boolean searchEnabled,
-		int searchIntervalHours) {
+		String searchCron,
+		List<SearchSite> searchSites) {
 }

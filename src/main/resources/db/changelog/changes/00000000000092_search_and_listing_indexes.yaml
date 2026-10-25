@@ -1,0 +1,29 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000092-search-and-listing-indexes
+      author: DiegoHaefliger
+      changes:
+        - createIndex:
+            tableName: analysis
+            indexName: idx_analysis_job_posting_id_created_at
+            columns:
+              - column:
+                  name: job_posting_id
+              - column:
+                  name: created_at
+        - createIndex:
+            tableName: job_posting
+            indexName: idx_job_posting_created_at
+            columns:
+              - column:
+                  name: created_at
+        - createIndex:
+            tableName: job_suggestion
+            indexName: ix_job_suggestion_status_score_found_at
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: score
+              - column:
+                  name: found_at

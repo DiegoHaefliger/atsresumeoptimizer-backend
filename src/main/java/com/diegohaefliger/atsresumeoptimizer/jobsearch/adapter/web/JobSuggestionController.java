@@ -38,7 +38,7 @@ class JobSuggestionController {
 
 	@GetMapping("/count")
 	SuggestionCountResponse count() {
-		return new SuggestionCountResponse(suggestionService.countNew());
+		return mapper.toResponse(suggestionService.counts());
 	}
 
 	@PostMapping("/{id}/promote")

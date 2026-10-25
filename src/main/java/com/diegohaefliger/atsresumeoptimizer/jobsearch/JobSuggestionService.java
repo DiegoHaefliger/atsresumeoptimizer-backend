@@ -3,6 +3,7 @@ package com.diegohaefliger.atsresumeoptimizer.jobsearch;
 import java.util.List;
 import java.util.UUID;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.JobSuggestion;
+import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionCounts;
 
 public interface JobSuggestionService {
 
@@ -12,7 +13,7 @@ public interface JobSuggestionService {
 
 	List<JobSuggestion> discarded();
 
-	long countNew();
+	SuggestionCounts counts();
 
 	UUID promote(UUID id);
 

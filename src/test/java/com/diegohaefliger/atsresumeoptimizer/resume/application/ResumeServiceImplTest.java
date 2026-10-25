@@ -254,6 +254,21 @@ class ResumeServiceImplTest {
 	}
 
 	@Test
+	void keepsTheBaseResumeListedEvenWhenMoreThanFiftyNewerAdaptedOnesExist() {
+		ResumeVersionCreated base = resumeService.storeUpload(
+				"base-antigo.pdf", unique("base antigo"), "base-antigo.pdf", "application/pdf", "texto");
+		for (int index = 0; index < 51; index++) {
+			resumeService.storeAdapted(base.resumeVersionId(), UUID.randomUUID(), "Vaga " + index,
+					unique("adaptado " + index), "curriculo-adaptado.docx", DOCX_MIME, "texto");
+		}
+
+		List<ResumeSummary> resumes = resumeService.listResumes();
+
+		assertThat(resumes).extracting(ResumeSummary::id).contains(base.resumeId());
+		assertThat(resumes).filteredOn(resume -> resume.origin() == ResumeOrigin.ADAPTED).hasSize(50);
+	}
+
+	@Test
 	void favoriteResumeComesFirstAndMarkingAnotherOneUnmarksThePrevious() {
 		ResumeVersionCreated first = resumeService.storeUpload(
 				"favorito-a.pdf", unique("conteudo a"), "favorito-a.pdf", "application/pdf", "texto");
