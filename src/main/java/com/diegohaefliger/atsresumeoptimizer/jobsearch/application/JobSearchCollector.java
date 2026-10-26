@@ -107,12 +107,10 @@ class JobSearchCollector {
 		Counters total = new Counters();
 		List<JobSource> selected = sources.stream().filter(source -> isSelected(source, criteria)).toList();
 		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-			List<Future<Counters>> runs = selected.stream()
-					.map(source -> executor.submit(() -> collectFrom(source, criteria, registered, knownKeys)))
-					.toList();
-			for (Future<Counters> run : runs) {
-				total.add(await(run));
-			}
+			Map<JobSource, Future<Counters>> runs = new LinkedHashMap<>();
+			selected.forEach(source -> runs.put(source,
+					executor.submit(() -> collectFrom(source, criteria, registered, knownKeys))));
+			runs.forEach((source, run) -> total.add(await(source, run)));
 		}
 		return total.outcome();
 	}
@@ -121,18 +119,22 @@ class JobSearchCollector {
 		return criteria.sites().stream().anyMatch(site -> site.name().equals(source.name()));
 	}
 
-	private static Counters await(Future<Counters> run) {
+	private static Counters await(JobSource source, Future<Counters> run) {
 		try {
 			return run.get();
 		} catch (InterruptedException exception) {
 			Thread.currentThread().interrupt();
 			throw new JobSourceException("Busca interrompida.", exception);
 		} catch (ExecutionException exception) {
-			if (exception.getCause() instanceof RuntimeException runtime) {
-				throw runtime;
-			}
-			throw new IllegalStateException(exception.getCause());
+			LOGGER.error("Falha inesperada ao ler vagas de {}", source.name(), exception.getCause());
+			Counters failed = new Counters();
+			failed.fail(unreadable(source));
+			return failed;
 		}
+	}
+
+	private static String unreadable(JobSource source) {
+		return "Não deu pra ler as vagas da " + source.label() + ". A busca nas outras fontes continuou.";
 	}
 
 	private Counters collectFrom(JobSource source, JobSearchCriteria criteria, List<JobListing> registered,
@@ -147,7 +149,7 @@ class JobSearchCollector {
 						|| counters.consecutiveDetailFailures >= MAX_CONSECUTIVE_DETAIL_FAILURES) {
 					break;
 				}
-				if (evaluate(source, job, criteria, knownIds, knownKeys, counters)) {
+				if (evaluateSafely(source, job, criteria, knownIds, knownKeys, counters)) {
 					detailsFetched++;
 				}
 			}
@@ -156,9 +158,22 @@ class JobSearchCollector {
 			counters.fail(exception.getMessage());
 		} catch (RuntimeException exception) {
 			LOGGER.error("Falha inesperada ao ler vagas de {}", source.name(), exception);
-			counters.fail("Não deu pra ler as vagas da " + source.label() + ". A busca nas outras fontes continuou.");
+			counters.fail(unreadable(source));
 		}
 		return counters;
+	}
+
+	private boolean evaluateSafely(JobSource source, SourceJob job, JobSearchCriteria criteria, Set<String> knownIds,
+			Set<String> knownKeys, Counters counters) {
+		try {
+			return evaluate(source, job, criteria, knownIds, knownKeys, counters);
+		} catch (JobSourceException exception) {
+			throw exception;
+		} catch (RuntimeException exception) {
+			LOGGER.error("Falha ao processar a vaga {} de {}", job.externalId(), source.name(), exception);
+			counters.fail(unreadable(source));
+			return false;
+		}
 	}
 
 	private List<SourceJob> candidates(JobSource source, JobSearchCriteria criteria, Counters counters) {
@@ -196,6 +211,10 @@ class JobSearchCollector {
 				if (attempt == SEARCH_ATTEMPTS) {
 					counters.fail(exception.getMessage());
 				}
+			} catch (RuntimeException exception) {
+				LOGGER.error("Consulta em {} falhou de forma inesperada", source.name(), exception);
+				counters.fail(unreadable(source));
+				return Optional.empty();
 			}
 		}
 		return Optional.empty();

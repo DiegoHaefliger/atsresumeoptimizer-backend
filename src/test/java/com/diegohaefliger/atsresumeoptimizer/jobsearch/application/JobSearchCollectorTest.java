@@ -413,6 +413,50 @@ class JobSearchCollectorTest {
 	}
 
 	@Test
+	void anUnexpectedFailureOnOneJobDoesNotStopTheNextJobsOfTheSameSite() {
+		foundJobs(job("111", "Dev Java", "Acme"), job("222", "Dev Kotlin", "Globex"));
+		when(source.detail("111")).thenThrow(new IllegalStateException("html mudou"));
+		detailFor("222");
+		scoring(80);
+
+		var outcome = collector.collect(criteria(10, 70, List.of(), List.of()));
+
+		assertThat(outcome.added()).isEqualTo(1);
+		assertThat(outcome.error()).isEqualTo("Não deu pra ler as vagas da LinkedIn. A busca nas outras fontes continuou.");
+	}
+
+	@Test
+	void anUnexpectedFailureInAQueryDoesNotStopTheNextKeywordOfTheSameSite() {
+		var twoKeywords = new JobSearchCriteria(List.of("java", "kotlin"), List.of(), List.of(), List.of(), List.of(),
+				List.of(), PostedWithin.PAST_WEEK, 10, 70, true, "0 0 */12 * * *", List.of(SearchSite.values()));
+		when(source.search(any())).thenThrow(new IllegalStateException("html mudou"))
+				.thenReturn(List.of(job("111", "Dev Kotlin", "Acme")));
+		detailFor("111");
+		scoring(80);
+
+		var outcome = collector.collect(twoKeywords);
+
+		assertThat(outcome.added()).isEqualTo(1);
+	}
+
+	@Test
+	void anErrorThrownByASourceDoesNotLoseTheOthers() {
+		foundJobs(job("111", "Dev Java", "Acme"));
+		detailFor("111");
+		scoring(80);
+		JobSource broken = org.mockito.Mockito.mock(JobSource.class);
+		when(broken.name()).thenReturn("GUPY");
+		when(broken.label()).thenReturn("Gupy");
+		when(broken.pageSize()).thenReturn(Integer.MAX_VALUE);
+		when(broken.search(any())).thenThrow(new StackOverflowError());
+
+		var outcome = collectorWith(broken, source).collect(criteria(10, 70, List.of(), List.of()));
+
+		assertThat(outcome.added()).isEqualTo(1);
+		assertThat(outcome.error()).contains("Gupy");
+	}
+
+	@Test
 	void skipsJobsPublishedBeforeThePostedWithinWindow() {
 		var old = new SourceJob("999", "https://gupy.test/job/999", "Dev Kotlin", "Beta", "Remoto",
 				LocalDate.of(2026, 10, 1), new SourceJobDetail("Descrição", null, null));
