@@ -10,6 +10,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 class WebConfig implements WebMvcConfigurer {
 
+	private static final String EXTENSION_ORIGIN = "chrome-extension://*";
+	private static final String PAIRING_HEADER = "X-Pairing-Token";
+
 	@Value("${app.cors.allowed-origins}")
 	private List<String> allowedOrigins;
 
@@ -20,5 +23,12 @@ class WebConfig implements WebMvcConfigurer {
 				.allowedMethods("GET", "POST", "PUT", "DELETE")
 				.allowedHeaders("Content-Type")
 				.exposedHeaders(HttpHeaders.CONTENT_DISPOSITION);
+		registry.addMapping("/api/v1/linkedin/snapshots")
+				.allowedOriginPatterns(EXTENSION_ORIGIN)
+				.allowedMethods("POST")
+				.allowedHeaders("Content-Type", PAIRING_HEADER);
+		registry.addMapping("/api/v1/linkedin/pairing-token")
+				.allowedOriginPatterns(EXTENSION_ORIGIN)
+				.allowedMethods("GET");
 	}
 }
