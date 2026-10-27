@@ -1,7 +1,7 @@
 package com.diegohaefliger.atsresumeoptimizer.careerprofile.adapter.web;
 
-import com.diegohaefliger.atsresumeoptimizer.careerprofile.application.CareerProfileService;
-import com.diegohaefliger.atsresumeoptimizer.careerprofile.domain.CareerProfileNotFoundException;
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.CareerProfileNotFoundException;
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.CareerProfileService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;

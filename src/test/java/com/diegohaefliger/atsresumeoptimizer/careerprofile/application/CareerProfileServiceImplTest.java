@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.diegohaefliger.atsresumeoptimizer.careerprofile.domain.CareerProfile;
-import com.diegohaefliger.atsresumeoptimizer.careerprofile.domain.ProfileTone;
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.CareerProfile;
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.ProfileTone;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

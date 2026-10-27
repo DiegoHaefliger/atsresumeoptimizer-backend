@@ -1,6 +1,7 @@
 package com.diegohaefliger.atsresumeoptimizer.careerprofile.application;
 
-import com.diegohaefliger.atsresumeoptimizer.careerprofile.domain.CareerProfile;
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.CareerProfile;
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.CareerProfileService;
 import com.github.f4b6a3.uuid.UuidCreator;
 import java.time.Instant;
 import java.util.Optional;

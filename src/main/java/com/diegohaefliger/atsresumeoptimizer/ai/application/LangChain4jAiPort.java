@@ -8,18 +8,25 @@ import com.diegohaefliger.atsresumeoptimizer.ai.AiUsage;
 import com.diegohaefliger.atsresumeoptimizer.ai.BulletReview;
 import com.diegohaefliger.atsresumeoptimizer.ai.CandidateQuestionsBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.CandidateQuestionsDraft;
+import com.diegohaefliger.atsresumeoptimizer.ai.ChatImage;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionsBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionsDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobFocus;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobStructured;
+import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInAnalysisBrief;
+import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInAnalysisDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.RequirementEvidence;
 import com.diegohaefliger.atsresumeoptimizer.ai.StructuredResume;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,6 +47,7 @@ class LangChain4jAiPort implements AiPort {
 	private static final String COVER_LETTER_KEY = "cover-letter";
 	private static final String INTERVIEW_QUESTIONS_KEY = "interview-questions";
 	private static final String CANDIDATE_QUESTIONS_KEY = "candidate-questions";
+	private static final String LINKEDIN_ANALYSIS_KEY = "linkedin-analysis";
 	static final String RESUME_STRUCTURING_KEY = "resume-structuring";
 	private static final int MAX_PARSE_ATTEMPTS = 2;
 	private static final String NO_PROVIDER_CONFIGURED =
@@ -55,6 +63,8 @@ class LangChain4jAiPort implements AiPort {
 	private static final String UNKNOWN_JOB_TITLE = "não informado";
 	private static final String NO_RESUME = "não informado";
 	private static final String NO_BENEFITS = "nenhum informado";
+	private static final String NO_IMAGES = "Nenhuma imagem foi enviada: marque PHOTO e BANNER como não avaliados.";
+	private static final String IMAGES_ATTACHED = "A foto de perfil e o banner seguem anexados a esta mensagem, nessa ordem quando ambos existem.";
 
 	private final AiModelGateway modelGateway;
 	private final PromptTemplateRepository promptTemplateRepository;
@@ -141,6 +151,16 @@ class LangChain4jAiPort implements AiPort {
 	}
 
 	@Override
+	public AiResult<LinkedInAnalysisDraft> analyzeLinkedIn(LinkedInAnalysisBrief brief) {
+		PromptTemplate template = activeTemplate(LINKEDIN_ANALYSIS_KEY);
+		String prompt = template.getContent()
+				.replace("{{careerProfile}}", brief.careerProfile())
+				.replace("{{linkedinProfile}}", brief.linkedInProfile())
+				.replace("{{imageNote}}", brief.images().isEmpty() ? NO_IMAGES : IMAGES_ATTACHED);
+		return call(template, prompt, LinkedInAnalysisDraft.class, false, brief.images());
+	}
+
+	@Override
 	public AiResult<StructuredResume> structureResume(String resumeText, String correctionInstructions, JobFocus jobFocus) {
 		PromptTemplate template = activeTemplate(RESUME_STRUCTURING_KEY);
 		String prompt = template.getContent()
@@ -188,6 +208,11 @@ class LangChain4jAiPort implements AiPort {
 	}
 
 	private <T> AiResult<T> call(PromptTemplate template, String prompt, Class<T> responseType, boolean cacheable) {
+		return call(template, prompt, responseType, cacheable, List.of());
+	}
+
+	private <T> AiResult<T> call(
+			PromptTemplate template, String prompt, Class<T> responseType, boolean cacheable, List<ChatImage> images) {
 		List<ResolvedModel> chain = modelGateway.resolveChain(template.getKey());
 		if (chain.isEmpty()) {
 			throw new AiCallException(NO_PROVIDER_CONFIGURED, null);
@@ -195,7 +220,7 @@ class LangChain4jAiPort implements AiPort {
 		AiCallException lastFailure = null;
 		for (ResolvedModel resolved : chain) {
 			try {
-				return callProvider(resolved, template, prompt, responseType, cacheable);
+				return callProvider(resolved, template, prompt, responseType, cacheable, images);
 			} catch (AiCallException failure) {
 				lastFailure = failure;
 				LOGGER.warn("Provedor {} ({}) falhou para {}, tentando o próximo da fila", resolved.provider(),
@@ -206,7 +231,8 @@ class LangChain4jAiPort implements AiPort {
 	}
 
 	private <T> AiResult<T> callProvider(
-			ResolvedModel resolved, PromptTemplate template, String prompt, Class<T> responseType, boolean cacheable) {
+			ResolvedModel resolved, PromptTemplate template, String prompt, Class<T> responseType, boolean cacheable,
+			List<ChatImage> images) {
 		String model = resolved.modelName();
 		String keyHash = Sha256.hex(
 				template.getKey() + ":" + template.getVersion() + ":" + resolved.provider() + ":" + model + ":" + prompt);
@@ -219,7 +245,7 @@ class LangChain4jAiPort implements AiPort {
 		for (int attempt = 1; attempt <= MAX_PARSE_ATTEMPTS; attempt++) {
 			ChatResponse response;
 			try {
-				response = resolved.chatModel().chat(ChatRequest.builder().messages(UserMessage.from(prompt)).build());
+				response = resolved.chatModel().chat(ChatRequest.builder().messages(userMessage(prompt, images)).build());
 			} catch (RuntimeException exception) {
 				LOGGER.warn("Falha ao chamar {} para {}", resolved.provider(), template.getKey(), exception);
 				throw new AiCallException("Falha ao chamar " + resolved.provider().label() + " para " + template.getKey(), exception);
@@ -260,6 +286,16 @@ class LangChain4jAiPort implements AiPort {
 			return new AiResult<>(value, usage);
 		}
 		throw lastParseFailure;
+	}
+
+	private static UserMessage userMessage(String prompt, List<ChatImage> images) {
+		if (images.isEmpty()) {
+			return UserMessage.from(prompt);
+		}
+		List<Content> contents = new ArrayList<>();
+		contents.add(TextContent.from(prompt));
+		images.forEach(image -> contents.add(ImageContent.from(image.base64Data(), image.mimeType())));
+		return UserMessage.from(contents);
 	}
 
 	private <T> T parse(String json, Class<T> responseType) {

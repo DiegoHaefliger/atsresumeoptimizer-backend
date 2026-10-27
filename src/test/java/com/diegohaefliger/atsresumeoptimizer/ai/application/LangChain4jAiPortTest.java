@@ -12,6 +12,7 @@ import com.diegohaefliger.atsresumeoptimizer.ai.AiResult;
 import com.diegohaefliger.atsresumeoptimizer.ai.CandidateQuestionDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.CandidateQuestionsBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.CandidateQuestionsDraft;
+import com.diegohaefliger.atsresumeoptimizer.ai.ChatImage;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.CoverLetterDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionDraft;
@@ -19,6 +20,8 @@ import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionsBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.InterviewQuestionsDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobFocus;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobStructured;
+import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInAnalysisBrief;
+import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInAnalysisDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.RemovedSkill;
 import com.diegohaefliger.atsresumeoptimizer.ai.ResumeSectionSemanticType;
 import com.diegohaefliger.atsresumeoptimizer.ai.StructuredResume;
@@ -387,5 +390,51 @@ class LangChain4jAiPortTest {
 		String sentPrompt = ((dev.langchain4j.data.message.UserMessage) requestCaptor.getValue().messages().get(0)).singleText();
 		assertThat(sentPrompt).isEqualTo("Backend Java | Cielo | não informada | VR; Gympass | texto da vaga");
 		verifyNoInteractions(llmCacheRepository);
+	}
+
+	@Test
+	void analyzesTheLinkedInProfileSendingTheImagesAlongTheTextWithoutTouchingTheCache() {
+		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
+		PromptTemplate template = template("linkedin-analysis", "{{careerProfile}} | {{linkedinProfile}} | {{imageNote}}");
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("linkedin-analysis")).thenReturn(Optional.of(template));
+		ChatResponse response = ChatResponse.builder()
+				.aiMessage(AiMessage.from("{\"overallScore\":70,\"summary\":\"Bom.\",\"topActions\":[\"Ajustar o título\"],"
+						+ "\"sections\":[{\"section\":\"HEADLINE\",\"score\":60,\"diagnosis\":\"Genérico\","
+						+ "\"suggestions\":[{\"priority\":\"HIGH\",\"text\":\"Citar o cargo-alvo\"}],\"rewrite\":\"Tech Lead\"}]}"))
+				.tokenUsage(new TokenUsage(2000, 1500))
+				.build();
+		org.mockito.ArgumentCaptor<ChatRequest> requestCaptor = org.mockito.ArgumentCaptor.forClass(ChatRequest.class);
+		when(chatModel.chat(requestCaptor.capture())).thenReturn(response);
+
+		AiResult<LinkedInAnalysisDraft> result = aiPort.analyzeLinkedIn(new LinkedInAnalysisBrief("alvo: Tech Lead",
+				"título: Dev", List.of(new ChatImage("image/png", "AQID"))));
+
+		assertThat(result.value().overallScore()).isEqualTo(70);
+		assertThat(result.value().sections()).hasSize(1);
+		assertThat(result.value().sections().get(0).suggestions().get(0).priority()).isEqualTo("HIGH");
+		var message = (dev.langchain4j.data.message.UserMessage) requestCaptor.getValue().messages().get(0);
+		assertThat(message.contents()).hasSize(2);
+		assertThat(((dev.langchain4j.data.message.TextContent) message.contents().get(0)).text())
+				.startsWith("alvo: Tech Lead | título: Dev | A foto de perfil e o banner seguem anexados");
+		assertThat(message.contents().get(1)).isInstanceOf(dev.langchain4j.data.message.ImageContent.class);
+		verifyNoInteractions(llmCacheRepository);
+	}
+
+	@Test
+	void analyzesTheLinkedInProfileAsPlainTextWhenThereAreNoImages() {
+		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
+		PromptTemplate template = template("linkedin-analysis", "{{careerProfile}} | {{linkedinProfile}} | {{imageNote}}");
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("linkedin-analysis")).thenReturn(Optional.of(template));
+		ChatResponse response = ChatResponse.builder()
+				.aiMessage(AiMessage.from("{\"overallScore\":10,\"summary\":\"Fraco.\",\"sections\":[]}"))
+				.tokenUsage(new TokenUsage(10, 10))
+				.build();
+		org.mockito.ArgumentCaptor<ChatRequest> requestCaptor = org.mockito.ArgumentCaptor.forClass(ChatRequest.class);
+		when(chatModel.chat(requestCaptor.capture())).thenReturn(response);
+
+		aiPort.analyzeLinkedIn(new LinkedInAnalysisBrief("a", "b", List.of()));
+
+		var message = (dev.langchain4j.data.message.UserMessage) requestCaptor.getValue().messages().get(0);
+		assertThat(message.singleText()).startsWith("a | b | Nenhuma imagem foi enviada");
 	}
 }

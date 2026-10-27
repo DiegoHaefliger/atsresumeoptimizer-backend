@@ -1,6 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.careerprofile.adapter.web;
 
-import com.diegohaefliger.atsresumeoptimizer.careerprofile.domain.ProfileTone;
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.ProfileTone;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;

@@ -1,6 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.careerprofile.adapter.web;
 
-import com.diegohaefliger.atsresumeoptimizer.careerprofile.domain.ProfileTone;
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.ProfileTone;
 import java.util.List;
 
 record CareerProfileResponse(

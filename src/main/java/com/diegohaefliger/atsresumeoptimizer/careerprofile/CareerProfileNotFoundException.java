@@ -1,4 +1,4 @@
-package com.diegohaefliger.atsresumeoptimizer.careerprofile.domain;
+package com.diegohaefliger.atsresumeoptimizer.careerprofile;
 
 import com.diegohaefliger.atsresumeoptimizer.BusinessException;
 import org.springframework.http.HttpStatus;

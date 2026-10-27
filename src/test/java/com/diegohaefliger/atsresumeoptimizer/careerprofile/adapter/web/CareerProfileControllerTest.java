@@ -8,8 +8,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.diegohaefliger.atsresumeoptimizer.careerprofile.application.CareerProfileService;
-import com.diegohaefliger.atsresumeoptimizer.careerprofile.domain.CareerProfile;
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.CareerProfileService;
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.CareerProfile;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;

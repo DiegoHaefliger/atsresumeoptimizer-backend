@@ -1,5 +1,6 @@
-package com.diegohaefliger.atsresumeoptimizer.careerprofile.domain;
+package com.diegohaefliger.atsresumeoptimizer.careerprofile;
 
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.domain.InvalidCareerProfileException;
 import java.util.List;
 
 public record CareerProfile(

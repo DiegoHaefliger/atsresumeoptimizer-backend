@@ -175,3 +175,7 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000093_career_profile.yaml
   - include:
       file: db/changelog/changes/00000000000094_linkedin_snapshot.yaml
+  - include:
+      file: db/changelog/changes/00000000000095_linkedin_analysis.yaml
+  - include:
+      file: db/changelog/changes/00000000000096_prompt_template_linkedin_analysis.yaml

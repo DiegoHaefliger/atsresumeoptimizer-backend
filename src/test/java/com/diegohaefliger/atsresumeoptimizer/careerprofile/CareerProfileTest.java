@@ -1,8 +1,9 @@
-package com.diegohaefliger.atsresumeoptimizer.careerprofile.domain;
+package com.diegohaefliger.atsresumeoptimizer.careerprofile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.domain.InvalidCareerProfileException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

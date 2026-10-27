@@ -1,6 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.careerprofile.application;
 
-import com.diegohaefliger.atsresumeoptimizer.careerprofile.domain.CareerProfile;
+import com.diegohaefliger.atsresumeoptimizer.careerprofile.CareerProfile;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
