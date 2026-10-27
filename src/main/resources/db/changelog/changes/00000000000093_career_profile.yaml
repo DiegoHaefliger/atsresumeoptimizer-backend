@@ -1,0 +1,84 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000093-career-profile
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: career_profile
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: area_of_expertise
+                  type: varchar(150)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: current_job_title
+                  type: varchar(150)
+              - column:
+                  name: current_seniority
+                  type: varchar(50)
+              - column:
+                  name: target_job_title
+                  type: varchar(150)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target_seniority
+                  type: varchar(50)
+              - column:
+                  name: target_timeframe
+                  type: varchar(100)
+              - column:
+                  name: target_industries
+                  type: text[]
+                  defaultValueComputed: "'{}'"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target_companies
+                  type: text[]
+                  defaultValueComputed: "'{}'"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: location
+                  type: varchar(150)
+              - column:
+                  name: languages
+                  type: text[]
+                  defaultValueComputed: "'{}'"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: strengths
+                  type: text[]
+                  defaultValueComputed: "'{}'"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: differentiators
+                  type: text
+              - column:
+                  name: tone
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: profile_language
+                  type: varchar(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notes
+                  type: text
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false

@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000095-linkedin-analysis
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: linkedin_analysis
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: snapshot_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_linkedin_analysis_snapshot
+                    references: linkedin_snapshot(id)
+                    deleteCascade: true
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: overall_score
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: summary
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: report
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: images_analyzed
+                  type: boolean
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ai_model
+                  type: varchar(100)
+              - column:
+                  name: tokens_in
+                  type: integer
+              - column:
+                  name: tokens_out
+                  type: integer
+              - column:
+                  name: cost_usd
+                  type: numeric(10,4)
+        - createIndex:
+            tableName: linkedin_analysis
+            indexName: idx_linkedin_analysis_created_at
+            columns:
+              - column:
+                  name: created_at

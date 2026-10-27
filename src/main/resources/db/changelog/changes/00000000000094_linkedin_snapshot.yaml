@@ -1,0 +1,66 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000094-linkedin-snapshot
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: linkedin_snapshot
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: captured_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: photo
+                  type: bytea
+              - column:
+                  name: photo_mime_type
+                  type: varchar(30)
+              - column:
+                  name: banner
+                  type: bytea
+              - column:
+                  name: banner_mime_type
+                  type: varchar(30)
+        - createIndex:
+            tableName: linkedin_snapshot
+            indexName: idx_linkedin_snapshot_captured_at
+            columns:
+              - column:
+                  name: captured_at
+        - createTable:
+            tableName: linkedin_pairing
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: token
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false

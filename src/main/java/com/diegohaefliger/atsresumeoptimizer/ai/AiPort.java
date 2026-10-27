@@ -20,4 +20,7 @@ public interface AiPort {
 
 	/** Sem cache: gerar de novo tem que trazer outras perguntas. */
 	AiResult<CandidateQuestionsDraft> writeCandidateQuestions(CandidateQuestionsBrief brief);
+
+	/** Sem cache: cada análise reflete o perfil daquele momento. */
+	AiResult<LinkedInAnalysisDraft> analyzeLinkedIn(LinkedInAnalysisBrief brief);
 }

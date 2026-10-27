@@ -171,3 +171,13 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000091_job_search_remotar_site.yaml
   - include:
       file: db/changelog/changes/00000000000092_search_and_listing_indexes.yaml
+  - include:
+      file: db/changelog/changes/00000000000093_career_profile.yaml
+  - include:
+      file: db/changelog/changes/00000000000094_linkedin_snapshot.yaml
+  - include:
+      file: db/changelog/changes/00000000000095_linkedin_analysis.yaml
+  - include:
+      file: db/changelog/changes/00000000000096_prompt_template_linkedin_analysis.yaml
+  - include:
+      file: db/changelog/changes/00000000000097_prompt_template_linkedin_analysis_v2.yaml
