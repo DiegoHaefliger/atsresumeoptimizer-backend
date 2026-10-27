@@ -171,3 +171,5 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000091_job_search_remotar_site.yaml
   - include:
       file: db/changelog/changes/00000000000092_search_and_listing_indexes.yaml
+  - include:
+      file: db/changelog/changes/00000000000093_career_profile.yaml
