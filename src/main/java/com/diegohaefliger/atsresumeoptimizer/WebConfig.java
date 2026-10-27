@@ -18,11 +18,6 @@ class WebConfig implements WebMvcConfigurer {
 
 	@Override
 	public void addCorsMappings(CorsRegistry registry) {
-		registry.addMapping("/**")
-				.allowedOrigins(allowedOrigins.toArray(String[]::new))
-				.allowedMethods("GET", "POST", "PUT", "DELETE")
-				.allowedHeaders("Content-Type")
-				.exposedHeaders(HttpHeaders.CONTENT_DISPOSITION);
 		registry.addMapping("/api/v1/linkedin/snapshots")
 				.allowedOriginPatterns(EXTENSION_ORIGIN)
 				.allowedMethods("POST")
@@ -30,5 +25,10 @@ class WebConfig implements WebMvcConfigurer {
 		registry.addMapping("/api/v1/linkedin/pairing-token")
 				.allowedOriginPatterns(EXTENSION_ORIGIN)
 				.allowedMethods("GET");
+		registry.addMapping("/**")
+				.allowedOrigins(allowedOrigins.toArray(String[]::new))
+				.allowedMethods("GET", "POST", "PUT", "DELETE")
+				.allowedHeaders("Content-Type")
+				.exposedHeaders(HttpHeaders.CONTENT_DISPOSITION);
 	}
 }
