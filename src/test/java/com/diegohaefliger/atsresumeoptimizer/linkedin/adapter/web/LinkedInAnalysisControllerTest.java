@@ -42,7 +42,7 @@ class LinkedInAnalysisControllerTest {
 	private static LinkedInAnalysis analysis(UUID snapshotId) {
 		var report = new LinkedInAnalysisReport("Falta posicionamento.", List.of("Reescrever o título"), List.of("Java"),
 				List.of("Liderança"), List.of(new LinkedInSectionReview(ProfileSection.HEADLINE, 55, "Genérico.",
-						List.of(new LinkedInSuggestion(SuggestionPriority.HIGH, "Incluir o cargo-alvo")), "Tech Lead Java")));
+						List.of(new LinkedInSuggestion(SuggestionPriority.HIGH, "Incluir o cargo-alvo")), "Tech Lead Java", null)));
 		return new LinkedInAnalysis(UUID.randomUUID(), snapshotId, Instant.parse("2026-10-27T12:00:00Z"), 62,
 				"Perfil razoável.", report, true, "gpt-4o-mini", new BigDecimal("0.0123"));
 	}

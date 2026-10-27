@@ -14,6 +14,7 @@ import com.diegohaefliger.atsresumeoptimizer.ai.AiResult;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiUsage;
 import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInAnalysisBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInAnalysisDraft;
+import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInItemReviewDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInSectionReviewDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInSuggestionDraft;
 import com.diegohaefliger.atsresumeoptimizer.careerprofile.CareerProfileService;
@@ -82,11 +83,15 @@ class LinkedInAnalysisServiceImplTest {
 		return new LinkedInAnalysisDraft(150, "Perfil razoável.", "Falta posicionamento.", List.of("Reescrever o título"),
 				List.of("Java"), List.of("Liderança"), List.of(
 						new LinkedInSectionReviewDraft("headline", 55, "Genérico.",
-								List.of(new LinkedInSuggestionDraft("high", "Incluir o cargo-alvo")), "Tech Lead Java | AWS"),
-						new LinkedInSectionReviewDraft("HEADLINE", 10, "Duplicada.", null, null),
-						new LinkedInSectionReviewDraft("INEXISTENTE", 90, "Ignorada.", null, null),
+								List.of(new LinkedInSuggestionDraft("high", "Incluir o cargo-alvo")), "Tech Lead Java | AWS", null),
+						new LinkedInSectionReviewDraft("HEADLINE", 10, "Duplicada.", null, null, null),
+						new LinkedInSectionReviewDraft("INEXISTENTE", 90, "Ignorada.", null, null, null),
 						new LinkedInSectionReviewDraft("ABOUT", -5, "Curto.",
-								List.of(new LinkedInSuggestionDraft("???", "Abrir com resultado")), null)));
+								List.of(new LinkedInSuggestionDraft("???", "Abrir com resultado")), null, null),
+						new LinkedInSectionReviewDraft("EXPERIENCE", 70, "Bom.", null, null, List.of(
+								new LinkedInItemReviewDraft("Porto - Desenvolvedor Sênior", 120, "Sem métricas.",
+										List.of(new LinkedInSuggestionDraft("high", "Abrir com o resultado")), "- Reduzi o tempo de resposta"),
+								new LinkedInItemReviewDraft("Zup - Desenvolvedor", null, "Claro.", null, null)))));
 	}
 
 	private static AiResult<LinkedInAnalysisDraft> result() {
@@ -113,12 +118,17 @@ class LinkedInAnalysisServiceImplTest {
 		assertThat(analysis.imagesAnalyzed()).isTrue();
 		assertThat(analysis.aiModel()).isEqualTo("gpt-4o-mini");
 		assertThat(analysis.costUsd()).isEqualByComparingTo("0.0123");
-		assertThat(analysis.report().sections()).hasSize(2);
+		assertThat(analysis.report().sections()).hasSize(3);
 		assertThat(analysis.report().sections().get(0).section()).isEqualTo(ProfileSection.HEADLINE);
 		assertThat(analysis.report().sections().get(0).score()).isEqualTo(55);
 		assertThat(analysis.report().sections().get(0).suggestions().get(0).priority()).isEqualTo(SuggestionPriority.HIGH);
 		assertThat(analysis.report().sections().get(1).score()).isZero();
 		assertThat(analysis.report().sections().get(1).suggestions().get(0).priority()).isEqualTo(SuggestionPriority.MEDIUM);
+		var experience = analysis.report().sections().get(2);
+		assertThat(experience.items()).extracting("title").containsExactly("Porto - Desenvolvedor Sênior", "Zup - Desenvolvedor");
+		assertThat(experience.items().get(0).score()).isEqualTo(100);
+		assertThat(experience.items().get(0).suggestions().get(0).priority()).isEqualTo(SuggestionPriority.HIGH);
+		assertThat(experience.items().get(1).score()).isZero();
 	}
 
 	@Test
