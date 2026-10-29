@@ -29,7 +29,7 @@
 	<properties>
 		<revision>0.0.1-SNAPSHOT</revision>
 		<java.version>25</java.version>
-		<spring-modulith.version>2.1.1</spring-modulith.version>
+		<spring-modulith.version>2.1.2</spring-modulith.version>
 		<langchain4j.version>1.0.0</langchain4j.version>
 		<pdfbox.version>3.0.7</pdfbox.version>
 		<poi.version>6.0.0</poi.version>
