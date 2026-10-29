@@ -30,7 +30,7 @@
 		<revision>0.0.1-SNAPSHOT</revision>
 		<java.version>25</java.version>
 		<spring-modulith.version>2.1.1</spring-modulith.version>
-		<langchain4j.version>1.0.0</langchain4j.version>
+		<langchain4j.version>1.22.0</langchain4j.version>
 		<pdfbox.version>3.0.7</pdfbox.version>
 		<poi.version>6.0.0</poi.version>
 		<tika.version>4.1.0</tika.version>
