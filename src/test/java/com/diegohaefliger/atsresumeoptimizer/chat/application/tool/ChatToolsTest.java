@@ -49,7 +49,7 @@ class ChatToolsTest {
 	void listsTheJobsWithTheirStage() {
 		SelectionProcess process = new SelectionProcess(UUID.randomUUID(), JOB_ID, 12L, "Acme", "Dev Java Sênior", null,
 				null, SelectionStage.TECHNICAL_INTERVIEW, null, null, "Maria", "maria@acme.com", null, null,
-				"nota privada", NOW, NOW, List.of(), List.of(), null);
+				"nota privada", NOW, NOW, List.of(), List.of(), null, NOW);
 		when(processes.list(Optional.empty())).thenReturn(List.of(process));
 
 		String result = new ListJobsTool(lookup, processes).run(Map.of());
@@ -120,7 +120,7 @@ class ChatToolsTest {
 	void theProcessToolNeverExposesNotesOrContactData() {
 		SelectionProcess process = new SelectionProcess(UUID.randomUUID(), JOB_ID, 12L, "Acme", "Dev Java Sênior", null,
 				null, SelectionStage.SCREENING, null, null, "Maria Recrutadora", "maria@acme.com", "11999990000", null,
-				"anotação privada do usuário", NOW, NOW, List.of(), List.of(), null);
+				"anotação privada do usuário", NOW, NOW, List.of(), List.of(), null, NOW);
 		when(processes.list(Optional.empty())).thenReturn(List.of(process));
 
 		String result = new GetJobProcessTool(lookup, processes).run(Map.of("codigo", "12"));

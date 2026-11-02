@@ -26,7 +26,7 @@ class WebConfig implements WebMvcConfigurer {
 				.allowedOriginPatterns(EXTENSION_ORIGIN)
 				.allowedMethods("GET");
 		registry.addMapping("/**")
-				.allowedOrigins(allowedOrigins.toArray(String[]::new))
+				.allowedOriginPatterns(allowedOrigins.toArray(String[]::new))
 				.allowedMethods("GET", "POST", "PUT", "DELETE")
 				.allowedHeaders("Content-Type")
 				.exposedHeaders(HttpHeaders.CONTENT_DISPOSITION);

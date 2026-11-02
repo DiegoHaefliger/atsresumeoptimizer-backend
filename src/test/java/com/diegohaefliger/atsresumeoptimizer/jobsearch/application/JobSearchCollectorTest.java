@@ -203,6 +203,31 @@ class JobSearchCollectorTest {
 	}
 
 	@Test
+	void keepsAJobWhoseDescriptionCitesAnExcludedWordOutOfTheSuggestions() {
+		foundJobs(job("111", "Dev Backend", "Acme"));
+		when(source.detail("111")).thenReturn(Optional.of(new SourceJobDetail("Stack: Java, Node.js e AWS", null, null)));
+		scoring(90);
+
+		var outcome = collector.collect(criteria(10, 70, List.of("Node"), List.of()));
+
+		ArgumentCaptor<SuggestionEntity> saved = ArgumentCaptor.forClass(SuggestionEntity.class);
+		verify(repository).save(saved.capture());
+		assertThat(saved.getValue().getStatus()).isEqualTo(SuggestionStatus.FILTERED);
+		assertThat(outcome.added()).isZero();
+		assertThat(outcome.belowAdherence()).isEqualTo(1);
+	}
+
+	@Test
+	void ignoresAJobWithAnExcludedTermWrittenWithPunctuation() {
+		foundJobs(job("111", "Sênior .NET Backend Developer", "Verity"));
+
+		var outcome = collector.collect(criteria(10, 70, List.of(".NET"), List.of()));
+
+		verify(source, never()).detail(anyString());
+		assertThat(outcome.added()).isZero();
+	}
+
+	@Test
 	void stopsAndReportsTheErrorButKeepsWhatWasAlreadySaved() {
 		foundJobs(job("111", "Dev Java", "Acme"), job("222", "Dev Kotlin", "Globex"));
 		detailFor("111");

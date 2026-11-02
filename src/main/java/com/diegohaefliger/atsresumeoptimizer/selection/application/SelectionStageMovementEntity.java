@@ -48,6 +48,10 @@ class SelectionStageMovementEntity {
 		return id;
 	}
 
+	public UUID getProcessId() {
+		return processId;
+	}
+
 	public SelectionStage getStage() {
 		return stage;
 	}

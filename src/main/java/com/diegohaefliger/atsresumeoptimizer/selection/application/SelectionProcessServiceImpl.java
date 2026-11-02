@@ -57,9 +57,10 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 		Map<UUID, JobOffer> offers =
 				jobService.offers(entities.stream().map(SelectionProcessEntity::getJobPostingId).distinct().toList());
 		Map<UUID, SelectionSchedule> nextSchedules = nextSchedules(entities);
+		Map<UUID, Instant> stageSince = stageSince(entities);
 		return entities.stream()
 				.map(entity -> mapper.toDomain(entity, offers.get(entity.getJobPostingId()), List.of(), List.of(),
-						nextSchedules.get(entity.getId())))
+						nextSchedules.get(entity.getId()), stageSince.get(entity.getId())))
 				.toList();
 	}
 
@@ -145,9 +146,8 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 	}
 
 	private SelectionProcess withHistory(SelectionProcessEntity entity) {
-		List<StageMovement> history = movementRepository.findByProcessIdOrderByMovedAtAsc(entity.getId()).stream()
-				.map(mapper::toDomain)
-				.toList();
+		List<SelectionStageMovementEntity> movements = movementRepository.findByProcessIdOrderByMovedAtAsc(entity.getId());
+		List<StageMovement> history = movements.stream().map(mapper::toDomain).toList();
 		List<SelectionSchedule> schedules = scheduleRepository.findByProcessIdOrderByScheduledAtAsc(entity.getId())
 				.stream()
 				.map(scheduleMapper::toDomain)
@@ -156,7 +156,9 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 				.filter(schedule -> schedule.status() == ScheduleStatus.SCHEDULED)
 				.findFirst()
 				.orElse(null);
-		return mapper.toDomain(entity, jobService.offer(entity.getJobPostingId()).orElse(null), history, schedules, next);
+		Instant stageSince = movements.isEmpty() ? null : startOf(movements.getLast());
+		return mapper.toDomain(entity, jobService.offer(entity.getJobPostingId()).orElse(null), history, schedules, next,
+				stageSince);
 	}
 
 	private Map<UUID, SelectionSchedule> nextSchedules(List<SelectionProcessEntity> entities) {
@@ -166,6 +168,18 @@ class SelectionProcessServiceImpl implements SelectionProcessService {
 				.stream()
 				.map(scheduleMapper::toDomain)
 				.collect(Collectors.toMap(SelectionSchedule::processId, schedule -> schedule, (first, later) -> first));
+	}
+
+	private Map<UUID, Instant> stageSince(List<SelectionProcessEntity> entities) {
+		return movementRepository
+				.findByProcessIdInOrderByMovedAtAsc(entities.stream().map(SelectionProcessEntity::getId).toList())
+				.stream()
+				.collect(Collectors.toMap(SelectionStageMovementEntity::getProcessId, SelectionProcessServiceImpl::startOf,
+						(earlier, latest) -> latest));
+	}
+
+	private static Instant startOf(SelectionStageMovementEntity movement) {
+		return movement.getStageAt() != null ? movement.getStageAt() : movement.getMovedAt();
 	}
 
 	private static String blankToNull(String text) {

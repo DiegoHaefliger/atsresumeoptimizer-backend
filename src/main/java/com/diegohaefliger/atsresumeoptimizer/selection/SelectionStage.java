@@ -22,4 +22,8 @@ public enum SelectionStage {
 	public String label() {
 		return label;
 	}
+
+	public boolean isClosed() {
+		return this == HIRED || this == REJECTED || this == WITHDRAWN;
+	}
 }

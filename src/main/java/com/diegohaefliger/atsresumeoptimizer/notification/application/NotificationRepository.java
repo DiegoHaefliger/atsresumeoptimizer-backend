@@ -1,5 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.notification.application;
 
+import com.diegohaefliger.atsresumeoptimizer.notification.domain.NotificationType;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +19,10 @@ interface NotificationRepository extends JpaRepository<NotificationEntity, UUID>
 	long countByReadAtIsNull();
 
 	boolean existsByScheduleIdAndLeadMinutes(UUID scheduleId, Integer leadMinutes);
+
+	boolean existsByTypeAndScheduleId(NotificationType type, UUID scheduleId);
+
+	boolean existsByTypeAndProcessIdAndCreatedAtAfter(NotificationType type, UUID processId, Instant createdAt);
 
 	@Modifying
 	@Query("update NotificationEntity n set n.readAt = :now where n.readAt is null")
