@@ -27,5 +27,6 @@ record SelectionProcessResponse(
 		Instant updatedAt,
 		List<StageMovementResponse> history,
 		List<SelectionScheduleResponse> schedules,
-		SelectionScheduleResponse nextSchedule) {
+		SelectionScheduleResponse nextSchedule,
+		Instant stageSince) {
 }

@@ -236,6 +236,22 @@ class SelectionProcessServiceImplTest {
 		verify(repository, never()).findAllByOrderByUpdatedAtDesc();
 	}
 
+	@Test
+	void listsHowLongEachProcessHasBeenInItsCurrentStage() {
+		SelectionProcessEntity entity = existing(SelectionStage.TECHNICAL_INTERVIEW);
+		entity.setJobPostingId(JOB_ID);
+		when(repository.findAllByOrderByUpdatedAtDesc()).thenReturn(List.of(entity));
+		when(jobService.offers(List.of(JOB_ID))).thenReturn(Map.of(JOB_ID, offer));
+		when(movementRepository.findByProcessIdInOrderByMovedAtAsc(List.of(ID))).thenReturn(List.of(
+				movement(SelectionStage.APPLIED, "2026-10-01T10:00:00Z"),
+				new SelectionStageMovementEntity(ID, SelectionStage.TECHNICAL_INTERVIEW, null,
+						Instant.parse("2026-10-28T20:00:00Z"), Instant.parse("2026-10-27T09:00:00Z"))));
+
+		List<SelectionProcess> listed = service().list(Optional.empty());
+
+		assertThat(listed.get(0).stageSince()).isEqualTo(Instant.parse("2026-10-28T20:00:00Z"));
+	}
+
 	private SelectionStageMovementEntity movement(SelectionStage stage, String movedAt) {
 		return new SelectionStageMovementEntity(ID, stage, null, null, Instant.parse(movedAt));
 	}

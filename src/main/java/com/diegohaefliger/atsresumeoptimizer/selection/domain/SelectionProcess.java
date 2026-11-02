@@ -27,7 +27,8 @@ public record SelectionProcess(
 		Instant updatedAt,
 		List<StageMovement> history,
 		List<SelectionSchedule> schedules,
-		SelectionSchedule nextSchedule) {
+		SelectionSchedule nextSchedule,
+		Instant stageSince) {
 
 	public SelectionProcess {
 		history = history == null ? List.of() : List.copyOf(history);
