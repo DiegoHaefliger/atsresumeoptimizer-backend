@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import com.diegohaefliger.atsresumeoptimizer.job.ContractType;
 import com.diegohaefliger.atsresumeoptimizer.job.WorkModel;
+import com.diegohaefliger.atsresumeoptimizer.preference.JobPreferenceSaved;
 import com.diegohaefliger.atsresumeoptimizer.preference.domain.JobPreference;
 import com.diegohaefliger.atsresumeoptimizer.preference.PostedWithin;
 import com.diegohaefliger.atsresumeoptimizer.preference.SearchSite;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class JobPreferenceServiceImplTest {
@@ -25,12 +27,15 @@ class JobPreferenceServiceImplTest {
 	@Mock
 	private JobPreferenceRepository repository;
 
+	@Mock
+	private ApplicationEventPublisher events;
+
 	private final JobPreference preference = new JobPreference(List.of(WorkModel.REMOTE), List.of(ContractType.PJ),
 			new BigDecimal("9000"), null, List.of("PLR"), List.of(), List.of(), List.of(), List.of("Acme"));
 
 	@Test
 	void returnsEmptyPreferencesWhenNothingWasSavedYet() {
-		var service = new JobPreferenceServiceImpl(repository, new JobPreferenceEntityMapperImpl());
+		var service = new JobPreferenceServiceImpl(repository, new JobPreferenceEntityMapperImpl(), events);
 		when(repository.findFirstByOrderByUpdatedAtDesc()).thenReturn(Optional.empty());
 
 		assertThat(service.current()).isEqualTo(JobPreference.EMPTY);
@@ -38,7 +43,7 @@ class JobPreferenceServiceImplTest {
 
 	@Test
 	void createsTheSingleRowOnFirstSaveAndReturnsWhatWasStored() {
-		var service = new JobPreferenceServiceImpl(repository, new JobPreferenceEntityMapperImpl());
+		var service = new JobPreferenceServiceImpl(repository, new JobPreferenceEntityMapperImpl(), events);
 		when(repository.findFirstByOrderByUpdatedAtDesc()).thenReturn(Optional.empty());
 
 		JobPreference saved = service.save(preference);
@@ -48,11 +53,12 @@ class JobPreferenceServiceImplTest {
 		assertThat(entity.getValue().getWorkModels()).containsExactly("REMOTE");
 		assertThat(entity.getValue().getUpdatedAt()).isNotNull();
 		assertThat(saved).isEqualTo(preference);
+		verify(events).publishEvent(new JobPreferenceSaved());
 	}
 
 	@Test
 	void overwritesTheExistingRowInsteadOfCreatingAnother() {
-		var service = new JobPreferenceServiceImpl(repository, new JobPreferenceEntityMapperImpl());
+		var service = new JobPreferenceServiceImpl(repository, new JobPreferenceEntityMapperImpl(), events);
 		JobPreferenceEntity existing = new JobPreferenceEntity(UUID.randomUUID());
 		when(repository.findFirstByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
 
@@ -65,7 +71,7 @@ class JobPreferenceServiceImplTest {
 
 	@Test
 	void persistsTheSearchSettingsOnTheSameRow() {
-		var service = new JobPreferenceServiceImpl(repository, new JobPreferenceEntityMapperImpl());
+		var service = new JobPreferenceServiceImpl(repository, new JobPreferenceEntityMapperImpl(), events);
 		JobPreferenceEntity existing = new JobPreferenceEntity(UUID.randomUUID());
 		when(repository.findFirstByOrderByUpdatedAtDesc()).thenReturn(Optional.of(existing));
 		var withSearch = new JobPreference(List.of(), List.of(), null, null, List.of(), List.of(), List.of(), List.of(),

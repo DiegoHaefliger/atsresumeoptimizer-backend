@@ -1,8 +1,10 @@
 package com.diegohaefliger.atsresumeoptimizer.preference.application;
 
+import com.diegohaefliger.atsresumeoptimizer.preference.JobPreferenceSaved;
 import com.diegohaefliger.atsresumeoptimizer.preference.domain.JobPreference;
 import com.github.f4b6a3.uuid.UuidCreator;
 import java.time.Instant;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,10 +13,13 @@ class JobPreferenceServiceImpl implements JobPreferenceService {
 
 	private final JobPreferenceRepository repository;
 	private final JobPreferenceEntityMapper mapper;
+	private final ApplicationEventPublisher events;
 
-	JobPreferenceServiceImpl(JobPreferenceRepository repository, JobPreferenceEntityMapper mapper) {
+	JobPreferenceServiceImpl(JobPreferenceRepository repository, JobPreferenceEntityMapper mapper,
+			ApplicationEventPublisher events) {
 		this.repository = repository;
 		this.mapper = mapper;
+		this.events = events;
 	}
 
 	@Override
@@ -31,6 +36,7 @@ class JobPreferenceServiceImpl implements JobPreferenceService {
 		mapper.update(preference, entity);
 		entity.setUpdatedAt(Instant.now());
 		repository.save(entity);
+		events.publishEvent(new JobPreferenceSaved());
 		return mapper.toDomain(entity);
 	}
 }

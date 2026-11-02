@@ -230,7 +230,8 @@ class JobSearchCollector {
 		counters.read++;
 		progress.read();
 		String key = dedupKey(job);
-		if (isExcluded(job, criteria.excludedKeywords()) || isTooOld(job.postedOn(), criteria.postedWithin())) {
+		ExcludedTerms excluded = new ExcludedTerms(criteria.excludedKeywords());
+		if (excluded.appearIn(job.title(), job.company()) || isTooOld(job.postedOn(), criteria.postedWithin())) {
 			return false;
 		}
 		if (knownIds.contains(job.externalId()) || knownKeys.contains(key)) {
@@ -243,7 +244,7 @@ class JobSearchCollector {
 		}
 		JobOffer offer = offerFactory.offer(job, detail.get());
 		Integer score = matchService.match(offer).map(PreferenceMatch::score).orElse(null);
-		boolean adherent = score != null && score >= criteria.minAdherence();
+		boolean adherent = score != null && score >= criteria.minAdherence() && !excluded.appearIn(detail.get().description());
 		if (!knownKeys.add(key)) {
 			counters.duplicates++;
 			return job.detail() == null;
@@ -312,11 +313,6 @@ class JobSearchCollector {
 			source.externalIdOf(listing.offer().sourceUrl()).ifPresent(ids::add);
 		}
 		return ids;
-	}
-
-	private static boolean isExcluded(SourceJob job, List<String> excludedKeywords) {
-		String text = NormalizedText.of(job.title() + " " + job.company());
-		return excludedKeywords.stream().map(NormalizedText::of).anyMatch(term -> NormalizedText.containsWord(text, term));
 	}
 
 	private static String dedupKey(SourceJob job) {
