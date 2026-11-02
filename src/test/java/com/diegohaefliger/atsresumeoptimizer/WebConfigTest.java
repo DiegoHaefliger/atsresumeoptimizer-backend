@@ -22,8 +22,12 @@ class WebConfigTest {
 
 	@BeforeEach
 	void registerMappings() {
+		registerMappings(List.of(APP));
+	}
+
+	private void registerMappings(List<String> allowedOrigins) {
 		WebConfig config = new WebConfig();
-		ReflectionTestUtils.setField(config, "allowedOrigins", List.of(APP));
+		ReflectionTestUtils.setField(config, "allowedOrigins", allowedOrigins);
 		ExposedCorsRegistry registry = new ExposedCorsRegistry();
 		config.addCorsMappings(registry);
 		source = new UrlBasedCorsConfigurationSource();
@@ -47,6 +51,14 @@ class WebConfigTest {
 	void keepsExtensionOutOfEveryOtherRoute() {
 		assertThat(resolve("/api/v1/jobs").checkOrigin(EXTENSION)).isNull();
 		assertThat(resolve("/api/v1/jobs").checkOrigin(APP)).isEqualTo(APP);
+	}
+
+	@Test
+	void acceptsViteOnWhateverLocalPortItPicked() {
+		registerMappings(List.of("http://localhost:[*]"));
+
+		assertThat(resolve("/api/v1/jobs").checkOrigin("http://localhost:5175")).isEqualTo("http://localhost:5175");
+		assertThat(resolve("/api/v1/jobs").checkOrigin("http://evil.example")).isNull();
 	}
 
 	private CorsConfiguration resolve(String path) {
