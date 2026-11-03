@@ -1,0 +1,8 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000101-feedback-drop-allow-publish
+      author: DiegoHaefliger
+      changes:
+        - dropColumn:
+            tableName: feedback
+            columnName: allow_publish

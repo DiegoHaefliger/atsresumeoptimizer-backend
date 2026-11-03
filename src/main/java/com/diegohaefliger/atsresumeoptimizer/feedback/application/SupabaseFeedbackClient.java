@@ -94,11 +94,9 @@ class SupabaseFeedbackClient implements FeedbackGateway {
 	private static FeedbackRow row(UUID id, FeedbackSubmission submission, List<String> screenshots) {
 		return new FeedbackRow(
 				id.toString(),
-				submission.kind().name(),
 				submission.rating(),
 				StringUtils.hasText(submission.message()) ? submission.message() : null,
 				StringUtils.hasText(submission.contact()) ? submission.contact() : null,
-				submission.allowPublish(),
 				submission.appVersion(),
 				screenshots);
 	}
@@ -113,11 +111,9 @@ class SupabaseFeedbackClient implements FeedbackGateway {
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	record FeedbackRow(
 			String id,
-			String kind,
 			int rating,
 			String message,
 			String contact,
-			@JsonProperty("allow_publish") boolean allowPublish,
 			@JsonProperty("app_version") String appVersion,
 			List<String> screenshots) {
 	}

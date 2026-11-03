@@ -185,3 +185,7 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000098_feedback.yaml
   - include:
       file: db/changelog/changes/00000000000099_feedback_attachment.yaml
+  - include:
+      file: db/changelog/changes/00000000000100_feedback_drop_kind.yaml
+  - include:
+      file: db/changelog/changes/00000000000101_feedback_drop_allow_publish.yaml

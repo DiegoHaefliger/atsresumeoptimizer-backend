@@ -9,7 +9,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.diegohaefliger.atsresumeoptimizer.feedback.domain.FeedbackAttachment;
-import com.diegohaefliger.atsresumeoptimizer.feedback.domain.FeedbackKind;
 import com.diegohaefliger.atsresumeoptimizer.feedback.domain.InvalidFeedbackAttachmentException;
 import com.diegohaefliger.atsresumeoptimizer.feedback.domain.FeedbackReceipt;
 import com.diegohaefliger.atsresumeoptimizer.feedback.domain.FeedbackSubmission;
@@ -32,8 +31,8 @@ import org.springframework.data.domain.Limit;
 class FeedbackServiceImplTest {
 
 	private static final Instant NOW = Instant.parse("2026-11-03T12:00:00Z");
-	private static final FeedbackSubmission SUBMISSION = new FeedbackSubmission(FeedbackKind.SUGGESTION, 4,
-			"Poderia exportar em Word", null, false, "1.4.0");
+	private static final FeedbackSubmission SUBMISSION = new FeedbackSubmission(4,
+			"Poderia exportar em Word", null, "1.4.0");
 
 	@Mock
 	private FeedbackRepository repository;
