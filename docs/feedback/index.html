@@ -7,143 +7,233 @@
 <title>Avaliações · ATS Resume Optimizer</title>
 <style>
 :root {
-	--bg: #f6f7fb; --surface: #fff; --surface-2: #f1f3f9; --text: #151a27; --muted: #5b6478;
-	--border: #e3e7f0; --brand: #5b4bdb; --brand-soft: #eceafc; --star: #f5a524; --ok: #15803d; --err: #b91c1c;
-	--shadow: 0 1px 2px rgb(16 24 40 / .06), 0 4px 16px rgb(16 24 40 / .06);
+	--bg: #f4f5fa; --surface: #fff; --surface-2: #f1f3f9; --text: #141927; --muted: #5d6679;
+	--border: #e2e6ef; --brand: #5b4bdb; --brand-soft: #eceafc; --star: #f5a524;
+	--ok: #15803d; --ok-soft: #dcfce7; --warn: #b45309; --warn-soft: #fef3c7; --err: #b91c1c; --err-soft: #fee2e2;
+	--shadow: 0 1px 2px rgb(16 24 40 / .05), 0 6px 20px rgb(16 24 40 / .05);
 }
 @media (prefers-color-scheme: dark) {
 	:root {
-		--bg: #0e1118; --surface: #171b26; --surface-2: #1d2230; --text: #eef0f6; --muted: #98a1b6;
-		--border: #262c3d; --brand: #8b7cff; --brand-soft: #25234a; --ok: #4ade80; --err: #f87171;
-		--shadow: 0 1px 2px rgb(0 0 0 / .4), 0 4px 16px rgb(0 0 0 / .35);
+		--bg: #0d1017; --surface: #161a25; --surface-2: #1c2130; --text: #eef0f6; --muted: #9aa3b8;
+		--border: #262c3d; --brand: #8b7cff; --brand-soft: #25234a; --ok: #4ade80; --ok-soft: #14301f;
+		--warn: #fbbf24; --warn-soft: #3a2a0a; --err: #f87171; --err-soft: #3b1414;
+		--shadow: 0 1px 2px rgb(0 0 0 / .4), 0 6px 20px rgb(0 0 0 / .3);
 	}
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 button, input, select { font: inherit; color: inherit; }
-.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
-header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
-h1 { margin: 0; font-size: 24px; }
-.sub { margin: 2px 0 0; color: var(--muted); }
-.btn { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 600; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px 72px; }
+[hidden] { display: none !important; }
+
+.topbar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+.topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; padding-bottom: 14px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.mark { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #6d5bf0, #9a6bff); }
+.brand h1 { margin: 0; font-size: 18px; line-height: 1.2; }
+.brand p { margin: 0; font-size: 13px; color: var(--muted); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 600; font-size: 14px; }
 .btn:hover { background: var(--surface-2); }
 .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-.btn.primary:hover { filter: brightness(1.08); background: var(--brand); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.small { padding: 5px 10px; font-size: 13px; }
 .btn:disabled { opacity: .6; cursor: not-allowed; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
-.login { max-width: 400px; margin: 10vh auto 0; padding: 28px; display: grid; gap: 14px; }
-.login h1 { font-size: 20px; }
-label.f { display: grid; gap: 6px; font-weight: 600; font-size: 13px; }
-input[type=email], input[type=password], select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
-input:focus-visible, select:focus-visible, .btn:focus-visible, .thumb:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.msg { margin: 0; font-size: 13px; }
+:is(button, input, select, a):focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); }
+
+.login { max-width: 400px; margin: 12vh auto 0; padding: 30px; display: grid; gap: 16px; }
+.login .brand { margin-bottom: 4px; }
+.field { display: grid; gap: 6px; font-weight: 600; font-size: 13px; }
+input[type=email], input[type=password], input[type=search], select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.msg { margin: 0; font-size: 13px; min-height: 1em; }
 .msg.err { color: var(--err); } .msg.ok { color: var(--ok); }
 .link { background: none; border: 0; color: var(--brand); cursor: pointer; padding: 0; text-align: left; font-size: 13px; }
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
-.stat { padding: 16px; }
-.stat .n { font-size: 28px; font-weight: 700; line-height: 1.1; }
-.stat .l { color: var(--muted); font-size: 13px; }
-.bars { display: grid; gap: 4px; margin-top: 6px; }
-.bar { display: grid; grid-template-columns: 14px 1fr 24px; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }
-.bar i { display: block; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
-.bar i b { display: block; height: 100%; background: var(--star); }
-.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 16px; padding: 14px 16px; }
-.filters label.f { min-width: 150px; }
-.check { display: flex; align-items: center; gap: 6px; font-size: 14px; padding-bottom: 8px; }
-.list { display: grid; gap: 12px; }
-.item { padding: 18px; display: grid; gap: 10px; }
-.item .head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.stars { color: var(--star); letter-spacing: 2px; font-size: 18px; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 24px 0 18px; }
+.stat { padding: 18px 20px; display: grid; gap: 4px; align-content: start; }
+.stat .l { color: var(--muted); font-size: 13px; font-weight: 600; }
+.stat .n { font-size: 32px; font-weight: 750; line-height: 1.1; letter-spacing: -.02em; }
+.stat .s { color: var(--muted); font-size: 13px; }
+.stat .stars { font-size: 16px; }
+.mini { display: grid; gap: 6px; margin-top: 6px; font-size: 13px; color: var(--muted); }
+.mini div { display: flex; justify-content: space-between; }
+.mini b { color: var(--text); }
+.bars { display: grid; gap: 5px; margin-top: 4px; }
+.bar { display: grid; grid-template-columns: 22px 1fr 26px; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }
+.bar i { display: block; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.bar i b { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #f5a524, #f59e0b); }
+
+.toolbar { padding: 14px 16px; display: grid; gap: 12px; margin-bottom: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--border); background: var(--surface-2); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--muted); }
+.chip:hover { color: var(--text); }
+.chip[aria-pressed=true] { background: var(--brand); border-color: var(--brand); color: #fff; }
+.chip .c { opacity: .75; margin-left: 4px; font-weight: 500; }
+.controls { display: grid; grid-template-columns: minmax(200px, 2fr) repeat(4, minmax(130px, 1fr)); gap: 10px; align-items: end; }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.resultbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin: 0 2px 10px; }
+
+.list { display: grid; gap: 14px; }
+.item { display: grid; grid-template-columns: 76px 1fr; gap: 18px; padding: 20px; }
+.score { display: grid; justify-items: center; align-content: start; gap: 4px; }
+.score .num { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; font-size: 24px; font-weight: 750; }
+.score .num.hi { background: var(--ok-soft); color: var(--ok); }
+.score .num.mid { background: var(--warn-soft); color: var(--warn); }
+.score .num.lo { background: var(--err-soft); color: var(--err); }
+.stars { color: var(--star); letter-spacing: 1px; font-size: 13px; white-space: nowrap; }
 .stars .off { color: var(--border); }
-.badge { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
-.badge.pub { background: color-mix(in srgb, var(--ok) 15%, var(--surface)); color: var(--ok); }
-.meta { color: var(--muted); font-size: 13px; margin-left: auto; }
-.text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.text.empty { color: var(--muted); font-style: italic; }
-.foot { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; color: var(--muted); font-size: 13px; }
-.foot a { color: var(--brand); }
-.thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
-.thumb { padding: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface-2); cursor: zoom-in; width: 120px; height: 84px; }
-.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.empty-state { text-align: center; padding: 48px 16px; color: var(--muted); }
-dialog { border: 0; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; }
-dialog::backdrop { background: rgb(0 0 0 / .75); }
-dialog img { max-width: 94vw; max-height: 92vh; border-radius: 10px; display: block; }
-[hidden] { display: none !important; }
+.body { display: grid; gap: 12px; min-width: 0; }
+.head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.badge { font-size: 12px; font-weight: 650; padding: 3px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
+.badge.pub { background: var(--ok-soft); color: var(--ok); }
+.badge.new { background: var(--brand); color: #fff; }
+.badge.plain { background: var(--surface-2); color: var(--muted); font-weight: 600; }
+.when { margin-left: auto; color: var(--muted); font-size: 13px; }
+.text { margin: 0; font-size: 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.text.clamp { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.text.empty { color: var(--muted); font-style: italic; font-size: 14px; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 10px; }
+.thumb { position: relative; padding: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface-2); cursor: zoom-in; width: 168px; height: 118px; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s; }
+.thumb:hover img { transform: scale(1.04); }
+.thumb.loading { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .5; } }
+.foot { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; color: var(--muted); font-size: 13px; padding-top: 10px; border-top: 1px solid var(--border); }
+.foot a { color: var(--brand); text-decoration: none; font-weight: 600; }
+.foot .grow { margin-left: auto; display: flex; gap: 8px; }
+.empty-state { text-align: center; padding: 56px 16px; color: var(--muted); }
+.empty-state b { display: block; color: var(--text); font-size: 17px; margin-bottom: 4px; }
+.skeleton { height: 120px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); animation: pulse 1.2s ease-in-out infinite; }
+
+dialog { border: 0; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; overflow: visible; }
+dialog::backdrop { background: rgb(5 7 12 / .82); }
+.lightbox { display: grid; gap: 10px; justify-items: center; }
+.lightbox img { max-width: 92vw; max-height: 80vh; border-radius: 12px; display: block; background: var(--surface); }
+.lightbox .bar2 { display: flex; gap: 8px; align-items: center; color: #fff; font-size: 14px; }
+.lightbox .btn { background: rgb(255 255 255 / .12); border-color: rgb(255 255 255 / .2); color: #fff; text-decoration: none; }
+.lightbox .btn:hover { background: rgb(255 255 255 / .22); }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); z-index: 20; }
+
+@media (max-width: 900px) { .controls { grid-template-columns: 1fr 1fr; } .controls .field:first-child { grid-column: 1 / -1; } }
+@media (max-width: 600px) {
+	.item { grid-template-columns: 1fr; gap: 12px; padding: 16px; }
+	.score { display: flex; align-items: center; gap: 10px; }
+	.score .num { width: 44px; height: 44px; font-size: 20px; border-radius: 12px; }
+	.when { margin-left: 0; width: 100%; }
+	.thumb { width: calc(50% - 5px); height: 100px; }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-	<section id="login" class="card login" hidden>
-		<div>
-			<h1>Avaliações do ATS Resume Optimizer</h1>
-			<p class="sub">Acesso restrito ao desenvolvedor.</p>
+<div id="login" hidden>
+	<section class="card login">
+		<div class="brand">
+			<div class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg></div>
+			<div><h1>Avaliações</h1><p>ATS Resume Optimizer · acesso restrito</p></div>
 		</div>
 		<form id="loginForm" style="display:grid;gap:14px">
-			<label class="f">E-mail<input id="email" type="email" required autocomplete="username"></label>
-			<label class="f">Senha<input id="password" type="password" required minlength="8" autocomplete="current-password"></label>
-			<button class="btn primary" id="loginButton" type="submit">Entrar</button>
+			<label class="field">E-mail<input id="email" type="email" required autocomplete="username"></label>
+			<label class="field">Senha<input id="password" type="password" required minlength="8" autocomplete="current-password"></label>
+			<button class="btn primary" id="loginButton" type="submit" style="justify-content:center">Entrar</button>
 			<button class="link" id="toggleMode" type="button">Primeiro acesso? Criar senha</button>
 			<p id="loginMsg" class="msg" role="status"></p>
 		</form>
 	</section>
+</div>
 
-	<main id="app" hidden>
-		<header class="top">
-			<div>
-				<h1>Avaliações</h1>
-				<p class="sub" id="who"></p>
+<div id="app" hidden>
+	<header class="topbar">
+		<div class="wrap">
+			<div class="brand">
+				<div class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg></div>
+				<div><h1>Avaliações</h1><p id="who"></p></div>
 			</div>
-			<div style="display:flex;gap:8px">
+			<div class="actions">
 				<button class="btn" id="reload" type="button">Atualizar</button>
+				<button class="btn" id="export" type="button">Exportar CSV</button>
 				<button class="btn" id="logout" type="button">Sair</button>
 			</div>
-		</header>
+		</div>
+	</header>
 
-		<section class="stats" id="stats"></section>
+	<main class="wrap">
+		<section class="stats" id="stats" aria-label="Resumo"></section>
 
-		<section class="card filters">
-			<label class="f">Tipo
-				<select id="fKind">
-					<option value="">Todos</option>
-					<option value="TESTIMONIAL">Depoimentos</option>
-					<option value="SUGGESTION">Sugestões</option>
-					<option value="IMPROVEMENT">Melhorias</option>
-					<option value="GENERAL">Comentários</option>
-				</select>
-			</label>
-			<label class="f">Nota
-				<select id="fRating">
-					<option value="0">Qualquer</option>
-					<option value="5">5 estrelas</option>
-					<option value="4">4 ou mais</option>
-					<option value="3">3 ou mais</option>
-					<option value="-3">3 ou menos</option>
-				</select>
-			</label>
-			<label class="check"><input type="checkbox" id="fShots"> Só com prints</label>
-			<label class="check"><input type="checkbox" id="fPublish"> Autorizados a divulgar</label>
-			<label class="check"><input type="checkbox" id="fText"> Só com texto</label>
+		<section class="card toolbar" aria-label="Filtros">
+			<div class="chips" id="kindChips" role="group" aria-label="Tipo"></div>
+			<div class="controls">
+				<label class="field">Buscar<input id="q" type="search" placeholder="Texto ou e-mail"></label>
+				<label class="field">Nota
+					<select id="fRating">
+						<option value="0">Qualquer</option><option value="5">5 estrelas</option><option value="4">4 ou mais</option>
+						<option value="3">3 ou mais</option><option value="-3">3 ou menos</option>
+					</select>
+				</label>
+				<label class="field">Período
+					<select id="fPeriod">
+						<option value="0">Todo o período</option><option value="1">Últimas 24 h</option>
+						<option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option>
+					</select>
+				</label>
+				<label class="field">Versão<select id="fVersion"></select></label>
+				<label class="field">Ordenar
+					<select id="fSort">
+						<option value="new">Mais recentes</option><option value="old">Mais antigas</option>
+						<option value="high">Maior nota</option><option value="low">Menor nota</option>
+					</select>
+				</label>
+			</div>
+			<div class="toggles">
+				<button class="chip" id="tShots" type="button" aria-pressed="false">Com prints</button>
+				<button class="chip" id="tPublish" type="button" aria-pressed="false">Pode divulgar</button>
+				<button class="chip" id="tText" type="button" aria-pressed="false">Com texto</button>
+				<button class="btn small" id="clear" type="button" hidden>Limpar filtros</button>
+			</div>
 		</section>
 
+		<div class="resultbar"><span id="count"></span></div>
 		<p id="appMsg" class="msg err" role="alert"></p>
 		<section class="list" id="list" aria-live="polite"></section>
 	</main>
 </div>
 
-<dialog id="viewer"><img id="viewerImg" alt="Print anexado"></dialog>
+<dialog id="viewer" aria-label="Print anexado">
+	<div class="lightbox">
+		<img id="viewerImg" alt="Print anexado">
+		<div class="bar2">
+			<button class="btn small" id="prev" type="button" aria-label="Anterior">‹</button>
+			<span id="viewerCount"></span>
+			<button class="btn small" id="next" type="button" aria-label="Próxima">›</button>
+			<a class="btn small" id="viewerOpen" target="_blank" rel="noreferrer">Abrir original</a>
+			<button class="btn small" id="viewerClose" type="button">Fechar</button>
+		</div>
+	</div>
+</dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const SUPABASE_URL = "https://wdkhbbbmjiocgbuumksu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_AINIsvR3Ch0-TV42m7uqlA_kSBXgRtV";
 const BUCKET = "feedback-screenshots";
+const SEEN_KEY = "ats-feedback-last-seen";
 const KINDS = { GENERAL: "Comentário", SUGGESTION: "Sugestão", IMPROVEMENT: "Melhoria", TESTIMONIAL: "Depoimento" };
+const KIND_ORDER = ["TESTIMONIAL", "SUGGESTION", "IMPROVEMENT", "GENERAL"];
+const DAY = 86400000;
+const LONG_TEXT = 320;
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (id) => document.getElementById(id);
+const rtf = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
+const filters = { kind: "", shots: false, publish: false, text: false };
 let rows = [];
+let lastSeen = 0;
 let signupMode = false;
+let shownUser = null;
+let gallery = { urls: [], index: 0 };
+
+try { lastSeen = Number(localStorage.getItem(SEEN_KEY)) || 0; } catch { lastSeen = 0; }
 
 function el(tag, props = {}, ...children) {
 	const node = document.createElement(tag);
@@ -152,12 +242,33 @@ function el(tag, props = {}, ...children) {
 		else if (key === "text") node.textContent = value;
 		else node.setAttribute(key, value);
 	}
-	children.forEach((child) => child && node.append(child));
+	children.forEach((child) => child != null && node.append(child));
 	return node;
 }
 
-let shownUser = null;
+function toast(text) {
+	const node = el("div", { class: "toast", role: "status", text });
+	document.body.append(node);
+	setTimeout(() => node.remove(), 1800);
+}
 
+function ago(iso) {
+	const diff = new Date(iso).getTime() - Date.now();
+	const abs = Math.abs(diff);
+	if (abs < 60000) return "agora";
+	if (abs < 3600000) return rtf.format(Math.round(diff / 60000), "minute");
+	if (abs < DAY) return rtf.format(Math.round(diff / 3600000), "hour");
+	if (abs < 30 * DAY) return rtf.format(Math.round(diff / DAY), "day");
+	return new Date(iso).toLocaleDateString("pt-BR", { dateStyle: "medium" });
+}
+
+function starsNode(rating) {
+	const node = el("span", { class: "stars", role: "img", "aria-label": rating + " de 5 estrelas" });
+	node.append("★".repeat(rating), el("span", { class: "off", text: "★".repeat(5 - rating) }));
+	return node;
+}
+
+/* ---------- login ---------- */
 function show(session) {
 	$("login").hidden = !!session;
 	$("app").hidden = !session;
@@ -193,121 +304,266 @@ $("loginForm").addEventListener("submit", async (event) => {
 	const { data, error } = signupMode ? await db.auth.signUp(credentials) : await db.auth.signInWithPassword(credentials);
 	$("loginButton").disabled = false;
 	if (error) return setLoginMessage(error.message);
-	if (signupMode && !data.session) {
-		return setLoginMessage("Enviamos um e-mail de confirmação. Confirme e volte aqui para entrar.", true);
-	}
+	if (signupMode && !data.session) setLoginMessage("Enviamos um e-mail de confirmação. Confirme e volte aqui para entrar.", true);
 });
 
 $("logout").addEventListener("click", () => db.auth.signOut());
-$("reload").addEventListener("click", load);
-["fKind", "fRating", "fShots", "fPublish", "fText"].forEach((id) => $(id).addEventListener("change", render));
 
+/* ---------- dados ---------- */
 async function load() {
 	$("appMsg").textContent = "";
+	$("reload").disabled = true;
+	$("list").replaceChildren(el("div", { class: "skeleton" }), el("div", { class: "skeleton" }), el("div", { class: "skeleton" }));
 	const { data, error } = await db.from("feedback").select("*").order("created_at", { ascending: false });
+	$("reload").disabled = false;
 	if (error) {
+		$("list").replaceChildren();
 		$("appMsg").textContent = "Não foi possível carregar: " + error.message;
 		return;
 	}
 	rows = data;
 	renderStats();
+	renderKindChips();
+	renderVersions();
 	render();
+	try { localStorage.setItem(SEEN_KEY, String(Date.now())); } catch { /* sem storage */ }
 }
 
 function renderStats() {
 	const total = rows.length;
 	const avg = total ? rows.reduce((sum, row) => sum + row.rating, 0) / total : 0;
+	const last30 = rows.filter((row) => Date.now() - new Date(row.created_at).getTime() < 30 * DAY).length;
+	const withText = rows.filter((row) => row.message).length;
 	const withShots = rows.filter((row) => row.screenshots.length).length;
-	const testimonials = rows.filter((row) => row.kind === "TESTIMONIAL").length;
-	const stats = $("stats");
-	stats.replaceChildren(
-		statCard(String(total), "avaliações recebidas"),
-		statCard(total ? avg.toFixed(1).replace(".", ",") : "–", "nota média de 5"),
-		statCard(String(testimonials), "depoimentos · " + withShots + " com prints"),
-		distributionCard(total),
-	);
-}
+	const publishable = rows.filter((row) => row.allow_publish).length;
+	const pct = (n) => (total ? Math.round((n / total) * 100) + "%" : "–");
 
-function statCard(value, label) {
-	return el("div", { class: "card stat" }, el("div", { class: "n", text: value }), el("div", { class: "l", text: label }));
-}
+	const avgCard = el("div", { class: "card stat" }, el("div", { class: "l", text: "Nota média" }),
+		el("div", { class: "n", text: total ? avg.toFixed(1).replace(".", ",") : "–" }));
+	if (total) avgCard.append(starsNode(Math.round(avg)), el("div", { class: "s", text: "de 5 estrelas" }));
 
-function distributionCard(total) {
 	const bars = el("div", { class: "bars" });
 	for (let star = 5; star >= 1; star--) {
 		const count = rows.filter((row) => row.rating === star).length;
 		const fill = el("b");
 		fill.style.width = (total ? (count / total) * 100 : 0) + "%";
-		bars.append(el("div", { class: "bar" }, el("span", { text: String(star) }), el("i", {}, fill), el("span", { text: String(count) })));
+		bars.append(el("div", { class: "bar" }, el("span", { text: star + "★" }), el("i", {}, fill), el("span", { text: String(count) })));
 	}
-	return el("div", { class: "card stat" }, el("div", { class: "l", text: "distribuição das notas" }), bars);
+
+	const mini = el("div", { class: "mini" },
+		el("div", {}, el("span", { text: "Com texto" }), el("b", { text: pct(withText) })),
+		el("div", {}, el("span", { text: "Com prints" }), el("b", { text: String(withShots) })),
+		el("div", {}, el("span", { text: "Podem ser divulgados" }), el("b", { text: String(publishable) })));
+
+	$("stats").replaceChildren(
+		el("div", { class: "card stat" }, el("div", { class: "l", text: "Avaliações" }), el("div", { class: "n", text: String(total) }),
+			el("div", { class: "s", text: last30 + " nos últimos 30 dias" })),
+		avgCard,
+		el("div", { class: "card stat" }, el("div", { class: "l", text: "Distribuição das notas" }), bars),
+		el("div", { class: "card stat" }, el("div", { class: "l", text: "Engajamento" }), mini),
+	);
 }
 
+function renderKindChips() {
+	const chips = [["", "Todas", rows.length]];
+	KIND_ORDER.forEach((kind) => chips.push([kind, KINDS[kind], rows.filter((row) => row.kind === kind).length]));
+	$("kindChips").replaceChildren(...chips.map(([value, label, count]) => {
+		const chip = el("button", { class: "chip", type: "button", "aria-pressed": String(filters.kind === value) }, label, el("span", { class: "c", text: String(count) }));
+		chip.addEventListener("click", () => { filters.kind = value; renderKindChips(); render(); });
+		return chip;
+	}));
+}
+
+function renderVersions() {
+	const versions = [...new Set(rows.map((row) => row.app_version).filter(Boolean))].sort().reverse();
+	const current = $("fVersion").value;
+	$("fVersion").replaceChildren(el("option", { value: "", text: "Todas" }), ...versions.map((v) => el("option", { value: v, text: v })));
+	$("fVersion").value = versions.includes(current) ? current : "";
+}
+
+/* ---------- filtros ---------- */
 function filtered() {
-	const kind = $("fKind").value;
 	const rating = Number($("fRating").value);
-	return rows.filter((row) => {
-		if (kind && row.kind !== kind) return false;
+	const period = Number($("fPeriod").value);
+	const version = $("fVersion").value;
+	const query = $("q").value.trim().toLowerCase();
+	const list = rows.filter((row) => {
+		if (filters.kind && row.kind !== filters.kind) return false;
 		if (rating > 0 && row.rating < rating) return false;
 		if (rating < 0 && row.rating > -rating) return false;
-		if ($("fShots").checked && !row.screenshots.length) return false;
-		if ($("fPublish").checked && !row.allow_publish) return false;
-		if ($("fText").checked && !row.message) return false;
+		if (period && Date.now() - new Date(row.created_at).getTime() > period * DAY) return false;
+		if (version && row.app_version !== version) return false;
+		if (filters.shots && !row.screenshots.length) return false;
+		if (filters.publish && !row.allow_publish) return false;
+		if (filters.text && !row.message) return false;
+		if (query && !((row.message || "") + " " + (row.contact || "")).toLowerCase().includes(query)) return false;
 		return true;
 	});
+	const sorts = {
+		new: (a, b) => new Date(b.created_at) - new Date(a.created_at),
+		old: (a, b) => new Date(a.created_at) - new Date(b.created_at),
+		high: (a, b) => b.rating - a.rating || new Date(b.created_at) - new Date(a.created_at),
+		low: (a, b) => a.rating - b.rating || new Date(b.created_at) - new Date(a.created_at),
+	};
+	return list.sort(sorts[$("fSort").value]);
+}
+
+function hasActiveFilters() {
+	return filters.kind || filters.shots || filters.publish || filters.text || $("q").value || $("fRating").value !== "0"
+		|| $("fPeriod").value !== "0" || $("fVersion").value || $("fSort").value !== "new";
 }
 
 function render() {
-	const list = $("list");
 	const visible = filtered();
+	$("count").textContent = rows.length ? "Mostrando " + visible.length + " de " + rows.length + " avaliações" : "";
+	$("clear").hidden = !hasActiveFilters();
+	["tShots:shots", "tPublish:publish", "tText:text"].forEach((pair) => {
+		const [id, key] = pair.split(":");
+		$(id).setAttribute("aria-pressed", String(filters[key]));
+	});
 	if (!visible.length) {
-		list.replaceChildren(el("p", { class: "empty-state", text: rows.length ? "Nenhuma avaliação com esses filtros." : "Ainda não chegou nenhuma avaliação." }));
+		$("list").replaceChildren(el("div", { class: "empty-state" },
+			el("b", { text: rows.length ? "Nenhuma avaliação com esses filtros" : "Ainda não chegou nenhuma avaliação" }),
+			rows.length ? "Ajuste ou limpe os filtros para ver mais." : "Quando alguém avaliar o app, aparece aqui."));
 		return;
 	}
-	list.replaceChildren(...visible.map(item));
+	$("list").replaceChildren(...visible.map(item));
 }
 
-function item(row) {
-	const stars = el("span", { class: "stars", role: "img", "aria-label": row.rating + " de 5 estrelas" });
-	stars.append("★".repeat(row.rating), el("span", { class: "off", text: "★".repeat(5 - row.rating) }));
-	const when = new Date(row.created_at).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" });
-	const head = el("div", { class: "head" }, stars, el("span", { class: "badge", text: KINDS[row.kind] ?? row.kind }));
-	if (row.allow_publish) head.append(el("span", { class: "badge pub", text: "Pode divulgar" }));
-	head.append(el("span", { class: "meta", text: when + (row.app_version ? " · v" + row.app_version : "") }));
+["fRating", "fPeriod", "fVersion", "fSort"].forEach((id) => $(id).addEventListener("change", render));
+$("q").addEventListener("input", render);
+[["tShots", "shots"], ["tPublish", "publish"], ["tText", "text"]].forEach(([id, key]) =>
+	$(id).addEventListener("click", () => { filters[key] = !filters[key]; render(); }));
+$("clear").addEventListener("click", () => {
+	Object.assign(filters, { kind: "", shots: false, publish: false, text: false });
+	$("q").value = ""; $("fRating").value = "0"; $("fPeriod").value = "0"; $("fVersion").value = ""; $("fSort").value = "new";
+	renderKindChips();
+	render();
+});
+$("reload").addEventListener("click", load);
 
-	const card = el("article", { class: "card item" }, head,
-		el("p", { class: "text" + (row.message ? "" : " empty"), text: row.message || "Sem comentário." }));
+/* ---------- cartões ---------- */
+function item(row) {
+	const tone = row.rating >= 4 ? "hi" : row.rating === 3 ? "mid" : "lo";
+	const created = new Date(row.created_at);
+	const score = el("div", { class: "score" }, el("div", { class: "num " + tone, text: String(row.rating) }), starsNode(row.rating));
+
+	const head = el("div", { class: "head" });
+	if (created.getTime() > lastSeen) head.append(el("span", { class: "badge new", text: "Novo" }));
+	head.append(el("span", { class: "badge", text: KINDS[row.kind] ?? row.kind }));
+	if (row.allow_publish) head.append(el("span", { class: "badge pub", text: "Pode divulgar" }));
+	if (row.app_version) head.append(el("span", { class: "badge plain", text: "v" + row.app_version }));
+	head.append(el("span", { class: "when", title: created.toLocaleString("pt-BR", { dateStyle: "full", timeStyle: "short" }), text: ago(row.created_at) }));
+
+	const long = (row.message || "").length > LONG_TEXT;
+	const text = el("p", { class: "text" + (row.message ? "" : " empty") + (long ? " clamp" : ""), text: row.message || "Sem comentário." });
+	const body = el("div", { class: "body" }, head, text);
+	if (long) {
+		const more = el("button", { class: "link", type: "button", text: "Ver mais" });
+		more.addEventListener("click", () => {
+			const open = text.classList.toggle("clamp");
+			more.textContent = open ? "Ver mais" : "Ver menos";
+		});
+		body.append(more);
+	}
 
 	if (row.screenshots.length) {
 		const thumbs = el("div", { class: "thumbs" });
-		card.append(thumbs);
-		loadThumbs(row.screenshots, thumbs);
+		row.screenshots.forEach(() => thumbs.append(el("div", { class: "thumb loading" })));
+		body.append(thumbs);
+		lazyThumbs(row.screenshots, thumbs);
 	}
-	if (row.contact) {
-		card.append(el("div", { class: "foot" }, "Contato: ", el("a", { href: "mailto:" + row.contact, text: row.contact })));
+
+	const foot = el("div", { class: "foot" });
+	if (row.contact) foot.append(el("a", { href: "mailto:" + row.contact, text: row.contact }));
+	const actions = el("div", { class: "grow" });
+	if (row.message) {
+		const copy = el("button", { class: "btn small", type: "button", text: row.kind === "TESTIMONIAL" ? "Copiar depoimento" : "Copiar texto" });
+		copy.addEventListener("click", async () => {
+			const quote = row.kind === "TESTIMONIAL" ? "“" + row.message + "”\n" + "★".repeat(row.rating) : row.message;
+			try { await navigator.clipboard.writeText(quote); toast("Copiado"); } catch { toast("Não foi possível copiar"); }
+		});
+		actions.append(copy);
 	}
-	return card;
+	foot.append(actions);
+	body.append(foot);
+	return el("article", { class: "card item" }, score, body);
+}
+
+const observer = "IntersectionObserver" in window ? new IntersectionObserver((entries) => {
+	entries.forEach((entry) => {
+		if (!entry.isIntersecting) return;
+		observer.unobserve(entry.target);
+		entry.target.__load();
+	});
+}, { rootMargin: "200px" }) : null;
+
+function lazyThumbs(paths, container) {
+	container.__load = () => loadThumbs(paths, container);
+	if (observer) observer.observe(container); else container.__load();
 }
 
 async function loadThumbs(paths, container) {
 	const { data, error } = await db.storage.from(BUCKET).createSignedUrls(paths, 3600);
 	if (error) {
-		container.append(el("span", { class: "msg err", text: "Não foi possível carregar os prints." }));
+		container.replaceChildren(el("span", { class: "msg err", text: "Não foi possível carregar os prints." }));
 		return;
 	}
-	data.forEach((entry, index) => {
-		if (!entry.signedUrl) return;
-		const img = el("img", { src: entry.signedUrl, alt: "Print " + (index + 1), loading: "lazy" });
-		const button = el("button", { class: "thumb", type: "button", "aria-label": "Ampliar print " + (index + 1) }, img);
-		button.addEventListener("click", () => {
-			$("viewerImg").src = entry.signedUrl;
-			$("viewer").showModal();
-		});
-		container.append(button);
-	});
+	const urls = data.map((entry) => entry.signedUrl).filter(Boolean);
+	container.replaceChildren(...urls.map((url, index) => {
+		const button = el("button", { class: "thumb", type: "button", "aria-label": "Ampliar print " + (index + 1) },
+			el("img", { src: url, alt: "Print " + (index + 1), loading: "lazy" }));
+		button.addEventListener("click", () => openViewer(urls, index));
+		return button;
+	}));
 }
 
-$("viewer").addEventListener("click", () => $("viewer").close());
+/* ---------- galeria ---------- */
+function openViewer(urls, index) {
+	gallery = { urls, index };
+	paintViewer();
+	if (!$("viewer").open) $("viewer").showModal();
+}
+
+function paintViewer() {
+	const { urls, index } = gallery;
+	$("viewerImg").src = urls[index];
+	$("viewerOpen").href = urls[index];
+	$("viewerCount").textContent = (index + 1) + " de " + urls.length;
+	$("prev").hidden = $("next").hidden = urls.length < 2;
+}
+
+function step(delta) {
+	const { urls } = gallery;
+	gallery.index = (gallery.index + delta + urls.length) % urls.length;
+	paintViewer();
+}
+
+$("prev").addEventListener("click", () => step(-1));
+$("next").addEventListener("click", () => step(1));
+$("viewerClose").addEventListener("click", () => $("viewer").close());
+$("viewer").addEventListener("click", (event) => { if (event.target === $("viewer")) $("viewer").close(); });
+$("viewer").addEventListener("keydown", (event) => {
+	if (gallery.urls.length < 2) return;
+	if (event.key === "ArrowLeft") step(-1);
+	if (event.key === "ArrowRight") step(1);
+});
+
+/* ---------- exportar ---------- */
+$("export").addEventListener("click", () => {
+	const cell = (value) => '"' + String(value ?? "").replace(/"/g, '""') + '"';
+	const header = ["data", "tipo", "nota", "mensagem", "contato", "pode_divulgar", "versao", "prints"];
+	const lines = filtered().map((row) => [
+		row.created_at, KINDS[row.kind] ?? row.kind, row.rating, row.message, row.contact,
+		row.allow_publish ? "sim" : "nao", row.app_version, row.screenshots.join(" "),
+	].map(cell).join(","));
+	const blob = new Blob(["﻿" + [header.join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
+	const link = el("a", { href: URL.createObjectURL(blob), download: "avaliacoes-" + new Date().toISOString().slice(0, 10) + ".csv" });
+	document.body.append(link);
+	link.click();
+	link.remove();
+	URL.revokeObjectURL(link.href);
+});
 
 db.auth.getSession().then(({ data }) => show(data.session));
 db.auth.onAuthStateChange((_event, session) => show(session));
