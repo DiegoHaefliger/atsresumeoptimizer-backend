@@ -10,7 +10,6 @@ record FeedbackRequest(
 		@NotNull @Min(FeedbackRequest.MIN_RATING) @Max(FeedbackRequest.MAX_RATING) Integer rating,
 		@Size(max = FeedbackRequest.MAX_MESSAGE) String message,
 		@Email @Size(max = FeedbackRequest.MAX_CONTACT) String contact,
-		Boolean allowPublish,
 		@Size(max = FeedbackRequest.MAX_VERSION) String appVersion) {
 
 	static final int MIN_RATING = 1;

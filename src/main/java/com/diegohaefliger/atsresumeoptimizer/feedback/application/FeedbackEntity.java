@@ -21,9 +21,6 @@ class FeedbackEntity {
 
 	private String contact;
 
-	@Column(name = "allow_publish")
-	private boolean allowPublish;
-
 	@Column(name = "app_version")
 	private String appVersion;
 
@@ -42,7 +39,6 @@ class FeedbackEntity {
 		this.rating = submission.rating();
 		this.message = submission.message();
 		this.contact = submission.contact();
-		this.allowPublish = submission.allowPublish();
 		this.appVersion = submission.appVersion();
 	}
 
@@ -60,10 +56,6 @@ class FeedbackEntity {
 
 	public String getContact() {
 		return contact;
-	}
-
-	public boolean isAllowPublish() {
-		return allowPublish;
 	}
 
 	public String getAppVersion() {

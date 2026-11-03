@@ -97,7 +97,6 @@ class SupabaseFeedbackClient implements FeedbackGateway {
 				submission.rating(),
 				StringUtils.hasText(submission.message()) ? submission.message() : null,
 				StringUtils.hasText(submission.contact()) ? submission.contact() : null,
-				submission.allowPublish(),
 				submission.appVersion(),
 				screenshots);
 	}
@@ -115,7 +114,6 @@ class SupabaseFeedbackClient implements FeedbackGateway {
 			int rating,
 			String message,
 			String contact,
-			@JsonProperty("allow_publish") boolean allowPublish,
 			@JsonProperty("app_version") String appVersion,
 			List<String> screenshots) {
 	}

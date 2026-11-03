@@ -50,13 +50,13 @@ class FeedbackControllerTest {
 	@Test
 	void forwardsTheSubmissionWithItsImagesAndReportsDelivery() throws Exception {
 		FeedbackSubmission submission = new FeedbackSubmission(5, "Me ajudou muito",
-				"ana@exemplo.com", true, "1.4.0");
+				"ana@exemplo.com", "1.4.0");
 		byte[] png = {(byte) 0x89, 'P', 'N', 'G', 1};
 		when(service.submit(eq(submission), any())).thenReturn(new FeedbackReceipt(Instant.parse("2026-11-03T12:00:00Z"), true));
 
 		mockMvc.perform(form("5")
 				.param("message", "Me ajudou muito").param("contact", "ana@exemplo.com")
-				.param("allowPublish", "true").param("appVersion", "1.4.0")
+				.param("appVersion", "1.4.0")
 				.file(new MockMultipartFile("files", "tela.png", "image/png", png)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.delivered").value(true));

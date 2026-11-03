@@ -26,7 +26,7 @@ class SupabaseFeedbackClientTest {
 	private static final UUID ID = UUID.fromString("0198a000-0000-7000-8000-000000000001");
 	private static final String IMAGE_URL = URL + "/storage/v1/object/feedback-screenshots/" + ID + "/0.png";
 	private static final FeedbackSubmission SUBMISSION = new FeedbackSubmission(5,
-			"Consegui a entrevista", "ana@exemplo.com", true, "1.4.0");
+			"Consegui a entrevista", "ana@exemplo.com", "1.4.0");
 	private static final FeedbackAttachment IMAGE = new FeedbackAttachment("tela.png", "image/png",
 			new byte[] {(byte) 0x89, 'P', 'N', 'G', 1});
 
@@ -47,7 +47,6 @@ class SupabaseFeedbackClientTest {
 				.andExpect(jsonPath("$.id").value(ID.toString()))
 				.andExpect(jsonPath("$.rating").value(5))
 				.andExpect(jsonPath("$.contact").value("ana@exemplo.com"))
-				.andExpect(jsonPath("$.allow_publish").value(true))
 				.andExpect(jsonPath("$.app_version").value("1.4.0"))
 				.andExpect(jsonPath("$.screenshots").isEmpty())
 				.andRespond(withStatus(HttpStatus.CREATED));

@@ -99,7 +99,6 @@ input[type=email], input[type=password], input[type=search], select { width: 100
 .body { display: grid; gap: 12px; min-width: 0; }
 .head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .badge { font-size: 12px; font-weight: 650; padding: 3px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
-.badge.pub { background: var(--ok-soft); color: var(--ok); }
 .badge.new { background: var(--brand); color: #fff; }
 .badge.plain { background: var(--surface-2); color: var(--muted); font-weight: 600; }
 .when { margin-left: auto; color: var(--muted); font-size: 13px; }
@@ -114,7 +113,6 @@ input[type=email], input[type=password], input[type=search], select { width: 100
 @keyframes pulse { 50% { opacity: .5; } }
 .foot { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; color: var(--muted); font-size: 13px; padding-top: 10px; border-top: 1px solid var(--border); }
 .foot a { color: var(--brand); text-decoration: none; font-weight: 600; }
-.foot .grow { margin-left: auto; display: flex; gap: 8px; }
 .empty-state { text-align: center; padding: 56px 16px; color: var(--muted); }
 .empty-state b { display: block; color: var(--text); font-size: 17px; margin-bottom: 4px; }
 .skeleton { height: 120px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); animation: pulse 1.2s ease-in-out infinite; }
@@ -126,7 +124,6 @@ dialog::backdrop { background: rgb(5 7 12 / .82); }
 .lightbox .bar2 { display: flex; gap: 8px; align-items: center; color: #fff; font-size: 14px; }
 .lightbox .btn { background: rgb(255 255 255 / .12); border-color: rgb(255 255 255 / .2); color: #fff; text-decoration: none; }
 .lightbox .btn:hover { background: rgb(255 255 255 / .22); }
-.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); z-index: 20; }
 
 @media (max-width: 900px) { .controls { grid-template-columns: 1fr 1fr; } .controls .field:first-child { grid-column: 1 / -1; } }
 @media (max-width: 600px) {
@@ -200,7 +197,6 @@ dialog::backdrop { background: rgb(5 7 12 / .82); }
 			</div>
 			<div class="toggles">
 				<button class="chip" id="tShots" type="button" aria-pressed="false">Com prints</button>
-				<button class="chip" id="tPublish" type="button" aria-pressed="false">Pode divulgar</button>
 				<button class="chip" id="tText" type="button" aria-pressed="false">Com texto</button>
 				<button class="btn small" id="clear" type="button" hidden>Limpar filtros</button>
 			</div>
@@ -237,7 +233,7 @@ const LONG_TEXT = 320;
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (id) => document.getElementById(id);
 const rtf = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
-const filters = { shots: false, publish: false, text: false };
+const filters = { shots: false, text: false };
 let rows = [];
 let lastSeen = 0;
 let signupMode = false;
@@ -255,12 +251,6 @@ function el(tag, props = {}, ...children) {
 	}
 	children.forEach((child) => child != null && node.append(child));
 	return node;
-}
-
-function toast(text) {
-	const node = el("div", { class: "toast", role: "status", text });
-	document.body.append(node);
-	setTimeout(() => node.remove(), 1800);
 }
 
 function ago(iso) {
@@ -366,7 +356,6 @@ function renderStats() {
 	const last30 = rows.filter((row) => Date.now() - new Date(row.created_at).getTime() < 30 * DAY).length;
 	const withText = rows.filter((row) => row.message).length;
 	const withShots = rows.filter((row) => row.screenshots.length).length;
-	const publishable = rows.filter((row) => row.allow_publish).length;
 	const pct = (n) => (total ? Math.round((n / total) * 100) + "%" : "–");
 
 	const avgCard = el("div", { class: "card stat" }, el("div", { class: "l", text: "Nota média" }),
@@ -383,8 +372,8 @@ function renderStats() {
 
 	const mini = el("div", { class: "mini" },
 		el("div", {}, el("span", { text: "Com texto" }), el("b", { text: pct(withText) })),
-		el("div", {}, el("span", { text: "Com prints" }), el("b", { text: String(withShots) })),
-		el("div", {}, el("span", { text: "Podem ser divulgados" }), el("b", { text: String(publishable) })));
+		el("div", {}, el("span", { text: "Com prints" }), el("b", { text: String(withShots) })));
+
 
 	$("stats").replaceChildren(
 		el("div", { class: "card stat" }, el("div", { class: "l", text: "Avaliações" }), el("div", { class: "n", text: String(total) }),
@@ -414,7 +403,6 @@ function filtered() {
 		if (period && Date.now() - new Date(row.created_at).getTime() > period * DAY) return false;
 		if (version && row.app_version !== version) return false;
 		if (filters.shots && !row.screenshots.length) return false;
-		if (filters.publish && !row.allow_publish) return false;
 		if (filters.text && !row.message) return false;
 		if (query && !((row.message || "") + " " + (row.contact || "")).toLowerCase().includes(query)) return false;
 		return true;
@@ -429,7 +417,7 @@ function filtered() {
 }
 
 function hasActiveFilters() {
-	return filters.shots || filters.publish || filters.text || $("q").value || $("fRating").value !== "0"
+	return filters.shots || filters.text || $("q").value || $("fRating").value !== "0"
 		|| $("fPeriod").value !== "0" || $("fVersion").value || $("fSort").value !== "new";
 }
 
@@ -437,7 +425,7 @@ function render() {
 	const visible = filtered();
 	$("count").textContent = rows.length ? "Mostrando " + visible.length + " de " + rows.length + " avaliações" : "";
 	$("clear").hidden = !hasActiveFilters();
-	["tShots:shots", "tPublish:publish", "tText:text"].forEach((pair) => {
+	["tShots:shots", "tText:text"].forEach((pair) => {
 		const [id, key] = pair.split(":");
 		$(id).setAttribute("aria-pressed", String(filters[key]));
 	});
@@ -452,10 +440,10 @@ function render() {
 
 ["fRating", "fPeriod", "fVersion", "fSort"].forEach((id) => $(id).addEventListener("change", render));
 $("q").addEventListener("input", render);
-[["tShots", "shots"], ["tPublish", "publish"], ["tText", "text"]].forEach(([id, key]) =>
+[["tShots", "shots"], ["tText", "text"]].forEach(([id, key]) =>
 	$(id).addEventListener("click", () => { filters[key] = !filters[key]; render(); }));
 $("clear").addEventListener("click", () => {
-	Object.assign(filters, { shots: false, publish: false, text: false });
+	Object.assign(filters, { shots: false, text: false });
 	$("q").value = ""; $("fRating").value = "0"; $("fPeriod").value = "0"; $("fVersion").value = ""; $("fSort").value = "new";
 	render();
 });
@@ -469,7 +457,6 @@ function item(row) {
 
 	const head = el("div", { class: "head" });
 	if (created.getTime() > lastSeen) head.append(el("span", { class: "badge new", text: "Novo" }));
-	if (row.allow_publish) head.append(el("span", { class: "badge pub", text: "Pode divulgar" }));
 	if (row.app_version) head.append(el("span", { class: "badge plain", text: "v" + row.app_version }));
 	head.append(el("span", { class: "when", title: created.toLocaleString("pt-BR", { dateStyle: "full", timeStyle: "short" }), text: ago(row.created_at) }));
 
@@ -492,19 +479,9 @@ function item(row) {
 		lazyThumbs(row.screenshots, thumbs);
 	}
 
-	const foot = el("div", { class: "foot" });
-	if (row.contact) foot.append(el("a", { href: "mailto:" + row.contact, text: row.contact }));
-	const actions = el("div", { class: "grow" });
-	if (row.allow_publish && row.message) {
-		const copy = el("button", { class: "btn small", type: "button", text: "Copiar depoimento" });
-		copy.addEventListener("click", async () => {
-			const quote = "“" + row.message + "”\n" + "★".repeat(row.rating);
-			try { await navigator.clipboard.writeText(quote); toast("Copiado"); } catch { toast("Não foi possível copiar"); }
-		});
-		actions.append(copy);
+	if (row.contact) {
+		body.append(el("div", { class: "foot" }, el("a", { href: "mailto:" + row.contact, text: row.contact })));
 	}
-	foot.append(actions);
-	body.append(foot);
 	return el("article", { class: "card item" }, score, body);
 }
 
@@ -570,10 +547,10 @@ $("viewer").addEventListener("keydown", (event) => {
 /* ---------- exportar ---------- */
 $("export").addEventListener("click", () => {
 	const cell = (value) => '"' + String(value ?? "").replace(/"/g, '""') + '"';
-	const header = ["data", "nota", "mensagem", "contato", "pode_divulgar", "versao", "prints"];
+	const header = ["data", "nota", "mensagem", "contato", "versao", "prints"];
 	const lines = filtered().map((row) => [
 		row.created_at, row.rating, row.message, row.contact,
-		row.allow_publish ? "sim" : "nao", row.app_version, row.screenshots.join(" "),
+		row.app_version, row.screenshots.join(" "),
 	].map(cell).join(","));
 	const blob = new Blob(["﻿" + [header.join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
 	const link = el("a", { href: URL.createObjectURL(blob), download: "avaliacoes-" + new Date().toISOString().slice(0, 10) + ".csv" });
