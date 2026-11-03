@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<script>
+try { const t = localStorage.getItem("ats-feedback-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch { /* sem storage */ }
+</script>
 <title>Avaliações · ATS Resume Optimizer</title>
 <style>
 :root {
@@ -13,12 +18,18 @@
 	--shadow: 0 1px 2px rgb(16 24 40 / .05), 0 6px 20px rgb(16 24 40 / .05);
 }
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not([data-theme="light"]) {
 		--bg: #0d1017; --surface: #161a25; --surface-2: #1c2130; --text: #eef0f6; --muted: #9aa3b8;
 		--border: #262c3d; --brand: #8b7cff; --brand-soft: #25234a; --ok: #4ade80; --ok-soft: #14301f;
 		--warn: #fbbf24; --warn-soft: #3a2a0a; --err: #f87171; --err-soft: #3b1414;
 		--shadow: 0 1px 2px rgb(0 0 0 / .4), 0 6px 20px rgb(0 0 0 / .3);
 	}
+}
+:root[data-theme="dark"] {
+	--bg: #0d1017; --surface: #161a25; --surface-2: #1c2130; --text: #eef0f6; --muted: #9aa3b8;
+	--border: #262c3d; --brand: #8b7cff; --brand-soft: #25234a; --ok: #4ade80; --ok-soft: #14301f;
+	--warn: #fbbf24; --warn-soft: #3a2a0a; --err: #f87171; --err-soft: #3b1414;
+	--shadow: 0 1px 2px rgb(0 0 0 / .4), 0 6px 20px rgb(0 0 0 / .3);
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -29,7 +40,7 @@ button, input, select { font: inherit; color: inherit; }
 .topbar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
 .topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; padding-bottom: 14px; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 12px; }
-.mark { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #6d5bf0, #9a6bff); }
+.mark { width: 38px; height: 38px; object-fit: contain; flex: none; }
 .brand h1 { margin: 0; font-size: 18px; line-height: 1.2; }
 .brand p { margin: 0; font-size: 13px; color: var(--muted); }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -38,6 +49,7 @@ button, input, select { font: inherit; color: inherit; }
 .btn:hover { background: var(--surface-2); }
 .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
 .btn.primary:hover { filter: brightness(1.08); }
+.btn.icon { padding: 8px 11px; font-size: 16px; line-height: 1; }
 .btn.small { padding: 5px 10px; font-size: 13px; }
 .btn:disabled { opacity: .6; cursor: not-allowed; }
 :is(button, input, select, a):focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
@@ -129,8 +141,9 @@ dialog::backdrop { background: rgb(5 7 12 / .82); }
 <body>
 <div id="login" hidden>
 	<section class="card login">
+		<button class="btn icon" id="themeLogin" type="button" aria-label="Alternar tema claro e escuro" title="Alternar tema" style="justify-self:end"></button>
 		<div class="brand">
-			<div class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg></div>
+			<img class="mark" src="favicon.svg" alt="">
 			<div><h1>Avaliações</h1><p>ATS Resume Optimizer · acesso restrito</p></div>
 		</div>
 		<form id="loginForm" style="display:grid;gap:14px">
@@ -147,10 +160,11 @@ dialog::backdrop { background: rgb(5 7 12 / .82); }
 	<header class="topbar">
 		<div class="wrap">
 			<div class="brand">
-				<div class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg></div>
+				<img class="mark" src="favicon.svg" alt="">
 				<div><h1>Avaliações</h1><p id="who"></p></div>
 			</div>
 			<div class="actions">
+				<button class="btn icon" id="theme" type="button" aria-label="Alternar tema claro e escuro" title="Alternar tema"></button>
 				<button class="btn" id="reload" type="button">Atualizar</button>
 				<button class="btn" id="export" type="button">Exportar CSV</button>
 				<button class="btn" id="logout" type="button">Sair</button>
@@ -267,6 +281,27 @@ function starsNode(rating) {
 	node.append("★".repeat(rating), el("span", { class: "off", text: "★".repeat(5 - rating) }));
 	return node;
 }
+
+/* ---------- tema ---------- */
+const THEME_KEY = "ats-feedback-theme";
+const media = window.matchMedia("(prefers-color-scheme: dark)");
+const currentTheme = () => document.documentElement.dataset.theme || (media.matches ? "dark" : "light");
+
+function paintThemeButtons() {
+	const dark = currentTheme() === "dark";
+	["theme", "themeLogin"].forEach((id) => { $(id).textContent = dark ? "☀" : "☾"; });
+}
+
+function toggleTheme() {
+	const next = currentTheme() === "dark" ? "light" : "dark";
+	document.documentElement.dataset.theme = next;
+	try { localStorage.setItem(THEME_KEY, next); } catch { /* sem storage */ }
+	paintThemeButtons();
+}
+
+["theme", "themeLogin"].forEach((id) => $(id).addEventListener("click", toggleTheme));
+media.addEventListener("change", paintThemeButtons);
+paintThemeButtons();
 
 /* ---------- login ---------- */
 function show(session) {
@@ -477,10 +512,10 @@ function item(row) {
 	const foot = el("div", { class: "foot" });
 	if (row.contact) foot.append(el("a", { href: "mailto:" + row.contact, text: row.contact }));
 	const actions = el("div", { class: "grow" });
-	if (row.message) {
-		const copy = el("button", { class: "btn small", type: "button", text: row.kind === "TESTIMONIAL" ? "Copiar depoimento" : "Copiar texto" });
+	if (row.kind === "TESTIMONIAL" && row.message) {
+		const copy = el("button", { class: "btn small", type: "button", text: "Copiar depoimento" });
 		copy.addEventListener("click", async () => {
-			const quote = row.kind === "TESTIMONIAL" ? "“" + row.message + "”\n" + "★".repeat(row.rating) : row.message;
+			const quote = "“" + row.message + "”\n" + "★".repeat(row.rating);
 			try { await navigator.clipboard.writeText(quote); toast("Copiado"); } catch { toast("Não foi possível copiar"); }
 		});
 		actions.append(copy);
