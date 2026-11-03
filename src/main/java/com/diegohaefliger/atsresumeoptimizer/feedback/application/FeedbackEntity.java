@@ -1,11 +1,8 @@
 package com.diegohaefliger.atsresumeoptimizer.feedback.application;
 
-import com.diegohaefliger.atsresumeoptimizer.feedback.domain.FeedbackKind;
 import com.diegohaefliger.atsresumeoptimizer.feedback.domain.FeedbackSubmission;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
@@ -17,9 +14,6 @@ class FeedbackEntity {
 
 	@Id
 	private UUID id;
-
-	@Enumerated(EnumType.STRING)
-	private FeedbackKind kind;
 
 	private int rating;
 
@@ -45,7 +39,6 @@ class FeedbackEntity {
 	FeedbackEntity(UUID id, Instant createdAt, FeedbackSubmission submission) {
 		this.id = id;
 		this.createdAt = createdAt;
-		this.kind = submission.kind();
 		this.rating = submission.rating();
 		this.message = submission.message();
 		this.contact = submission.contact();
@@ -55,10 +48,6 @@ class FeedbackEntity {
 
 	UUID getId() {
 		return id;
-	}
-
-	public FeedbackKind getKind() {
-		return kind;
 	}
 
 	public int getRating() {

@@ -1,0 +1,8 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000100-feedback-drop-kind
+      author: DiegoHaefliger
+      changes:
+        - dropColumn:
+            tableName: feedback
+            columnName: kind

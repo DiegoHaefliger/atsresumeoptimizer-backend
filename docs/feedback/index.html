@@ -176,9 +176,8 @@ dialog::backdrop { background: rgb(5 7 12 / .82); }
 		<section class="stats" id="stats" aria-label="Resumo"></section>
 
 		<section class="card toolbar" aria-label="Filtros">
-			<div class="chips" id="kindChips" role="group" aria-label="Tipo"></div>
 			<div class="controls">
-				<label class="field">Buscar<input id="q" type="search" placeholder="Texto ou e-mail"></label>
+				<label class="field">Buscar<input id="q" type="search" placeholder="Comentário ou e-mail"></label>
 				<label class="field">Nota
 					<select id="fRating">
 						<option value="0">Qualquer</option><option value="5">5 estrelas</option><option value="4">4 ou mais</option>
@@ -232,15 +231,13 @@ const SUPABASE_URL = "https://wdkhbbbmjiocgbuumksu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_AINIsvR3Ch0-TV42m7uqlA_kSBXgRtV";
 const BUCKET = "feedback-screenshots";
 const SEEN_KEY = "ats-feedback-last-seen";
-const KINDS = { GENERAL: "Comentário", SUGGESTION: "Sugestão", IMPROVEMENT: "Melhoria", TESTIMONIAL: "Depoimento" };
-const KIND_ORDER = ["TESTIMONIAL", "SUGGESTION", "IMPROVEMENT", "GENERAL"];
 const DAY = 86400000;
 const LONG_TEXT = 320;
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (id) => document.getElementById(id);
 const rtf = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
-const filters = { kind: "", shots: false, publish: false, text: false };
+const filters = { shots: false, publish: false, text: false };
 let rows = [];
 let lastSeen = 0;
 let signupMode = false;
@@ -358,7 +355,6 @@ async function load() {
 	}
 	rows = data;
 	renderStats();
-	renderKindChips();
 	renderVersions();
 	render();
 	try { localStorage.setItem(SEEN_KEY, String(Date.now())); } catch { /* sem storage */ }
@@ -399,16 +395,6 @@ function renderStats() {
 	);
 }
 
-function renderKindChips() {
-	const chips = [["", "Todas", rows.length]];
-	KIND_ORDER.forEach((kind) => chips.push([kind, KINDS[kind], rows.filter((row) => row.kind === kind).length]));
-	$("kindChips").replaceChildren(...chips.map(([value, label, count]) => {
-		const chip = el("button", { class: "chip", type: "button", "aria-pressed": String(filters.kind === value) }, label, el("span", { class: "c", text: String(count) }));
-		chip.addEventListener("click", () => { filters.kind = value; renderKindChips(); render(); });
-		return chip;
-	}));
-}
-
 function renderVersions() {
 	const versions = [...new Set(rows.map((row) => row.app_version).filter(Boolean))].sort().reverse();
 	const current = $("fVersion").value;
@@ -423,7 +409,6 @@ function filtered() {
 	const version = $("fVersion").value;
 	const query = $("q").value.trim().toLowerCase();
 	const list = rows.filter((row) => {
-		if (filters.kind && row.kind !== filters.kind) return false;
 		if (rating > 0 && row.rating < rating) return false;
 		if (rating < 0 && row.rating > -rating) return false;
 		if (period && Date.now() - new Date(row.created_at).getTime() > period * DAY) return false;
@@ -444,7 +429,7 @@ function filtered() {
 }
 
 function hasActiveFilters() {
-	return filters.kind || filters.shots || filters.publish || filters.text || $("q").value || $("fRating").value !== "0"
+	return filters.shots || filters.publish || filters.text || $("q").value || $("fRating").value !== "0"
 		|| $("fPeriod").value !== "0" || $("fVersion").value || $("fSort").value !== "new";
 }
 
@@ -470,9 +455,8 @@ $("q").addEventListener("input", render);
 [["tShots", "shots"], ["tPublish", "publish"], ["tText", "text"]].forEach(([id, key]) =>
 	$(id).addEventListener("click", () => { filters[key] = !filters[key]; render(); }));
 $("clear").addEventListener("click", () => {
-	Object.assign(filters, { kind: "", shots: false, publish: false, text: false });
+	Object.assign(filters, { shots: false, publish: false, text: false });
 	$("q").value = ""; $("fRating").value = "0"; $("fPeriod").value = "0"; $("fVersion").value = ""; $("fSort").value = "new";
-	renderKindChips();
 	render();
 });
 $("reload").addEventListener("click", load);
@@ -485,7 +469,6 @@ function item(row) {
 
 	const head = el("div", { class: "head" });
 	if (created.getTime() > lastSeen) head.append(el("span", { class: "badge new", text: "Novo" }));
-	head.append(el("span", { class: "badge", text: KINDS[row.kind] ?? row.kind }));
 	if (row.allow_publish) head.append(el("span", { class: "badge pub", text: "Pode divulgar" }));
 	if (row.app_version) head.append(el("span", { class: "badge plain", text: "v" + row.app_version }));
 	head.append(el("span", { class: "when", title: created.toLocaleString("pt-BR", { dateStyle: "full", timeStyle: "short" }), text: ago(row.created_at) }));
@@ -512,7 +495,7 @@ function item(row) {
 	const foot = el("div", { class: "foot" });
 	if (row.contact) foot.append(el("a", { href: "mailto:" + row.contact, text: row.contact }));
 	const actions = el("div", { class: "grow" });
-	if (row.kind === "TESTIMONIAL" && row.message) {
+	if (row.allow_publish && row.message) {
 		const copy = el("button", { class: "btn small", type: "button", text: "Copiar depoimento" });
 		copy.addEventListener("click", async () => {
 			const quote = "“" + row.message + "”\n" + "★".repeat(row.rating);
@@ -587,9 +570,9 @@ $("viewer").addEventListener("keydown", (event) => {
 /* ---------- exportar ---------- */
 $("export").addEventListener("click", () => {
 	const cell = (value) => '"' + String(value ?? "").replace(/"/g, '""') + '"';
-	const header = ["data", "tipo", "nota", "mensagem", "contato", "pode_divulgar", "versao", "prints"];
+	const header = ["data", "nota", "mensagem", "contato", "pode_divulgar", "versao", "prints"];
 	const lines = filtered().map((row) => [
-		row.created_at, KINDS[row.kind] ?? row.kind, row.rating, row.message, row.contact,
+		row.created_at, row.rating, row.message, row.contact,
 		row.allow_publish ? "sim" : "nao", row.app_version, row.screenshots.join(" "),
 	].map(cell).join(","));
 	const blob = new Blob(["﻿" + [header.join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });

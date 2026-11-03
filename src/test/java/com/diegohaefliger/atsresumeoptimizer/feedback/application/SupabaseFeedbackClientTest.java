@@ -9,7 +9,6 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
 import com.diegohaefliger.atsresumeoptimizer.feedback.domain.FeedbackAttachment;
-import com.diegohaefliger.atsresumeoptimizer.feedback.domain.FeedbackKind;
 import com.diegohaefliger.atsresumeoptimizer.feedback.domain.FeedbackSubmission;
 import java.time.Duration;
 import java.util.List;
@@ -26,7 +25,7 @@ class SupabaseFeedbackClientTest {
 	private static final String ROWS = URL + "/rest/v1/feedback";
 	private static final UUID ID = UUID.fromString("0198a000-0000-7000-8000-000000000001");
 	private static final String IMAGE_URL = URL + "/storage/v1/object/feedback-screenshots/" + ID + "/0.png";
-	private static final FeedbackSubmission SUBMISSION = new FeedbackSubmission(FeedbackKind.TESTIMONIAL, 5,
+	private static final FeedbackSubmission SUBMISSION = new FeedbackSubmission(5,
 			"Consegui a entrevista", "ana@exemplo.com", true, "1.4.0");
 	private static final FeedbackAttachment IMAGE = new FeedbackAttachment("tela.png", "image/png",
 			new byte[] {(byte) 0x89, 'P', 'N', 'G', 1});
@@ -46,7 +45,6 @@ class SupabaseFeedbackClientTest {
 				.andExpect(header("Authorization", "Bearer sb_publishable_x"))
 				.andExpect(header("Prefer", "return=minimal"))
 				.andExpect(jsonPath("$.id").value(ID.toString()))
-				.andExpect(jsonPath("$.kind").value("TESTIMONIAL"))
 				.andExpect(jsonPath("$.rating").value(5))
 				.andExpect(jsonPath("$.contact").value("ana@exemplo.com"))
 				.andExpect(jsonPath("$.allow_publish").value(true))

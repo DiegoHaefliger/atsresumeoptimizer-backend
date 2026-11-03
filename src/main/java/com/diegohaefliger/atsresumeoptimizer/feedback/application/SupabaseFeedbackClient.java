@@ -94,7 +94,6 @@ class SupabaseFeedbackClient implements FeedbackGateway {
 	private static FeedbackRow row(UUID id, FeedbackSubmission submission, List<String> screenshots) {
 		return new FeedbackRow(
 				id.toString(),
-				submission.kind().name(),
 				submission.rating(),
 				StringUtils.hasText(submission.message()) ? submission.message() : null,
 				StringUtils.hasText(submission.contact()) ? submission.contact() : null,
@@ -113,7 +112,6 @@ class SupabaseFeedbackClient implements FeedbackGateway {
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	record FeedbackRow(
 			String id,
-			String kind,
 			int rating,
 			String message,
 			String contact,
