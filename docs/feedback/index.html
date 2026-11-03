@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Avaliações · ATS Resume Optimizer</title>
+<style>
+:root {
+	--bg: #f6f7fb; --surface: #fff; --surface-2: #f1f3f9; --text: #151a27; --muted: #5b6478;
+	--border: #e3e7f0; --brand: #5b4bdb; --brand-soft: #eceafc; --star: #f5a524; --ok: #15803d; --err: #b91c1c;
+	--shadow: 0 1px 2px rgb(16 24 40 / .06), 0 4px 16px rgb(16 24 40 / .06);
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #0e1118; --surface: #171b26; --surface-2: #1d2230; --text: #eef0f6; --muted: #98a1b6;
+		--border: #262c3d; --brand: #8b7cff; --brand-soft: #25234a; --ok: #4ade80; --err: #f87171;
+		--shadow: 0 1px 2px rgb(0 0 0 / .4), 0 4px 16px rgb(0 0 0 / .35);
+	}
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button, input, select { font: inherit; color: inherit; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+h1 { margin: 0; font-size: 24px; }
+.sub { margin: 2px 0 0; color: var(--muted); }
+.btn { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 600; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn.primary:hover { filter: brightness(1.08); background: var(--brand); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+.login { max-width: 400px; margin: 10vh auto 0; padding: 28px; display: grid; gap: 14px; }
+.login h1 { font-size: 20px; }
+label.f { display: grid; gap: 6px; font-weight: 600; font-size: 13px; }
+input[type=email], input[type=password], select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+input:focus-visible, select:focus-visible, .btn:focus-visible, .thumb:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.msg { margin: 0; font-size: 13px; }
+.msg.err { color: var(--err); } .msg.ok { color: var(--ok); }
+.link { background: none; border: 0; color: var(--brand); cursor: pointer; padding: 0; text-align: left; font-size: 13px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat { padding: 16px; }
+.stat .n { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.stat .l { color: var(--muted); font-size: 13px; }
+.bars { display: grid; gap: 4px; margin-top: 6px; }
+.bar { display: grid; grid-template-columns: 14px 1fr 24px; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }
+.bar i { display: block; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.bar i b { display: block; height: 100%; background: var(--star); }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 16px; padding: 14px 16px; }
+.filters label.f { min-width: 150px; }
+.check { display: flex; align-items: center; gap: 6px; font-size: 14px; padding-bottom: 8px; }
+.list { display: grid; gap: 12px; }
+.item { padding: 18px; display: grid; gap: 10px; }
+.item .head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.stars { color: var(--star); letter-spacing: 2px; font-size: 18px; }
+.stars .off { color: var(--border); }
+.badge { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
+.badge.pub { background: color-mix(in srgb, var(--ok) 15%, var(--surface)); color: var(--ok); }
+.meta { color: var(--muted); font-size: 13px; margin-left: auto; }
+.text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.text.empty { color: var(--muted); font-style: italic; }
+.foot { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; color: var(--muted); font-size: 13px; }
+.foot a { color: var(--brand); }
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumb { padding: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface-2); cursor: zoom-in; width: 120px; height: 84px; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.empty-state { text-align: center; padding: 48px 16px; color: var(--muted); }
+dialog { border: 0; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; }
+dialog::backdrop { background: rgb(0 0 0 / .75); }
+dialog img { max-width: 94vw; max-height: 92vh; border-radius: 10px; display: block; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+	<section id="login" class="card login" hidden>
+		<div>
+			<h1>Avaliações do ATS Resume Optimizer</h1>
+			<p class="sub">Acesso restrito ao desenvolvedor.</p>
+		</div>
+		<form id="loginForm" style="display:grid;gap:14px">
+			<label class="f">E-mail<input id="email" type="email" required autocomplete="username"></label>
+			<label class="f">Senha<input id="password" type="password" required minlength="8" autocomplete="current-password"></label>
+			<button class="btn primary" id="loginButton" type="submit">Entrar</button>
+			<button class="link" id="toggleMode" type="button">Primeiro acesso? Criar senha</button>
+			<p id="loginMsg" class="msg" role="status"></p>
+		</form>
+	</section>
+
+	<main id="app" hidden>
+		<header class="top">
+			<div>
+				<h1>Avaliações</h1>
+				<p class="sub" id="who"></p>
+			</div>
+			<div style="display:flex;gap:8px">
+				<button class="btn" id="reload" type="button">Atualizar</button>
+				<button class="btn" id="logout" type="button">Sair</button>
+			</div>
+		</header>
+
+		<section class="stats" id="stats"></section>
+
+		<section class="card filters">
+			<label class="f">Tipo
+				<select id="fKind">
+					<option value="">Todos</option>
+					<option value="TESTIMONIAL">Depoimentos</option>
+					<option value="SUGGESTION">Sugestões</option>
+					<option value="IMPROVEMENT">Melhorias</option>
+					<option value="GENERAL">Comentários</option>
+				</select>
+			</label>
+			<label class="f">Nota
+				<select id="fRating">
+					<option value="0">Qualquer</option>
+					<option value="5">5 estrelas</option>
+					<option value="4">4 ou mais</option>
+					<option value="3">3 ou mais</option>
+					<option value="-3">3 ou menos</option>
+				</select>
+			</label>
+			<label class="check"><input type="checkbox" id="fShots"> Só com prints</label>
+			<label class="check"><input type="checkbox" id="fPublish"> Autorizados a divulgar</label>
+			<label class="check"><input type="checkbox" id="fText"> Só com texto</label>
+		</section>
+
+		<p id="appMsg" class="msg err" role="alert"></p>
+		<section class="list" id="list" aria-live="polite"></section>
+	</main>
+</div>
+
+<dialog id="viewer"><img id="viewerImg" alt="Print anexado"></dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = "https://wdkhbbbmjiocgbuumksu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_AINIsvR3Ch0-TV42m7uqlA_kSBXgRtV";
+const BUCKET = "feedback-screenshots";
+const KINDS = { GENERAL: "Comentário", SUGGESTION: "Sugestão", IMPROVEMENT: "Melhoria", TESTIMONIAL: "Depoimento" };
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = (id) => document.getElementById(id);
+let rows = [];
+let signupMode = false;
+
+function el(tag, props = {}, ...children) {
+	const node = document.createElement(tag);
+	for (const [key, value] of Object.entries(props)) {
+		if (key === "class") node.className = value;
+		else if (key === "text") node.textContent = value;
+		else node.setAttribute(key, value);
+	}
+	children.forEach((child) => child && node.append(child));
+	return node;
+}
+
+let shownUser = null;
+
+function show(session) {
+	$("login").hidden = !!session;
+	$("app").hidden = !session;
+	const userId = session ? session.user.id : null;
+	if (userId === shownUser) return;
+	shownUser = userId;
+	if (session) {
+		$("who").textContent = session.user.email;
+		load();
+	} else {
+		rows = [];
+	}
+}
+
+function setLoginMessage(text, ok = false) {
+	$("loginMsg").textContent = text;
+	$("loginMsg").className = "msg " + (ok ? "ok" : "err");
+}
+
+$("toggleMode").addEventListener("click", () => {
+	signupMode = !signupMode;
+	$("loginButton").textContent = signupMode ? "Criar senha" : "Entrar";
+	$("toggleMode").textContent = signupMode ? "Já tenho senha. Entrar" : "Primeiro acesso? Criar senha";
+	$("password").autocomplete = signupMode ? "new-password" : "current-password";
+	setLoginMessage("");
+});
+
+$("loginForm").addEventListener("submit", async (event) => {
+	event.preventDefault();
+	$("loginButton").disabled = true;
+	setLoginMessage("");
+	const credentials = { email: $("email").value.trim(), password: $("password").value };
+	const { data, error } = signupMode ? await db.auth.signUp(credentials) : await db.auth.signInWithPassword(credentials);
+	$("loginButton").disabled = false;
+	if (error) return setLoginMessage(error.message);
+	if (signupMode && !data.session) {
+		return setLoginMessage("Enviamos um e-mail de confirmação. Confirme e volte aqui para entrar.", true);
+	}
+});
+
+$("logout").addEventListener("click", () => db.auth.signOut());
+$("reload").addEventListener("click", load);
+["fKind", "fRating", "fShots", "fPublish", "fText"].forEach((id) => $(id).addEventListener("change", render));
+
+async function load() {
+	$("appMsg").textContent = "";
+	const { data, error } = await db.from("feedback").select("*").order("created_at", { ascending: false });
+	if (error) {
+		$("appMsg").textContent = "Não foi possível carregar: " + error.message;
+		return;
+	}
+	rows = data;
+	renderStats();
+	render();
+}
+
+function renderStats() {
+	const total = rows.length;
+	const avg = total ? rows.reduce((sum, row) => sum + row.rating, 0) / total : 0;
+	const withShots = rows.filter((row) => row.screenshots.length).length;
+	const testimonials = rows.filter((row) => row.kind === "TESTIMONIAL").length;
+	const stats = $("stats");
+	stats.replaceChildren(
+		statCard(String(total), "avaliações recebidas"),
+		statCard(total ? avg.toFixed(1).replace(".", ",") : "–", "nota média de 5"),
+		statCard(String(testimonials), "depoimentos · " + withShots + " com prints"),
+		distributionCard(total),
+	);
+}
+
+function statCard(value, label) {
+	return el("div", { class: "card stat" }, el("div", { class: "n", text: value }), el("div", { class: "l", text: label }));
+}
+
+function distributionCard(total) {
+	const bars = el("div", { class: "bars" });
+	for (let star = 5; star >= 1; star--) {
+		const count = rows.filter((row) => row.rating === star).length;
+		const fill = el("b");
+		fill.style.width = (total ? (count / total) * 100 : 0) + "%";
+		bars.append(el("div", { class: "bar" }, el("span", { text: String(star) }), el("i", {}, fill), el("span", { text: String(count) })));
+	}
+	return el("div", { class: "card stat" }, el("div", { class: "l", text: "distribuição das notas" }), bars);
+}
+
+function filtered() {
+	const kind = $("fKind").value;
+	const rating = Number($("fRating").value);
+	return rows.filter((row) => {
+		if (kind && row.kind !== kind) return false;
+		if (rating > 0 && row.rating < rating) return false;
+		if (rating < 0 && row.rating > -rating) return false;
+		if ($("fShots").checked && !row.screenshots.length) return false;
+		if ($("fPublish").checked && !row.allow_publish) return false;
+		if ($("fText").checked && !row.message) return false;
+		return true;
+	});
+}
+
+function render() {
+	const list = $("list");
+	const visible = filtered();
+	if (!visible.length) {
+		list.replaceChildren(el("p", { class: "empty-state", text: rows.length ? "Nenhuma avaliação com esses filtros." : "Ainda não chegou nenhuma avaliação." }));
+		return;
+	}
+	list.replaceChildren(...visible.map(item));
+}
+
+function item(row) {
+	const stars = el("span", { class: "stars", role: "img", "aria-label": row.rating + " de 5 estrelas" });
+	stars.append("★".repeat(row.rating), el("span", { class: "off", text: "★".repeat(5 - row.rating) }));
+	const when = new Date(row.created_at).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" });
+	const head = el("div", { class: "head" }, stars, el("span", { class: "badge", text: KINDS[row.kind] ?? row.kind }));
+	if (row.allow_publish) head.append(el("span", { class: "badge pub", text: "Pode divulgar" }));
+	head.append(el("span", { class: "meta", text: when + (row.app_version ? " · v" + row.app_version : "") }));
+
+	const card = el("article", { class: "card item" }, head,
+		el("p", { class: "text" + (row.message ? "" : " empty"), text: row.message || "Sem comentário." }));
+
+	if (row.screenshots.length) {
+		const thumbs = el("div", { class: "thumbs" });
+		card.append(thumbs);
+		loadThumbs(row.screenshots, thumbs);
+	}
+	if (row.contact) {
+		card.append(el("div", { class: "foot" }, "Contato: ", el("a", { href: "mailto:" + row.contact, text: row.contact })));
+	}
+	return card;
+}
+
+async function loadThumbs(paths, container) {
+	const { data, error } = await db.storage.from(BUCKET).createSignedUrls(paths, 3600);
+	if (error) {
+		container.append(el("span", { class: "msg err", text: "Não foi possível carregar os prints." }));
+		return;
+	}
+	data.forEach((entry, index) => {
+		if (!entry.signedUrl) return;
+		const img = el("img", { src: entry.signedUrl, alt: "Print " + (index + 1), loading: "lazy" });
+		const button = el("button", { class: "thumb", type: "button", "aria-label": "Ampliar print " + (index + 1) }, img);
+		button.addEventListener("click", () => {
+			$("viewerImg").src = entry.signedUrl;
+			$("viewer").showModal();
+		});
+		container.append(button);
+	});
+}
+
+$("viewer").addEventListener("click", () => $("viewer").close());
+
+db.auth.getSession().then(({ data }) => show(data.session));
+db.auth.onAuthStateChange((_event, session) => show(session));
+</script>
+</body>
+</html>

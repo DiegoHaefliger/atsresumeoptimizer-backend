@@ -181,3 +181,7 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000096_prompt_template_linkedin_analysis.yaml
   - include:
       file: db/changelog/changes/00000000000097_prompt_template_linkedin_analysis_v2.yaml
+  - include:
+      file: db/changelog/changes/00000000000098_feedback.yaml
+  - include:
+      file: db/changelog/changes/00000000000099_feedback_attachment.yaml

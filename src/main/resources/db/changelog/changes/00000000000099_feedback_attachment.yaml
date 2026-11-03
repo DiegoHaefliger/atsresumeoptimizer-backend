@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000099-feedback-attachment
+      author: DiegoHaefliger
+      changes:
+        - createTable:
+            tableName: feedback_attachment
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: feedback_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_feedback_attachment_feedback
+                    references: feedback(id)
+                    deleteCascade: true
+              - column:
+                  name: position
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_name
+                  type: varchar(255)
+              - column:
+                  name: content_type
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content
+                  type: bytea
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: feedback_attachment
+            indexName: idx_feedback_attachment_feedback
+            columns:
+              - column:
+                  name: feedback_id
