@@ -87,6 +87,19 @@ input[type=email], input[type=password], input[type=search], select { width: 100
 .toggles { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .resultbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin: 0 2px 10px; }
 
+.tabs { display: flex; gap: 8px; margin: 20px 0 0; }
+.dl-list { display: grid; gap: 14px; margin-top: 24px; }
+.dl { padding: 18px 20px; display: grid; gap: 12px; }
+.dl .top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.dl .tag { font-size: 18px; font-weight: 700; color: var(--text); text-decoration: none; }
+.dl .tag:hover { color: var(--brand); }
+.dl .total { margin-left: auto; font-size: 22px; font-weight: 750; }
+.dl .total small { font-size: 13px; font-weight: 500; color: var(--muted); }
+.dl .assets { display: grid; gap: 6px; }
+.asset { display: grid; grid-template-columns: 110px 1fr 40px; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); }
+.asset i { display: block; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.asset i b { display: block; height: 100%; border-radius: 4px; background: var(--brand); }
+.asset span:last-child { text-align: right; color: var(--text); font-weight: 600; }
 .list { display: grid; gap: 14px; }
 .item { display: grid; grid-template-columns: 76px 1fr; gap: 18px; padding: 20px; }
 .score { display: grid; justify-items: center; align-content: start; gap: 4px; }
@@ -127,6 +140,7 @@ dialog::backdrop { background: rgb(5 7 12 / .82); }
 
 @media (max-width: 900px) { .controls { grid-template-columns: 1fr 1fr; } .controls .field:first-child { grid-column: 1 / -1; } }
 @media (max-width: 600px) {
+	.asset { grid-template-columns: 90px 1fr 32px; }
 	.item { grid-template-columns: 1fr; gap: 12px; padding: 16px; }
 	.score { display: flex; align-items: center; gap: 10px; }
 	.score .num { width: 44px; height: 44px; font-size: 20px; border-radius: 12px; }
@@ -170,6 +184,18 @@ dialog::backdrop { background: rgb(5 7 12 / .82); }
 	</header>
 
 	<main class="wrap">
+		<nav class="tabs" role="tablist" aria-label="Seções">
+			<button class="chip" id="tabFeedback" type="button" role="tab" aria-pressed="true">Avaliações</button>
+			<button class="chip" id="tabDownloads" type="button" role="tab" aria-pressed="false">Downloads</button>
+		</nav>
+
+		<div id="paneDownloads" hidden>
+			<section class="stats" id="dlStats" aria-label="Resumo de downloads"></section>
+			<p id="dlMsg" class="msg err" role="alert"></p>
+			<section class="dl-list" id="dlList" aria-live="polite"></section>
+		</div>
+
+		<div id="paneFeedback">
 		<section class="stats" id="stats" aria-label="Resumo"></section>
 
 		<section class="card toolbar" aria-label="Filtros">
@@ -205,6 +231,7 @@ dialog::backdrop { background: rgb(5 7 12 / .82); }
 		<div class="resultbar"><span id="count"></span></div>
 		<p id="appMsg" class="msg err" role="alert"></p>
 		<section class="list" id="list" aria-live="polite"></section>
+		</div>
 	</main>
 </div>
 
@@ -229,6 +256,9 @@ const BUCKET = "feedback-screenshots";
 const SEEN_KEY = "ats-feedback-last-seen";
 const DAY = 86400000;
 const LONG_TEXT = 320;
+const RELEASES_URL = "https://api.github.com/repos/DiegoHaefliger/atsresumeoptimizer/releases?per_page=100";
+const INSTALLER = /\.(deb|dmg|msi|exe|rpm|AppImage)$/i;
+const PLATFORMS = [[/\.msi$|\.exe$/i, "Windows"], [/arm64\.dmg$/i, "macOS (ARM)"], [/\.dmg$/i, "macOS (Intel)"], [/\.deb$|\.rpm$|\.AppImage$/i, "Linux"]];
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (id) => document.getElementById(id);
@@ -447,7 +477,92 @@ $("clear").addEventListener("click", () => {
 	$("q").value = ""; $("fRating").value = "0"; $("fPeriod").value = "0"; $("fVersion").value = ""; $("fSort").value = "new";
 	render();
 });
-$("reload").addEventListener("click", load);
+$("reload").addEventListener("click", () => (tab === "downloads" ? loadDownloads() : load()));
+
+/* ---------- abas ---------- */
+let tab = "feedback";
+let downloadsLoaded = false;
+
+function setTab(next) {
+	tab = next;
+	$("paneFeedback").hidden = next !== "feedback";
+	$("paneDownloads").hidden = next !== "downloads";
+	$("tabFeedback").setAttribute("aria-pressed", String(next === "feedback"));
+	$("tabDownloads").setAttribute("aria-pressed", String(next === "downloads"));
+	$("export").hidden = next !== "feedback";
+	if (next === "downloads" && !downloadsLoaded) loadDownloads();
+}
+
+$("tabFeedback").addEventListener("click", () => setTab("feedback"));
+$("tabDownloads").addEventListener("click", () => setTab("downloads"));
+
+/* ---------- downloads ---------- */
+const platformOf = (name) => (PLATFORMS.find(([re]) => re.test(name)) || [null, name])[1];
+
+async function loadDownloads() {
+	$("dlMsg").textContent = "";
+	$("reload").disabled = true;
+	$("dlList").replaceChildren(el("div", { class: "skeleton" }), el("div", { class: "skeleton" }));
+	try {
+		const response = await fetch(RELEASES_URL, { headers: { Accept: "application/vnd.github+json" } });
+		if (!response.ok) throw new Error(response.status === 403 ? "limite da API do GitHub atingido, tente em alguns minutos" : "HTTP " + response.status);
+		const releases = (await response.json()).filter((release) => !release.draft);
+		downloadsLoaded = true;
+		renderDownloads(releases);
+	} catch (error) {
+		$("dlList").replaceChildren();
+		$("dlMsg").textContent = "Não foi possível carregar os downloads: " + error.message;
+	} finally {
+		$("reload").disabled = false;
+	}
+}
+
+function renderDownloads(releases) {
+	const stats = releases.map((release) => {
+		const assets = release.assets.filter((asset) => INSTALLER.test(asset.name));
+		return { release, assets, total: assets.reduce((sum, asset) => sum + asset.download_count, 0) };
+	});
+	const grand = stats.reduce((sum, entry) => sum + entry.total, 0);
+	const top = stats.reduce((best, entry) => (!best || entry.total > best.total ? entry : best), null);
+	const latest = stats[0];
+	const byPlatform = new Map();
+	stats.forEach((entry) => entry.assets.forEach((asset) => {
+		const key = platformOf(asset.name);
+		byPlatform.set(key, (byPlatform.get(key) || 0) + asset.download_count);
+	}));
+	const mini = el("div", { class: "mini" }, ...[...byPlatform].sort((a, b) => b[1] - a[1])
+		.map(([name, count]) => el("div", {}, el("span", { text: name }), el("b", { text: String(count) }))));
+
+	$("dlStats").replaceChildren(
+		el("div", { class: "card stat" }, el("div", { class: "l", text: "Downloads totais" }), el("div", { class: "n", text: String(grand) }),
+			el("div", { class: "s", text: releases.length + " releases" })),
+		el("div", { class: "card stat" }, el("div", { class: "l", text: "Última release" }),
+			el("div", { class: "n", text: latest ? String(latest.total) : "–" }), el("div", { class: "s", text: latest ? latest.release.tag_name : "" })),
+		el("div", { class: "card stat" }, el("div", { class: "l", text: "Mais baixada" }),
+			el("div", { class: "n", text: top ? String(top.total) : "–" }), el("div", { class: "s", text: top ? top.release.tag_name : "" })),
+		el("div", { class: "card stat" }, el("div", { class: "l", text: "Por plataforma" }), mini),
+	);
+
+	if (!stats.length) {
+		$("dlList").replaceChildren(el("div", { class: "empty-state" }, el("b", { text: "Nenhuma release publicada" })));
+		return;
+	}
+	$("dlList").replaceChildren(...stats.map(({ release, assets, total }) => {
+		const max = Math.max(1, ...assets.map((asset) => asset.download_count));
+		const header = el("div", { class: "top" },
+			el("a", { class: "tag", href: release.html_url, target: "_blank", rel: "noreferrer", text: release.tag_name }),
+			release.prerelease ? el("span", { class: "badge plain", text: "pré-release" }) : null,
+			el("span", { class: "badge plain", text: new Date(release.published_at).toLocaleDateString("pt-BR", { dateStyle: "medium" }) }),
+			el("span", { class: "total" }, String(total), el("small", { text: " downloads" })));
+		const rows = assets.map((asset) => {
+			const fill = el("b");
+			fill.style.width = (asset.download_count / max) * 100 + "%";
+			return el("div", { class: "asset", title: asset.name },
+				el("span", { text: platformOf(asset.name) }), el("i", {}, fill), el("span", { text: String(asset.download_count) }));
+		});
+		return el("article", { class: "card dl" }, header, el("div", { class: "assets" }, ...rows));
+	}));
+}
 
 /* ---------- cartões ---------- */
 function item(row) {
