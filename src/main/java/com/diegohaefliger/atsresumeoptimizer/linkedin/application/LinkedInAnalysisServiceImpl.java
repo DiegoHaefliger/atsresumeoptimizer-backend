@@ -65,7 +65,8 @@ class LinkedInAnalysisServiceImpl implements LinkedInAnalysisService {
 				: snapshotService.get(snapshotId);
 		CareerProfile career = careerProfileService.current().orElseThrow(CareerProfileNotFoundException::new);
 		String careerText = LinkedInPromptText.careerProfile(career);
-		String profileText = LinkedInPromptText.profile(snapshot);
+		String profileText = LinkedInPromptText.withChecks(LinkedInPromptText.profile(snapshot),
+				LinkedInProfileChecks.run(snapshot, career));
 		List<ChatImage> images = images(snapshot);
 
 		boolean imagesAnalyzed = !images.isEmpty();

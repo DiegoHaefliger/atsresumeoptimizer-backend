@@ -61,6 +61,14 @@ final class LinkedInPromptText {
 		return String.join("\n", lines);
 	}
 
+	static String withChecks(String profileText, List<String> checks) {
+		if (checks.isEmpty()) {
+			return profileText;
+		}
+		return profileText + "\n\nVerificações objetivas (calculadas sem IA, trate como fato e não as contradiga):\n"
+				+ checks.stream().map(check -> "- " + check).collect(Collectors.joining("\n"));
+	}
+
 	private static void line(List<String> lines, String label, String value) {
 		if (value != null && !value.isBlank()) {
 			lines.add(label + ": " + value);
