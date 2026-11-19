@@ -67,7 +67,7 @@ class LinkedInSnapshotServiceImplTest {
 		previous.setContent(profileWithHeadline());
 		previous.setPhoto(new byte[] {1, 2});
 		previous.setPhotoMimeType("image/png");
-		when(repository.findFirstByOrderByCapturedAtDesc()).thenReturn(Optional.of(previous));
+		when(repository.findFirstBySourceOrderByCapturedAtDesc("EXTENSION")).thenReturn(Optional.of(previous));
 		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
 		LinkedInCapture capture = service()
@@ -85,7 +85,7 @@ class LinkedInSnapshotServiceImplTest {
 		previous.setCapturedAt(java.time.Instant.parse("2026-01-01T00:00:00Z"));
 		previous.setSource("EXTENSION");
 		previous.setContent(profileWithHeadline());
-		when(repository.findFirstByOrderByCapturedAtDesc()).thenReturn(Optional.of(previous));
+		when(repository.findFirstBySourceOrderByCapturedAtDesc("EXTENSION")).thenReturn(Optional.of(previous));
 		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 		var edited = new LinkedInProfile(null, "Ana", "Dev Java Sênior", null, null, null, null, null, null, null, null,
 				null, null, null, null, null, null, null);
@@ -98,13 +98,32 @@ class LinkedInSnapshotServiceImplTest {
 	}
 
 	@Test
+	void doesNotMergeAnExtensionReadingIntoAnEarlierPdfSnapshotWithTheSameContent() {
+		var pdf = new LinkedInSnapshotEntity(UUID.randomUUID());
+		pdf.setCapturedAt(java.time.Instant.parse("2026-01-01T00:00:00Z"));
+		pdf.setSource("PDF");
+		pdf.setContent(profileWithHeadline());
+		when(repository.findFirstBySourceOrderByCapturedAtDesc("EXTENSION")).thenReturn(Optional.empty());
+		when(repository.findFirstByOrderByCapturedAtDesc()).thenReturn(Optional.of(pdf));
+		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		LinkedInCapture capture = service()
+				.capture(new NewLinkedInSnapshot(SnapshotSource.EXTENSION, profileWithHeadline(), null, null));
+
+		assertThat(capture.unchanged()).isFalse();
+		assertThat(capture.snapshot().id()).isNotEqualTo(pdf.getId());
+		assertThat(capture.snapshot().source()).isEqualTo(SnapshotSource.EXTENSION);
+		assertThat(capture.changedSections()).isEmpty();
+	}
+
+	@Test
 	void ignoresFollowersAndConnectionsWhenComparing() {
 		var previous = new LinkedInSnapshotEntity(UUID.randomUUID());
 		previous.setCapturedAt(java.time.Instant.parse("2026-01-01T00:00:00Z"));
 		previous.setSource("EXTENSION");
 		previous.setContent(new LinkedInProfile(null, "Ana", "Dev Java", null, null, null, "500+", "100", null, null,
 				null, null, null, null, null, null, null, null));
-		when(repository.findFirstByOrderByCapturedAtDesc()).thenReturn(Optional.of(previous));
+		when(repository.findFirstBySourceOrderByCapturedAtDesc("EXTENSION")).thenReturn(Optional.of(previous));
 		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 		var moreFollowers = new LinkedInProfile(null, "Ana", "Dev Java", null, null, null, "500+", "130", null, null,
 				null, null, null, null, null, null, null, null);

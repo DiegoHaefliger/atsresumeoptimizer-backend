@@ -35,19 +35,20 @@ class LinkedInSnapshotServiceImpl implements LinkedInSnapshotService {
 		}
 		Map<ProfileSection, String> incoming = LinkedInContentFingerprint.of(snapshot.profile(), bytes(snapshot.photo()),
 				bytes(snapshot.banner()));
-		Optional<LinkedInSnapshotEntity> previous = repository.findFirstByOrderByCapturedAtDesc();
-		if (previous.isPresent()) {
-			List<ProfileSection> changed = LinkedInContentFingerprint.changed(
-					LinkedInContentFingerprint.of(mapper.toDomain(previous.get())), incoming);
-			if (changed.isEmpty()) {
-				previous.get().setCapturedAt(Instant.now());
-				return new LinkedInCapture(mapper.toDomain(repository.save(previous.get())), true, List.of());
-			}
-			return new LinkedInCapture(store(snapshot), false, changed);
+		Optional<LinkedInSnapshotEntity> sameSource = repository.findFirstBySourceOrderByCapturedAtDesc(snapshot.source().name());
+		if (sameSource.isPresent() && LinkedInContentFingerprint.changed(fingerprintOf(sameSource.get()), incoming).isEmpty()) {
+			sameSource.get().setCapturedAt(Instant.now());
+			return new LinkedInCapture(mapper.toDomain(repository.save(sameSource.get())), true, List.of());
 		}
-		List<ProfileSection> filled = incoming.entrySet().stream().filter(entry -> !entry.getValue().isEmpty())
-				.map(Map.Entry::getKey).toList();
-		return new LinkedInCapture(store(snapshot), false, filled);
+		Optional<LinkedInSnapshotEntity> reference = sameSource.or(repository::findFirstByOrderByCapturedAtDesc);
+		List<ProfileSection> changed = reference.isPresent()
+				? LinkedInContentFingerprint.changed(fingerprintOf(reference.get()), incoming)
+				: incoming.entrySet().stream().filter(entry -> !entry.getValue().isEmpty()).map(Map.Entry::getKey).toList();
+		return new LinkedInCapture(store(snapshot), false, changed);
+	}
+
+	private Map<ProfileSection, String> fingerprintOf(LinkedInSnapshotEntity entity) {
+		return LinkedInContentFingerprint.of(mapper.toDomain(entity));
 	}
 
 	private LinkedInSnapshot store(NewLinkedInSnapshot snapshot) {
