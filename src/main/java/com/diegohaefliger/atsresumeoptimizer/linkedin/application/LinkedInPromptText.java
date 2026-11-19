@@ -4,6 +4,7 @@ import com.diegohaefliger.atsresumeoptimizer.careerprofile.CareerProfile;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInEntry;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInProfile;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshot;
+import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.ProfileCheck;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -59,6 +60,17 @@ final class LinkedInPromptText {
 		list(lines, "Em destaque", profile.featured());
 		list(lines, "Atividade recente (posts)", profile.recentActivity());
 		return String.join("\n", lines);
+	}
+
+	static String withChecks(String profileText, List<ProfileCheck> checks) {
+		List<ProfileCheck> failed = checks.stream().filter(check -> !check.passed()).toList();
+		if (failed.isEmpty()) {
+			return profileText;
+		}
+		return profileText + "\n\nVerificações objetivas já calculadas pelo sistema. O usuário as vê em um quadro próprio,"
+				+ " então NÃO as repita no resumo, em topActions nem como sugestão: use-as só de contexto e concentre-se"
+				+ " no que exige julgamento (o que escrever, como reescrever, o que priorizar):\n"
+				+ failed.stream().map(check -> "- " + check.label() + " (" + check.section() + "): " + check.current()).collect(Collectors.joining("\n"));
 	}
 
 	private static void line(List<String> lines, String label, String value) {

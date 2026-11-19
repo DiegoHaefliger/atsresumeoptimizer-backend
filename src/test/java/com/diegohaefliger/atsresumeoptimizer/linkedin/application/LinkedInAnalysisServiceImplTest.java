@@ -113,11 +113,13 @@ class LinkedInAnalysisServiceImplTest {
 		assertThat(brief.getValue().linkedInProfile()).contains("Título (headline): Dev Java").contains("Foto de perfil: enviada")
 				.contains("Banner: não enviado");
 		assertThat(brief.getValue().images()).hasSize(1);
-		assertThat(analysis.overallScore()).isEqualTo(100);
+		assertThat(analysis.overallScore()).isEqualTo(42);
 		assertThat(analysis.snapshotId()).isEqualTo(snapshotId);
 		assertThat(analysis.imagesAnalyzed()).isTrue();
 		assertThat(analysis.aiModel()).isEqualTo("gpt-4o-mini");
 		assertThat(analysis.costUsd()).isEqualByComparingTo("0.0123");
+		assertThat(analysis.report().checks()).isNotEmpty().extracting("label").contains("Sobre com texto suficiente");
+		assertThat(brief.getValue().linkedInProfile()).contains("NÃO as repita");
 		assertThat(analysis.report().sections()).hasSize(3);
 		assertThat(analysis.report().sections().get(0).section()).isEqualTo(ProfileSection.HEADLINE);
 		assertThat(analysis.report().sections().get(0).score()).isEqualTo(55);
@@ -129,6 +131,50 @@ class LinkedInAnalysisServiceImplTest {
 		assertThat(experience.items().get(0).score()).isEqualTo(100);
 		assertThat(experience.items().get(0).suggestions().get(0).priority()).isEqualTo(SuggestionPriority.HIGH);
 		assertThat(experience.items().get(1).score()).isZero();
+	}
+
+	@Test
+	void reusesTheLatestAnalysisWithoutCallingTheAiWhenNothingChanged() {
+		when(snapshotService.latest()).thenReturn(Optional.of(snapshot(new byte[] {1, 2})));
+		when(careerProfileService.current()).thenReturn(Optional.of(career));
+		when(aiPort.analyzeLinkedIn(any())).thenReturn(result());
+		var saved = new java.util.ArrayList<LinkedInAnalysisEntity>();
+		when(repository.save(any())).thenAnswer(invocation -> {
+			saved.add(invocation.getArgument(0));
+			return invocation.getArgument(0);
+		});
+
+		LinkedInAnalysis first = service.analyze(null);
+		when(repository.findFirstByOrderByCreatedAtDesc()).thenReturn(Optional.of(saved.get(0)));
+		LinkedInAnalysis second = service.analyze(null);
+
+		assertThat(first.unchanged()).isFalse();
+		assertThat(second.unchanged()).isTrue();
+		assertThat(second.id()).isEqualTo(first.id());
+		verify(aiPort, times(1)).analyzeLinkedIn(any());
+		verify(repository, times(1)).save(any());
+	}
+
+	@Test
+	void analyzesAgainWhenTheCareerProfileChanged() {
+		when(snapshotService.latest()).thenReturn(Optional.of(snapshot(new byte[] {1, 2})));
+		when(careerProfileService.current()).thenReturn(Optional.of(career));
+		when(aiPort.analyzeLinkedIn(any())).thenReturn(result());
+		var saved = new java.util.ArrayList<LinkedInAnalysisEntity>();
+		when(repository.save(any())).thenAnswer(invocation -> {
+			saved.add(invocation.getArgument(0));
+			return invocation.getArgument(0);
+		});
+		service.analyze(null);
+		when(repository.findFirstByOrderByCreatedAtDesc()).thenReturn(Optional.of(saved.get(0)));
+		when(careerProfileService.current()).thenReturn(Optional.of(new CareerProfile("Engenharia de software", "Dev Pleno",
+				"Pleno", "Arquiteto", "Sênior", null, List.of(), List.of(), null, List.of(), List.of("Java"), null, null,
+				null, null)));
+
+		LinkedInAnalysis again = service.analyze(null);
+
+		assertThat(again.unchanged()).isFalse();
+		verify(aiPort, times(2)).analyzeLinkedIn(any());
 	}
 
 	@Test

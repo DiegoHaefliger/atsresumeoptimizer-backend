@@ -1,6 +1,7 @@
 package com.diegohaefliger.atsresumeoptimizer;
 
 import java.util.List;
+import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -19,8 +20,8 @@ class WebConfig implements WebMvcConfigurer {
 	@Override
 	public void addCorsMappings(CorsRegistry registry) {
 		registry.addMapping("/api/v1/linkedin/snapshots")
-				.allowedOriginPatterns(EXTENSION_ORIGIN)
-				.allowedMethods("POST")
+				.allowedOriginPatterns(snapshotOrigins())
+				.allowedMethods("GET", "POST")
 				.allowedHeaders("Content-Type", PAIRING_HEADER);
 		registry.addMapping("/api/v1/linkedin/pairing-token")
 				.allowedOriginPatterns(EXTENSION_ORIGIN)
@@ -30,5 +31,9 @@ class WebConfig implements WebMvcConfigurer {
 				.allowedMethods("GET", "POST", "PUT", "DELETE")
 				.allowedHeaders("Content-Type")
 				.exposedHeaders(HttpHeaders.CONTENT_DISPOSITION);
+	}
+
+	private String[] snapshotOrigins() {
+		return Stream.concat(Stream.of(EXTENSION_ORIGIN), allowedOrigins.stream()).toArray(String[]::new);
 	}
 }

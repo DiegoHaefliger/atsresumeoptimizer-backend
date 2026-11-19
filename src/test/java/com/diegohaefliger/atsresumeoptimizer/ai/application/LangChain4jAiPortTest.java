@@ -393,7 +393,7 @@ class LangChain4jAiPortTest {
 	}
 
 	@Test
-	void analyzesTheLinkedInProfileSendingTheImagesAlongTheTextWithoutTouchingTheCache() {
+	void analyzesTheLinkedInProfileSendingTheImagesAlongTheText() {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = template("linkedin-analysis", "{{careerProfile}} | {{linkedinProfile}} | {{imageNote}}");
 		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("linkedin-analysis")).thenReturn(Optional.of(template));
@@ -417,7 +417,72 @@ class LangChain4jAiPortTest {
 		assertThat(((dev.langchain4j.data.message.TextContent) message.contents().get(0)).text())
 				.startsWith("alvo: Tech Lead | título: Dev | A foto de perfil e o banner seguem anexados");
 		assertThat(message.contents().get(1)).isInstanceOf(dev.langchain4j.data.message.ImageContent.class);
-		verifyNoInteractions(llmCacheRepository);
+		verify(llmCacheRepository).save(any());
+	}
+
+	@Test
+	void reusesTheCachedLinkedInAnalysisForTheSameProfileAndImages() {
+		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
+		PromptTemplate template = template("linkedin-analysis", "{{careerProfile}} | {{linkedinProfile}} | {{imageNote}}");
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("linkedin-analysis")).thenReturn(Optional.of(template));
+		ChatResponse response = ChatResponse.builder()
+				.aiMessage(AiMessage.from("{\"overallScore\":70,\"summary\":\"Bom.\",\"sections\":[{\"section\":\"HEADLINE\","
+						+ "\"score\":60,\"diagnosis\":\"x\"}]}"))
+				.tokenUsage(new TokenUsage(10, 10))
+				.build();
+		when(chatModel.chat(any(ChatRequest.class))).thenReturn(response);
+		var cache = new java.util.concurrent.atomic.AtomicReference<LlmCacheEntry>();
+		when(llmCacheRepository.findById(any())).thenAnswer(invocation -> Optional.ofNullable(cache.get()));
+		when(llmCacheRepository.save(any())).thenAnswer(invocation -> {
+			cache.set(invocation.getArgument(0));
+			return invocation.getArgument(0);
+		});
+		var brief = new LinkedInAnalysisBrief("alvo", "perfil", List.of(new ChatImage("image/png", "AQID")));
+
+		AiResult<LinkedInAnalysisDraft> first = aiPort.analyzeLinkedIn(brief);
+		AiResult<LinkedInAnalysisDraft> second = aiPort.analyzeLinkedIn(brief);
+
+		assertThat(second.value()).isEqualTo(first.value());
+		verify(chatModel, org.mockito.Mockito.times(1)).chat(any(ChatRequest.class));
+	}
+
+	@Test
+	void doesNotCacheALinkedInAnalysisWithoutSummaryOrSections() {
+		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
+		PromptTemplate template = template("linkedin-analysis", "{{careerProfile}} | {{linkedinProfile}} | {{imageNote}}");
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("linkedin-analysis")).thenReturn(Optional.of(template));
+		ChatResponse response = ChatResponse.builder()
+				.aiMessage(AiMessage.from("{\"overallScore\":70,\"summary\":\"\",\"sections\":[]}"))
+				.tokenUsage(new TokenUsage(10, 10))
+				.build();
+		when(chatModel.chat(any(ChatRequest.class))).thenReturn(response);
+
+		aiPort.analyzeLinkedIn(new LinkedInAnalysisBrief("alvo", "perfil", List.of()));
+
+		verify(llmCacheRepository, org.mockito.Mockito.never()).save(any());
+	}
+
+	@Test
+	void readsTheLinkedInProfileFromThePdfTextAndCachesIt() {
+		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
+		PromptTemplate template = template("linkedin-profile-import", "texto: {{pdfText}}");
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("linkedin-profile-import")).thenReturn(Optional.of(template));
+		ChatResponse response = ChatResponse.builder()
+				.aiMessage(AiMessage.from("{\"fullName\":\"Ana\",\"headline\":\"Dev Java\",\"skills\":[\"Java\"],"
+						+ "\"experiences\":[{\"title\":\"Dev\",\"organization\":\"Acme\",\"period\":\"2020 - Present\"}]}"))
+				.tokenUsage(new TokenUsage(10, 10))
+				.build();
+		org.mockito.ArgumentCaptor<ChatRequest> requestCaptor = org.mockito.ArgumentCaptor.forClass(ChatRequest.class);
+		when(chatModel.chat(requestCaptor.capture())).thenReturn(response);
+
+		var result = aiPort.readLinkedInProfile("Ana Souza\nDev Java");
+
+		assertThat(result.value().headline()).isEqualTo("Dev Java");
+		assertThat(result.value().experiences().get(0).organization()).isEqualTo("Acme");
+		assertThat(result.value().skills()).containsExactly("Java");
+		var message = (dev.langchain4j.data.message.UserMessage) requestCaptor.getValue().messages().get(0);
+		assertThat(((dev.langchain4j.data.message.TextContent) message.contents().get(0)).text()).isEqualTo("texto: Ana Souza\nDev Java");
+		verify(llmCacheRepository).save(any());
 	}
 
 	@Test

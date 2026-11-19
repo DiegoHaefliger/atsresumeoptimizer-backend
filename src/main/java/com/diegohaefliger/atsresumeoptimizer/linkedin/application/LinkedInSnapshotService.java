@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public interface LinkedInSnapshotService {
 
-	LinkedInSnapshot capture(NewLinkedInSnapshot snapshot);
+	LinkedInCapture capture(NewLinkedInSnapshot snapshot);
 
 	Optional<LinkedInSnapshot> latest();
 

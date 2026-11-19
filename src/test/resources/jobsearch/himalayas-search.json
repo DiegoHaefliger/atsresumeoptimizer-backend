@@ -1,0 +1,5 @@
+{"offset":0,"limit":20,"totalCount":3,"jobs":[
+{"title":"Senior Software Engineer","companyName":"Alien Intellect","companySlug":"alien-intellect","employmentType":"Full Time","seniority":["Senior","Manager"],"locationRestrictions":["Brazil","Argentina"],"description":"<p>Build <strong>Java</strong> services.</p><ul><li>Spring Boot</li></ul>","pubDate":1793013430,"applicationLink":"https://himalayas.app/companies/alien-intellect/jobs/senior-software-engineer-8699633569?utm_source=api","guid":"https://himalayas.app/companies/alien-intellect/jobs/senior-software-engineer-8699633569"},
+{"title":"Java Intern","companyName":"name","companySlug":"talentcross","employmentType":"Intern","seniority":[],"locationRestrictions":[],"description":"<p>Learn.</p>","pubDate":1793000000,"applicationLink":"https://himalayas.app/companies/talentcross/jobs/java-intern-1","guid":"https://himalayas.app/companies/talentcross/jobs/java-intern-1"},
+{"title":"Sem guid","companyName":"X","description":"x","applicationLink":"https://himalayas.app/x"}
+]}

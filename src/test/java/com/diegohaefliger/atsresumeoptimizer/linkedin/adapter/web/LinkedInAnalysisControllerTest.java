@@ -15,6 +15,7 @@ import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInAnalysisRep
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInAnalysisUnavailableException;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSectionReview;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSuggestion;
+import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.ProfileCheck;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.ProfileSection;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.SuggestionPriority;
 import java.math.BigDecimal;
@@ -42,9 +43,10 @@ class LinkedInAnalysisControllerTest {
 	private static LinkedInAnalysis analysis(UUID snapshotId) {
 		var report = new LinkedInAnalysisReport("Falta posicionamento.", List.of("Reescrever o título"), List.of("Java"),
 				List.of("Liderança"), List.of(new LinkedInSectionReview(ProfileSection.HEADLINE, 55, "Genérico.",
-						List.of(new LinkedInSuggestion(SuggestionPriority.HIGH, "Incluir o cargo-alvo")), "Tech Lead Java", null)));
+						List.of(new LinkedInSuggestion(SuggestionPriority.HIGH, "Incluir o cargo-alvo")), "Tech Lead Java", null)),
+				List.of(ProfileCheck.failed("Sobre com texto suficiente", "Sobre", "Tem 80 caracteres", "Escreva mais.")));
 		return new LinkedInAnalysis(UUID.randomUUID(), snapshotId, Instant.parse("2026-10-27T12:00:00Z"), 62,
-				"Perfil razoável.", report, true, "gpt-4o-mini", new BigDecimal("0.0123"));
+				"Perfil razoável.", report, true, "gpt-4o-mini", new BigDecimal("0.0123"), true);
 	}
 
 	@Test
@@ -61,6 +63,12 @@ class LinkedInAnalysisControllerTest {
 				.andExpect(jsonPath("$.sections[0].section").value("HEADLINE"))
 				.andExpect(jsonPath("$.sections[0].suggestions[0].priority").value("HIGH"))
 				.andExpect(jsonPath("$.sections[0].rewrite").value("Tech Lead Java"))
+				.andExpect(jsonPath("$.checks[0].label").value("Sobre com texto suficiente"))
+				.andExpect(jsonPath("$.checks[0].passed").value(false))
+				.andExpect(jsonPath("$.checks[0].section").value("Sobre"))
+				.andExpect(jsonPath("$.checks[0].current").value("Tem 80 caracteres"))
+				.andExpect(jsonPath("$.checks[0].action").value("Escreva mais."))
+				.andExpect(jsonPath("$.unchanged").value(true))
 				.andExpect(jsonPath("$.imagesAnalyzed").value(true));
 	}
 

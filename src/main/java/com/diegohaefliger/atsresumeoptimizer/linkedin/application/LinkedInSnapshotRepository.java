@@ -9,5 +9,7 @@ interface LinkedInSnapshotRepository extends JpaRepository<LinkedInSnapshotEntit
 
 	Optional<LinkedInSnapshotEntity> findFirstByOrderByCapturedAtDesc();
 
+	Optional<LinkedInSnapshotEntity> findFirstBySourceOrderByCapturedAtDesc(String source);
+
 	List<LinkedInSnapshotHead> findAllByOrderByCapturedAtDesc();
 }

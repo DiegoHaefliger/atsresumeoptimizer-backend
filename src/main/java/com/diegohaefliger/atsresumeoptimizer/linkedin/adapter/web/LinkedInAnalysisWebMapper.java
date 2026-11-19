@@ -13,6 +13,7 @@ interface LinkedInAnalysisWebMapper {
 	@Mapping(target = "recruiterKeywords", source = "report.recruiterKeywords")
 	@Mapping(target = "missingKeywords", source = "report.missingKeywords")
 	@Mapping(target = "sections", source = "report.sections")
+	@Mapping(target = "checks", source = "report.checks")
 	LinkedInAnalysisResponse toResponse(LinkedInAnalysis analysis);
 
 	LinkedInAnalysisSummaryResponse toSummaryResponse(LinkedInAnalysisSummary summary);

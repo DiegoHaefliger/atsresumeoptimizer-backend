@@ -118,7 +118,7 @@ class JobPreferenceControllerTest {
 				.andExpect(jsonPath("$.searchMinAdherence").value(70))
 				.andExpect(jsonPath("$.searchEnabled").value(false))
 				.andExpect(jsonPath("$.searchCron").value("0 0 8,20 * * *"))
-				.andExpect(jsonPath("$.searchSites.length()").value(6));
+				.andExpect(jsonPath("$.searchSites.length()").value(9));
 	}
 
 	@Test
