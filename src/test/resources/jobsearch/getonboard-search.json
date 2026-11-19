@@ -1,0 +1,5 @@
+{"data":[
+{"id":"java-backend-developer-arkho-remote","type":"job","attributes":{"title":"Java Back-end Developer","description":"<p>Perfil Java.</p>","functions":"<p>Desenvolver APIs.</p>","desirable":"<p>Spring Boot.</p>","benefits":"<ul><li>Seguro</li></ul>","remote_modality":"fully_remote","countries":["Brasil","Chile"],"published_at":1795036240,"company":{"data":{"id":"arkhotech","type":"company","attributes":{"name":"ARKHO"}}}},"links":{"public_url":"https://www.getonbrd.com/jobs/java-backend-developer-arkho-remote"}},
+{"id":"java-hibrido-acme","type":"job","attributes":{"title":"Java Híbrido","description":"","remote_modality":"hybrid","countries":[],"published_at":1795000000,"company":{"data":{"attributes":{"name":"Acme"}}}},"links":{"public_url":"https://www.getonbrd.com/jobs/programming/java-hibrido-acme"}},
+{"id":"sem-link","type":"job","attributes":{"title":"Sem link"},"links":{}}
+],"meta":{"page":1,"per_page":50,"total_pages":1}}

@@ -189,3 +189,5 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000100_feedback_drop_kind.yaml
   - include:
       file: db/changelog/changes/00000000000101_feedback_drop_allow_publish.yaml
+  - include:
+      file: db/changelog/changes/00000000000102_job_search_remote_boards_sites.yaml
