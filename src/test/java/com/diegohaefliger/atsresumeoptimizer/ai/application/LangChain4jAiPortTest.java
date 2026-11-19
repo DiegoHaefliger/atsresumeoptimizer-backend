@@ -463,6 +463,29 @@ class LangChain4jAiPortTest {
 	}
 
 	@Test
+	void readsTheLinkedInProfileFromThePdfTextAndCachesIt() {
+		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
+		PromptTemplate template = template("linkedin-profile-import", "texto: {{pdfText}}");
+		when(promptTemplateRepository.findFirstByKeyOrderByVersionDesc("linkedin-profile-import")).thenReturn(Optional.of(template));
+		ChatResponse response = ChatResponse.builder()
+				.aiMessage(AiMessage.from("{\"fullName\":\"Ana\",\"headline\":\"Dev Java\",\"skills\":[\"Java\"],"
+						+ "\"experiences\":[{\"title\":\"Dev\",\"organization\":\"Acme\",\"period\":\"2020 - Present\"}]}"))
+				.tokenUsage(new TokenUsage(10, 10))
+				.build();
+		org.mockito.ArgumentCaptor<ChatRequest> requestCaptor = org.mockito.ArgumentCaptor.forClass(ChatRequest.class);
+		when(chatModel.chat(requestCaptor.capture())).thenReturn(response);
+
+		var result = aiPort.readLinkedInProfile("Ana Souza\nDev Java");
+
+		assertThat(result.value().headline()).isEqualTo("Dev Java");
+		assertThat(result.value().experiences().get(0).organization()).isEqualTo("Acme");
+		assertThat(result.value().skills()).containsExactly("Java");
+		var message = (dev.langchain4j.data.message.UserMessage) requestCaptor.getValue().messages().get(0);
+		assertThat(((dev.langchain4j.data.message.TextContent) message.contents().get(0)).text()).isEqualTo("texto: Ana Souza\nDev Java");
+		verify(llmCacheRepository).save(any());
+	}
+
+	@Test
 	void analyzesTheLinkedInProfileAsPlainTextWhenThereAreNoImages() {
 		aiPort = new LangChain4jAiPort(modelGateway, promptTemplateRepository, llmCacheRepository, new ObjectMapper());
 		PromptTemplate template = template("linkedin-analysis", "{{careerProfile}} | {{linkedinProfile}} | {{imageNote}}");

@@ -2,6 +2,7 @@ package com.diegohaefliger.atsresumeoptimizer.linkedin.adapter.web;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.diegohaefliger.atsresumeoptimizer.linkedin.application.LinkedInCapture;
+import com.diegohaefliger.atsresumeoptimizer.linkedin.application.LinkedInPdfImportService;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.application.LinkedInSnapshotService;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.application.NewLinkedInSnapshot;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.application.PairingTokenService;
@@ -19,6 +21,7 @@ import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.InvalidPairingToken
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInProfile;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshot;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.ProfileSection;
+import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.SnapshotSource;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -47,6 +50,9 @@ class LinkedInSnapshotControllerTest {
 
 	@MockitoBean
 	private PairingTokenService pairingService;
+
+	@MockitoBean
+	private LinkedInPdfImportService pdfImportService;
 
 	private LinkedInCapture stored(NewLinkedInSnapshot command) {
 		return new LinkedInCapture(snapshotOf(command), false, List.of(ProfileSection.HEADLINE));
@@ -93,6 +99,22 @@ class LinkedInSnapshotControllerTest {
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.source").value("TEXT"));
 
+		verifyNoInteractions(pairingService);
+	}
+
+	@Test
+	void importsTheLinkedInPdfSentAsAFile() throws Exception {
+		when(pdfImportService.importPdf(any())).thenAnswer(invocation -> stored(new NewLinkedInSnapshot(
+				SnapshotSource.PDF, new LinkedInProfile(null, "Ana", "Dev Java", null, null, null, null, null, null, null,
+						null, null, null, null, null, null, null, null), null, null)));
+		var file = new org.springframework.mock.web.MockMultipartFile("file", "Profile.pdf", "application/pdf", new byte[] {1, 2});
+
+		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/v1/linkedin/snapshots/pdf").file(file))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.source").value("PDF"))
+				.andExpect(jsonPath("$.profile.headline").value("Dev Java"));
+
+		verify(pdfImportService).importPdf(new byte[] {1, 2});
 		verifyNoInteractions(pairingService);
 	}
 

@@ -1,11 +1,13 @@
 package com.diegohaefliger.atsresumeoptimizer.linkedin.adapter.web;
 
+import com.diegohaefliger.atsresumeoptimizer.linkedin.application.LinkedInPdfImportService;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.application.LinkedInSnapshotService;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.application.PairingTokenService;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshot;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshotNotFoundException;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.SnapshotSource;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -17,8 +19,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/linkedin/snapshots")
@@ -28,12 +32,14 @@ class LinkedInSnapshotController {
 
 	private final LinkedInSnapshotService snapshotService;
 	private final PairingTokenService pairingService;
+	private final LinkedInPdfImportService pdfImportService;
 	private final LinkedInSnapshotWebMapper mapper;
 
 	LinkedInSnapshotController(LinkedInSnapshotService snapshotService, PairingTokenService pairingService,
-			LinkedInSnapshotWebMapper mapper) {
+			LinkedInPdfImportService pdfImportService, LinkedInSnapshotWebMapper mapper) {
 		this.snapshotService = snapshotService;
 		this.pairingService = pairingService;
+		this.pdfImportService = pdfImportService;
 		this.mapper = mapper;
 	}
 
@@ -49,6 +55,12 @@ class LinkedInSnapshotController {
 	@ResponseStatus(HttpStatus.CREATED)
 	LinkedInCaptureResponse fromText(@Valid @RequestBody LinkedInSnapshotRequest request) {
 		return capture(request, SnapshotSource.TEXT);
+	}
+
+	@PostMapping(value = "/pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@ResponseStatus(HttpStatus.CREATED)
+	LinkedInCaptureResponse fromPdf(@RequestParam("file") MultipartFile file) throws IOException {
+		return mapper.toCaptureResponse(pdfImportService.importPdf(file.getBytes()));
 	}
 
 	@GetMapping

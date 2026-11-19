@@ -17,6 +17,7 @@ import com.diegohaefliger.atsresumeoptimizer.ai.JobFocus;
 import com.diegohaefliger.atsresumeoptimizer.ai.JobStructured;
 import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInAnalysisBrief;
 import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInAnalysisDraft;
+import com.diegohaefliger.atsresumeoptimizer.ai.LinkedInProfileDraft;
 import com.diegohaefliger.atsresumeoptimizer.ai.RequirementEvidence;
 import com.diegohaefliger.atsresumeoptimizer.ai.StructuredResume;
 import dev.langchain4j.data.message.Content;
@@ -49,6 +50,7 @@ class LangChain4jAiPort implements AiPort {
 	private static final String INTERVIEW_QUESTIONS_KEY = "interview-questions";
 	private static final String CANDIDATE_QUESTIONS_KEY = "candidate-questions";
 	private static final String LINKEDIN_ANALYSIS_KEY = "linkedin-analysis";
+	private static final String LINKEDIN_PROFILE_IMPORT_KEY = "linkedin-profile-import";
 	static final String RESUME_STRUCTURING_KEY = "resume-structuring";
 	private static final int MAX_PARSE_ATTEMPTS = 2;
 	private static final String NO_PROVIDER_CONFIGURED =
@@ -159,6 +161,12 @@ class LangChain4jAiPort implements AiPort {
 				.replace("{{linkedinProfile}}", brief.linkedInProfile())
 				.replace("{{imageNote}}", brief.images().isEmpty() ? NO_IMAGES : IMAGES_ATTACHED);
 		return call(template, prompt, LinkedInAnalysisDraft.class, true, brief.images(), LangChain4jAiPort::isUsable);
+	}
+
+	@Override
+	public AiResult<LinkedInProfileDraft> readLinkedInProfile(String pdfText) {
+		PromptTemplate template = activeTemplate(LINKEDIN_PROFILE_IMPORT_KEY);
+		return call(template, template.getContent().replace("{{pdfText}}", pdfText), LinkedInProfileDraft.class);
 	}
 
 	@Override

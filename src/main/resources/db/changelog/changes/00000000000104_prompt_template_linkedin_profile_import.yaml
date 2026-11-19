@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000104-prompt-template-linkedin-profile-import
+      author: DiegoHaefliger
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM prompt_template WHERE id = '33333333-3333-3333-3333-333333333359'
+      changes:
+        - insert:
+            tableName: prompt_template
+            columns:
+              - column:
+                  name: id
+                  value: 33333333-3333-3333-3333-333333333359
+              - column:
+                  name: key
+                  value: linkedin-profile-import
+              - column:
+                  name: version
+                  valueNumeric: 1
+              - column:
+                  name: content
+                  value: |
+                    Você recebe o texto extraído do PDF que o LinkedIn gera em "Mais > Salvar como PDF" no perfil de uma
+                    pessoa. O texto pode estar em português, inglês ou espanhol e vem fora de ordem: a coluna lateral
+                    (Contato, Principais competências, Idiomas, Certificações, Publicações, Prêmios) aparece misturada com a
+                    coluna principal (nome, título, localização, Resumo, Experiência, Formação acadêmica), e cada página termina
+                    com um rodapé "Page 1 of 3" ou "Página 1 de 3".
+
+                    Sua tarefa é copiar o conteúdo para o JSON abaixo, sem interpretar, resumir, traduzir, corrigir nem
+                    inventar nada.
+
+                    Regras:
+                    - Copie os textos exatamente como estão no PDF, mantendo a língua original. Quebras de linha no meio de uma
+                      frase, causadas pela largura da coluna, devem ser unidas com um espaço. Marcadores de lista ("-", "•")
+                      ficam, um por linha.
+                    - Campo que não existe no PDF fica null (texto) ou [] (lista). Nunca preencha com palavras como "não
+                      informado".
+                    - "fullName": o nome da pessoa. "headline": o título logo abaixo do nome, em uma frase só. "location": a
+                      cidade e o país que aparecem logo abaixo do título.
+                    - "about": o texto da seção Resumo (Summary, Resumo, Acerca de), completo, com parágrafos separados por uma
+                      linha em branco.
+                    - "experiences": uma entrada por cargo, na ordem do PDF. Quando a pessoa teve vários cargos na mesma
+                      empresa, gere uma entrada para cada cargo, repetindo o nome da empresa em "organization".
+                      "title" é o cargo, "organization" é a empresa, "period" são só as datas, como "janeiro de 2020 - Present"
+                      ou "January 2020 - March 2023", SEM a duração entre parênteses que vem depois (por exemplo
+                      "(5 anos 2 meses)"), "location" é o local do cargo e "description" é o texto que descreve o cargo.
+                    - "educations": uma entrada por formação. "organization" é a instituição, "title" é o curso ou grau,
+                      "period" são os anos, sem duração, e "description" fica null se não houver texto.
+                    - "certifications", "projects", "publications": uma entrada por item, com "title", "organization" quando
+                      houver, "period" quando houver e "description" quando houver.
+                    - "skills": as competências listadas em Principais competências, uma por item.
+                    - "languages": os idiomas, no formato original, por exemplo "Português (Nativo ou bilíngue)".
+                    - Ignore o telefone, o e-mail, a URL do perfil, os rodapés de página, as seções Prêmios e honrarias, Cursos,
+                      Voluntariado e Patentes.
+
+                    Responda só com um JSON, sem texto fora dele:
+                    {"fullName": null, "headline": null, "location": null, "about": null,
+                     "experiences": [{"title": "...", "organization": "...", "period": "...", "location": null, "description": null}],
+                     "educations": [{"title": "...", "organization": "...", "period": "...", "location": null, "description": null}],
+                     "certifications": [{"title": "...", "organization": null, "period": null, "location": null, "description": null}],
+                     "projects": [], "publications": [], "skills": ["..."], "languages": ["..."]}
+
+                    Texto do PDF:
+                    {{pdfText}}
+              - column:
+                  name: model
+                  value: gpt-4o-mini
