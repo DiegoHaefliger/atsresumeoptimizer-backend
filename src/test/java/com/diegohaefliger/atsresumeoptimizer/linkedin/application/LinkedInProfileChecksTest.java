@@ -36,7 +36,8 @@ class LinkedInProfileChecksTest {
 	void flagsMissingHeadlineAboutExperiencesAndUrl() {
 		List<ProfileCheck> checks = LinkedInProfileChecks.run(snapshot(null, null, null, null, null), career(null, List.of()));
 
-		assertThat(check(checks, "Título com tamanho adequado").detail()).isEqualTo("O perfil não tem título (headline).");
+		assertThat(check(checks, "Título com tamanho adequado").current()).isEqualTo("Não preenchido");
+		assertThat(check(checks, "Título com tamanho adequado").section()).isEqualTo("Título (headline)");
 		assertThat(check(checks, "Sobre com texto suficiente").passed()).isFalse();
 		assertThat(check(checks, "Experiências com descrição").passed()).isFalse();
 		assertThat(check(checks, "URL personalizada definida").passed()).isFalse();
@@ -61,9 +62,9 @@ class LinkedInProfileChecksTest {
 	@Test
 	void checksHeadlineLength() {
 		assertThat(check(LinkedInProfileChecks.run(snapshot("Dev", null, null, null, "a"), career(null, List.of())),
-				"Título com tamanho adequado").detail()).contains("3 caracteres");
+				"Título com tamanho adequado").current()).contains("\"Dev\"", "3 caracteres");
 		assertThat(check(LinkedInProfileChecks.run(snapshot("x".repeat(221), null, null, null, "a"), career(null, List.of())),
-				"Título com tamanho adequado").detail()).contains("limite");
+				"Título com tamanho adequado").action()).contains("Reduza");
 	}
 
 	@Test
@@ -74,7 +75,8 @@ class LinkedInProfileChecksTest {
 				snapshot("Backend Java", null, experiences, List.of("Excel", "Word"), "a"),
 				career(null, List.of("Liderança técnica", "desenvolvedor senior", "Backend", "Java")));
 
-		assertThat(check(checks, "Competências suficientes").detail()).isEqualTo("Tem 2, o ideal é a partir de 5.");
+		assertThat(check(checks, "Competências suficientes").current()).isEqualTo("Tem 2: Excel, Word");
+		assertThat(check(checks, "Competências suficientes").action()).contains("pelo menos 3");
 		assertThat(check(checks, "Pontos fortes aparecem no perfil").passed()).isTrue();
 	}
 
@@ -83,7 +85,7 @@ class LinkedInProfileChecksTest {
 		List<ProfileCheck> checks = LinkedInProfileChecks.run(snapshot("Backend Java", null, null, List.of("Java"), "a"),
 				career(null, List.of("Java", "Spring")));
 
-		assertThat(check(checks, "Pontos fortes aparecem no perfil").detail()).contains("Spring").doesNotContain("Java,");
+		assertThat(check(checks, "Pontos fortes aparecem no perfil").current()).contains("Spring").doesNotContain("Java");
 	}
 
 	@Test
@@ -100,7 +102,7 @@ class LinkedInProfileChecksTest {
 				new LinkedInEntry("Dev", "Beta", null, null, null));
 
 		assertThat(check(LinkedInProfileChecks.run(snapshot(null, null, experiences, null, "a"), career(null, List.of())),
-				"Experiências com descrição").detail()).isEqualTo("1 de 2 estão sem descrição.");
+				"Experiências com descrição").current()).isEqualTo("Sem descrição: Beta - Dev");
 	}
 
 	@Test
@@ -118,9 +120,9 @@ class LinkedInProfileChecksTest {
 
 	@Test
 	void promptListsOnlyFailedChecksAndTellsAiNotToRepeatThem() {
-		String text = LinkedInPromptText.withChecks("PERFIL", List.of(ProfileCheck.ok("A"), ProfileCheck.failed("B", "falta X")));
+		String text = LinkedInPromptText.withChecks("PERFIL", List.of(ProfileCheck.ok("A"), ProfileCheck.failed("B", "Sobre", "falta X", "faça Y")));
 
-		assertThat(text).contains("- B: falta X").doesNotContain("- A").contains("NÃO as repita");
+		assertThat(text).contains("- B (Sobre): falta X").doesNotContain("- A").contains("NÃO as repita");
 		assertThat(LinkedInPromptText.withChecks("PERFIL", List.of(ProfileCheck.ok("A")))).isEqualTo("PERFIL");
 	}
 }

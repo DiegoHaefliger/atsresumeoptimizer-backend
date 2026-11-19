@@ -70,7 +70,7 @@ final class LinkedInPromptText {
 		return profileText + "\n\nVerificações objetivas já calculadas pelo sistema. O usuário as vê em um quadro próprio,"
 				+ " então NÃO as repita no resumo, em topActions nem como sugestão: use-as só de contexto e concentre-se"
 				+ " no que exige julgamento (o que escrever, como reescrever, o que priorizar):\n"
-				+ failed.stream().map(check -> "- " + check.label() + ": " + check.detail()).collect(Collectors.joining("\n"));
+				+ failed.stream().map(check -> "- " + check.label() + " (" + check.section() + "): " + check.current()).collect(Collectors.joining("\n"));
 	}
 
 	private static void line(List<String> lines, String label, String value) {
