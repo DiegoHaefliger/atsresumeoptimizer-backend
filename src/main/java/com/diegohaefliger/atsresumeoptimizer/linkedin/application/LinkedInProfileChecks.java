@@ -10,8 +10,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 final class LinkedInProfileChecks {
 
@@ -19,7 +21,6 @@ final class LinkedInProfileChecks {
 	static final int HEADLINE_MIN_LENGTH = 40;
 	static final int ABOUT_MIN_LENGTH = 300;
 	static final int SKILLS_MIN_COUNT = 5;
-	static final int PINNED_SKILLS = 3;
 
 	private static final int MIN_TOKEN_LENGTH = 3;
 	private static final Pattern DIACRITICS = Pattern.compile("\\p{M}+");
@@ -89,22 +90,29 @@ final class LinkedInProfileChecks {
 		checks.add(skills.size() < SKILLS_MIN_COUNT
 				? ProfileCheck.failed(label, "Tem " + skills.size() + ", o ideal é a partir de " + SKILLS_MIN_COUNT + ".")
 				: ProfileCheck.ok(label));
-		if (skills.isEmpty() || career.strengths().isEmpty()) {
+		if (career.strengths().isEmpty()) {
 			return;
 		}
-		List<String> strengths = career.strengths().stream().map(LinkedInProfileChecks::normalized).toList();
-		List<String> pinned = skills.stream().limit(PINNED_SKILLS).map(LinkedInProfileChecks::normalized).toList();
-		String pinnedLabel = "Competências fixadas ligadas aos seus pontos fortes";
-		checks.add(pinned.stream().anyMatch(strengths::contains)
-				? ProfileCheck.ok(pinnedLabel)
-				: ProfileCheck.failed(pinnedLabel, "Nenhuma das " + PINNED_SKILLS
-						+ " primeiras competências é um dos pontos fortes do seu perfil de carreira."));
-		List<String> listed = skills.stream().map(LinkedInProfileChecks::normalized).toList();
-		List<String> absent = career.strengths().stream().filter(strength -> !listed.contains(normalized(strength))).toList();
-		String coverageLabel = "Pontos fortes listados nas competências";
+		Set<String> present = Set.copyOf(tokens(profileText(profile)));
+		List<String> absent = career.strengths().stream()
+				.filter(strength -> !tokens(strength).isEmpty() && !present.containsAll(tokens(strength)))
+				.toList();
+		String coverageLabel = "Pontos fortes aparecem no perfil";
 		checks.add(absent.isEmpty()
 				? ProfileCheck.ok(coverageLabel)
-				: ProfileCheck.failed(coverageLabel, "Faltam: " + String.join(", ", absent) + "."));
+				: ProfileCheck.failed(coverageLabel, "Não aparecem no título, Sobre, experiências nem competências: "
+						+ String.join(", ", absent) + "."));
+	}
+
+	private static String profileText(LinkedInProfile profile) {
+		List<String> parts = new ArrayList<>(profile.skills());
+		parts.add(profile.headline());
+		parts.add(profile.about());
+		for (LinkedInEntry entry : profile.experiences()) {
+			parts.add(entry.title());
+			parts.add(entry.description());
+		}
+		return parts.stream().filter(Objects::nonNull).collect(Collectors.joining(" "));
 	}
 
 	private static void experiences(List<ProfileCheck> checks, LinkedInProfile profile) {

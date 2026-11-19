@@ -67,14 +67,23 @@ class LinkedInProfileChecksTest {
 	}
 
 	@Test
-	void checksSkillsAgainstStrengths() {
+	void findsStrengthsAnywhereInTheProfileIgnoringAccents() {
+		List<LinkedInEntry> experiences = List.of(new LinkedInEntry("Desenvolvedor Sênior", "Acme", null, null,
+				"Liderança técnica de um time de 6 pessoas"));
 		List<ProfileCheck> checks = LinkedInProfileChecks.run(
-				snapshot(null, null, null, List.of("Excel", "Word", "Outlook", "Java"), "a"),
-				career(null, List.of("java", "Spring")));
+				snapshot("Backend Java", null, experiences, List.of("Excel", "Word"), "a"),
+				career(null, List.of("Liderança técnica", "desenvolvedor senior", "Backend", "Java")));
 
-		assertThat(check(checks, "Competências suficientes").detail()).isEqualTo("Tem 4, o ideal é a partir de 5.");
-		assertThat(check(checks, "Competências fixadas ligadas aos seus pontos fortes").passed()).isFalse();
-		assertThat(check(checks, "Pontos fortes listados nas competências").detail()).isEqualTo("Faltam: Spring.");
+		assertThat(check(checks, "Competências suficientes").detail()).isEqualTo("Tem 2, o ideal é a partir de 5.");
+		assertThat(check(checks, "Pontos fortes aparecem no perfil").passed()).isTrue();
+	}
+
+	@Test
+	void listsStrengthsThatAppearNowhere() {
+		List<ProfileCheck> checks = LinkedInProfileChecks.run(snapshot("Backend Java", null, null, List.of("Java"), "a"),
+				career(null, List.of("Java", "Spring")));
+
+		assertThat(check(checks, "Pontos fortes aparecem no perfil").detail()).contains("Spring").doesNotContain("Java,");
 	}
 
 	@Test
@@ -82,7 +91,7 @@ class LinkedInProfileChecksTest {
 		List<ProfileCheck> checks = LinkedInProfileChecks.run(snapshot(null, null, null, List.of("Java"), "a"),
 				career(null, List.of()));
 
-		assertThat(checks).noneMatch(candidate -> candidate.label().contains("pontos fortes"));
+		assertThat(checks).noneMatch(candidate -> candidate.label().contains("Pontos fortes"));
 	}
 
 	@Test
