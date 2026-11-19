@@ -134,6 +134,50 @@ class LinkedInAnalysisServiceImplTest {
 	}
 
 	@Test
+	void reusesTheLatestAnalysisWithoutCallingTheAiWhenNothingChanged() {
+		when(snapshotService.latest()).thenReturn(Optional.of(snapshot(new byte[] {1, 2})));
+		when(careerProfileService.current()).thenReturn(Optional.of(career));
+		when(aiPort.analyzeLinkedIn(any())).thenReturn(result());
+		var saved = new java.util.ArrayList<LinkedInAnalysisEntity>();
+		when(repository.save(any())).thenAnswer(invocation -> {
+			saved.add(invocation.getArgument(0));
+			return invocation.getArgument(0);
+		});
+
+		LinkedInAnalysis first = service.analyze(null);
+		when(repository.findFirstByOrderByCreatedAtDesc()).thenReturn(Optional.of(saved.get(0)));
+		LinkedInAnalysis second = service.analyze(null);
+
+		assertThat(first.unchanged()).isFalse();
+		assertThat(second.unchanged()).isTrue();
+		assertThat(second.id()).isEqualTo(first.id());
+		verify(aiPort, times(1)).analyzeLinkedIn(any());
+		verify(repository, times(1)).save(any());
+	}
+
+	@Test
+	void analyzesAgainWhenTheCareerProfileChanged() {
+		when(snapshotService.latest()).thenReturn(Optional.of(snapshot(new byte[] {1, 2})));
+		when(careerProfileService.current()).thenReturn(Optional.of(career));
+		when(aiPort.analyzeLinkedIn(any())).thenReturn(result());
+		var saved = new java.util.ArrayList<LinkedInAnalysisEntity>();
+		when(repository.save(any())).thenAnswer(invocation -> {
+			saved.add(invocation.getArgument(0));
+			return invocation.getArgument(0);
+		});
+		service.analyze(null);
+		when(repository.findFirstByOrderByCreatedAtDesc()).thenReturn(Optional.of(saved.get(0)));
+		when(careerProfileService.current()).thenReturn(Optional.of(new CareerProfile("Engenharia de software", "Dev Pleno",
+				"Pleno", "Arquiteto", "Sênior", null, List.of(), List.of(), null, List.of(), List.of("Java"), null, null,
+				null, null)));
+
+		LinkedInAnalysis again = service.analyze(null);
+
+		assertThat(again.unchanged()).isFalse();
+		verify(aiPort, times(2)).analyzeLinkedIn(any());
+	}
+
+	@Test
 	void retriesWithoutImagesWhenTheProviderRejectsThem() {
 		when(snapshotService.get(snapshotId)).thenReturn(snapshot(new byte[] {1}));
 		when(careerProfileService.current()).thenReturn(Optional.of(career));

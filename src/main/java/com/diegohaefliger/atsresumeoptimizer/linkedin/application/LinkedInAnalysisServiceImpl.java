@@ -1,5 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.linkedin.application;
 
+import com.diegohaefliger.atsresumeoptimizer.Sha256;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiCallException;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiPort;
 import com.diegohaefliger.atsresumeoptimizer.ai.AiResult;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -69,6 +71,11 @@ class LinkedInAnalysisServiceImpl implements LinkedInAnalysisService {
 		List<ProfileCheck> checks = LinkedInProfileChecks.run(snapshot, career);
 		String profileText = LinkedInPromptText.withChecks(LinkedInPromptText.profile(snapshot), checks);
 		List<ChatImage> images = images(snapshot);
+		String inputHash = inputHash(careerText, profileText, images);
+		Optional<LinkedInAnalysisEntity> previous = repository.findFirstByOrderByCreatedAtDesc();
+		if (previous.isPresent() && inputHash.equals(previous.get().getInputHash())) {
+			return mapper.toDomain(previous.get()).reused();
+		}
 
 		boolean imagesAnalyzed = !images.isEmpty();
 		AiResult<LinkedInAnalysisDraft> result;
@@ -92,6 +99,7 @@ class LinkedInAnalysisServiceImpl implements LinkedInAnalysisService {
 				.orElse(draftMapper.score(result.value().overallScore())));
 		entity.setSummary(result.value().summary().strip());
 		entity.setReport(report);
+		entity.setInputHash(inputHash);
 		entity.setImagesAnalyzed(imagesAnalyzed);
 		entity.setAiModel(result.usage().model());
 		entity.setTokensIn(result.usage().tokensIn());
@@ -134,6 +142,11 @@ class LinkedInAnalysisServiceImpl implements LinkedInAnalysisService {
 				.forEach(review -> bySection.putIfAbsent(review.section(), review));
 		return new LinkedInAnalysisReport(mapped.targetFit(), mapped.topActions(), mapped.recruiterKeywords(),
 				mapped.missingKeywords(), List.copyOf(bySection.values()), checks);
+	}
+
+	private static String inputHash(String careerText, String profileText, List<ChatImage> images) {
+		String imageHashes = images.stream().map(image -> Sha256.hex(image.base64Data())).collect(Collectors.joining(","));
+		return Sha256.hex(careerText + "\n--\n" + profileText + "\n--\n" + imageHashes);
 	}
 
 	private static List<ChatImage> images(LinkedInSnapshot snapshot) {

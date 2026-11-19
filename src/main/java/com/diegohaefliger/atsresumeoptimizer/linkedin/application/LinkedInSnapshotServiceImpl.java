@@ -5,9 +5,11 @@ import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInImage;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshot;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshotNotFoundException;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshotSummary;
+import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.ProfileSection;
 import com.github.f4b6a3.uuid.UuidCreator;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -26,11 +28,29 @@ class LinkedInSnapshotServiceImpl implements LinkedInSnapshotService {
 
 	@Override
 	@Transactional
-	public LinkedInSnapshot capture(NewLinkedInSnapshot snapshot) {
+	public LinkedInCapture capture(NewLinkedInSnapshot snapshot) {
 		if (snapshot.profile().lacksContent()) {
 			throw new InvalidLinkedInSnapshotException(
 					"Nenhum conteúdo do perfil foi lido. Abra o seu perfil no LinkedIn e tente de novo.");
 		}
+		Map<ProfileSection, String> incoming = LinkedInContentFingerprint.of(snapshot.profile(), bytes(snapshot.photo()),
+				bytes(snapshot.banner()));
+		Optional<LinkedInSnapshotEntity> previous = repository.findFirstByOrderByCapturedAtDesc();
+		if (previous.isPresent()) {
+			List<ProfileSection> changed = LinkedInContentFingerprint.changed(
+					LinkedInContentFingerprint.of(mapper.toDomain(previous.get())), incoming);
+			if (changed.isEmpty()) {
+				previous.get().setCapturedAt(Instant.now());
+				return new LinkedInCapture(mapper.toDomain(repository.save(previous.get())), true, List.of());
+			}
+			return new LinkedInCapture(store(snapshot), false, changed);
+		}
+		List<ProfileSection> filled = incoming.entrySet().stream().filter(entry -> !entry.getValue().isEmpty())
+				.map(Map.Entry::getKey).toList();
+		return new LinkedInCapture(store(snapshot), false, filled);
+	}
+
+	private LinkedInSnapshot store(NewLinkedInSnapshot snapshot) {
 		LinkedInSnapshotEntity entity = new LinkedInSnapshotEntity(UuidCreator.getTimeOrderedEpoch());
 		entity.setCapturedAt(Instant.now());
 		entity.setSource(snapshot.source().name());
@@ -46,6 +66,10 @@ class LinkedInSnapshotServiceImpl implements LinkedInSnapshotService {
 			entity.setBannerMimeType(banner.mimeType());
 		}
 		return mapper.toDomain(repository.save(entity));
+	}
+
+	private static byte[] bytes(LinkedInImage image) {
+		return image == null ? null : image.data();
 	}
 
 	@Override

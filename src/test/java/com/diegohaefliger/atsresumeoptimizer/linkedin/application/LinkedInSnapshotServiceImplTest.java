@@ -12,6 +12,7 @@ import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInImage;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInProfile;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshot;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshotNotFoundException;
+import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.ProfileSection;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.SnapshotSource;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,8 +42,9 @@ class LinkedInSnapshotServiceImplTest {
 		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 		var photo = new LinkedInImage(new byte[] {1, 2}, "image/png");
 
-		LinkedInSnapshot saved = service()
+		LinkedInCapture capture = service()
 				.capture(new NewLinkedInSnapshot(SnapshotSource.EXTENSION, profileWithHeadline(), photo, null));
+		LinkedInSnapshot saved = capture.snapshot();
 
 		ArgumentCaptor<LinkedInSnapshotEntity> entity = ArgumentCaptor.forClass(LinkedInSnapshotEntity.class);
 		verify(repository).save(entity.capture());
@@ -52,6 +54,63 @@ class LinkedInSnapshotServiceImplTest {
 		assertThat(saved.profile().headline()).isEqualTo("Dev Java");
 		assertThat(saved.hasPhoto()).isTrue();
 		assertThat(saved.hasBanner()).isFalse();
+		assertThat(capture.unchanged()).isFalse();
+		assertThat(capture.changedSections()).contains(ProfileSection.HEADLINE, ProfileSection.PHOTO);
+	}
+
+	@Test
+	void doesNotCreateASnapshotWhenNothingChangedAndOnlyRefreshesTheCaptureTime() {
+		var photo = new LinkedInImage(new byte[] {1, 2}, "image/png");
+		var previous = new LinkedInSnapshotEntity(UUID.randomUUID());
+		previous.setCapturedAt(java.time.Instant.parse("2026-01-01T00:00:00Z"));
+		previous.setSource("EXTENSION");
+		previous.setContent(profileWithHeadline());
+		previous.setPhoto(new byte[] {1, 2});
+		previous.setPhotoMimeType("image/png");
+		when(repository.findFirstByOrderByCapturedAtDesc()).thenReturn(Optional.of(previous));
+		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		LinkedInCapture capture = service()
+				.capture(new NewLinkedInSnapshot(SnapshotSource.EXTENSION, profileWithHeadline(), photo, null));
+
+		assertThat(capture.unchanged()).isTrue();
+		assertThat(capture.changedSections()).isEmpty();
+		assertThat(capture.snapshot().id()).isEqualTo(previous.getId());
+		assertThat(previous.getCapturedAt()).isAfter(java.time.Instant.parse("2026-01-01T00:00:00Z"));
+	}
+
+	@Test
+	void createsANewSnapshotListingOnlyTheSectionsThatChanged() {
+		var previous = new LinkedInSnapshotEntity(UUID.randomUUID());
+		previous.setCapturedAt(java.time.Instant.parse("2026-01-01T00:00:00Z"));
+		previous.setSource("EXTENSION");
+		previous.setContent(profileWithHeadline());
+		when(repository.findFirstByOrderByCapturedAtDesc()).thenReturn(Optional.of(previous));
+		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		var edited = new LinkedInProfile(null, "Ana", "Dev Java Sênior", null, null, null, null, null, null, null, null,
+				null, null, null, null, null, null, null);
+
+		LinkedInCapture capture = service().capture(new NewLinkedInSnapshot(SnapshotSource.EXTENSION, edited, null, null));
+
+		assertThat(capture.unchanged()).isFalse();
+		assertThat(capture.changedSections()).containsExactly(ProfileSection.HEADLINE);
+		assertThat(capture.snapshot().id()).isNotEqualTo(previous.getId());
+	}
+
+	@Test
+	void ignoresFollowersAndConnectionsWhenComparing() {
+		var previous = new LinkedInSnapshotEntity(UUID.randomUUID());
+		previous.setCapturedAt(java.time.Instant.parse("2026-01-01T00:00:00Z"));
+		previous.setSource("EXTENSION");
+		previous.setContent(new LinkedInProfile(null, "Ana", "Dev Java", null, null, null, "500+", "100", null, null,
+				null, null, null, null, null, null, null, null));
+		when(repository.findFirstByOrderByCapturedAtDesc()).thenReturn(Optional.of(previous));
+		when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		var moreFollowers = new LinkedInProfile(null, "Ana", "Dev Java", null, null, null, "500+", "130", null, null,
+				null, null, null, null, null, null, null, null);
+
+		assertThat(service().capture(new NewLinkedInSnapshot(SnapshotSource.EXTENSION, moreFollowers, null, null)).unchanged())
+				.isTrue();
 	}
 
 	@Test

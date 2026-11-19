@@ -34,6 +34,9 @@ class LinkedInAnalysisEntity {
 	@Column(name = "images_analyzed")
 	private boolean imagesAnalyzed;
 
+	@Column(name = "input_hash")
+	private String inputHash;
+
 	@Column(name = "ai_model")
 	private String aiModel;
 
@@ -97,6 +100,14 @@ class LinkedInAnalysisEntity {
 
 	public void setImagesAnalyzed(boolean imagesAnalyzed) {
 		this.imagesAnalyzed = imagesAnalyzed;
+	}
+
+	public String getInputHash() {
+		return inputHash;
+	}
+
+	public void setInputHash(String inputHash) {
+		this.inputHash = inputHash;
 	}
 
 	public String getAiModel() {

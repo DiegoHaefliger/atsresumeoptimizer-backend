@@ -39,7 +39,7 @@ class LinkedInSnapshotController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	LinkedInSnapshotResponse fromExtension(@RequestHeader(value = PAIRING_HEADER, required = false) String token,
+	LinkedInCaptureResponse fromExtension(@RequestHeader(value = PAIRING_HEADER, required = false) String token,
 			@Valid @RequestBody LinkedInSnapshotRequest request) {
 		pairingService.verify(token);
 		return capture(request, SnapshotSource.EXTENSION);
@@ -47,7 +47,7 @@ class LinkedInSnapshotController {
 
 	@PostMapping("/manual")
 	@ResponseStatus(HttpStatus.CREATED)
-	LinkedInSnapshotResponse fromText(@Valid @RequestBody LinkedInSnapshotRequest request) {
+	LinkedInCaptureResponse fromText(@Valid @RequestBody LinkedInSnapshotRequest request) {
 		return capture(request, SnapshotSource.TEXT);
 	}
 
@@ -78,8 +78,8 @@ class LinkedInSnapshotController {
 		return image(snapshot.banner(), snapshot.bannerMimeType());
 	}
 
-	private LinkedInSnapshotResponse capture(LinkedInSnapshotRequest request, SnapshotSource source) {
-		return mapper.toResponse(snapshotService.capture(mapper.toCommand(request, source)));
+	private LinkedInCaptureResponse capture(LinkedInSnapshotRequest request, SnapshotSource source) {
+		return mapper.toCaptureResponse(snapshotService.capture(mapper.toCommand(request, source)));
 	}
 
 	private static ResponseEntity<byte[]> image(byte[] data, String mimeType) {

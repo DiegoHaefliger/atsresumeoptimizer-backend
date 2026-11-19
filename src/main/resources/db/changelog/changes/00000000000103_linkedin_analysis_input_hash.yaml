@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00000000000103-linkedin-analysis-input-hash
+      author: DiegoHaefliger
+      changes:
+        - addColumn:
+            tableName: linkedin_analysis
+            columns:
+              - column:
+                  name: input_hash
+                  type: varchar(64)

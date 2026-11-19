@@ -191,3 +191,5 @@ databaseChangeLog:
       file: db/changelog/changes/00000000000101_feedback_drop_allow_publish.yaml
   - include:
       file: db/changelog/changes/00000000000102_job_search_remote_boards_sites.yaml
+  - include:
+      file: db/changelog/changes/00000000000103_linkedin_analysis_input_hash.yaml

@@ -19,5 +19,6 @@ record LinkedInAnalysisResponse(
 		List<LinkedInProfileCheckResponse> checks,
 		boolean imagesAnalyzed,
 		String aiModel,
-		BigDecimal costUsd) {
+		BigDecimal costUsd,
+		boolean unchanged) {
 }

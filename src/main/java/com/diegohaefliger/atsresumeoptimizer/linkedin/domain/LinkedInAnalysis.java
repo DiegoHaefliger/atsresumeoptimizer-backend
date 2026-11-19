@@ -13,5 +13,11 @@ public record LinkedInAnalysis(
 		LinkedInAnalysisReport report,
 		boolean imagesAnalyzed,
 		String aiModel,
-		BigDecimal costUsd) {
+		BigDecimal costUsd,
+		boolean unchanged) {
+
+	public LinkedInAnalysis reused() {
+		return new LinkedInAnalysis(id, snapshotId, createdAt, overallScore, summary, report, imagesAnalyzed, aiModel, costUsd,
+				true);
+	}
 }

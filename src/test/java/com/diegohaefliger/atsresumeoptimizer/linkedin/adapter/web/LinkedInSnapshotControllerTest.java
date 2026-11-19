@@ -11,13 +11,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.diegohaefliger.atsresumeoptimizer.linkedin.application.LinkedInCapture;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.application.LinkedInSnapshotService;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.application.NewLinkedInSnapshot;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.application.PairingTokenService;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.InvalidPairingTokenException;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInProfile;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshot;
+import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.ProfileSection;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +48,11 @@ class LinkedInSnapshotControllerTest {
 	@MockitoBean
 	private PairingTokenService pairingService;
 
-	private LinkedInSnapshot stored(NewLinkedInSnapshot command) {
+	private LinkedInCapture stored(NewLinkedInSnapshot command) {
+		return new LinkedInCapture(snapshotOf(command), false, List.of(ProfileSection.HEADLINE));
+	}
+
+	private LinkedInSnapshot snapshotOf(NewLinkedInSnapshot command) {
 		return new LinkedInSnapshot(UUID.randomUUID(), Instant.now(), command.source(), command.profile(),
 				command.photo() == null ? null : command.photo().data(),
 				command.photo() == null ? null : command.photo().mimeType(), null, null);
@@ -63,7 +70,9 @@ class LinkedInSnapshotControllerTest {
 				.andExpect(jsonPath("$.profile.experiences[0].organization").value("Acme"))
 				.andExpect(jsonPath("$.hasPhoto").value(true))
 				.andExpect(jsonPath("$.hasBanner").value(false))
-				.andExpect(jsonPath("$.missingSections[0]").value("BANNER"));
+				.andExpect(jsonPath("$.missingSections[0]").value("BANNER"))
+				.andExpect(jsonPath("$.unchanged").value(false))
+				.andExpect(jsonPath("$.changedSections[0]").value("HEADLINE"));
 	}
 
 	@Test

@@ -46,7 +46,7 @@ class LinkedInAnalysisControllerTest {
 						List.of(new LinkedInSuggestion(SuggestionPriority.HIGH, "Incluir o cargo-alvo")), "Tech Lead Java", null)),
 				List.of(ProfileCheck.failed("Sobre com texto suficiente", "Sobre", "Tem 80 caracteres", "Escreva mais.")));
 		return new LinkedInAnalysis(UUID.randomUUID(), snapshotId, Instant.parse("2026-10-27T12:00:00Z"), 62,
-				"Perfil razoável.", report, true, "gpt-4o-mini", new BigDecimal("0.0123"));
+				"Perfil razoável.", report, true, "gpt-4o-mini", new BigDecimal("0.0123"), true);
 	}
 
 	@Test
@@ -68,6 +68,7 @@ class LinkedInAnalysisControllerTest {
 				.andExpect(jsonPath("$.checks[0].section").value("Sobre"))
 				.andExpect(jsonPath("$.checks[0].current").value("Tem 80 caracteres"))
 				.andExpect(jsonPath("$.checks[0].action").value("Escreva mais."))
+				.andExpect(jsonPath("$.unchanged").value(true))
 				.andExpect(jsonPath("$.imagesAnalyzed").value(true));
 	}
 

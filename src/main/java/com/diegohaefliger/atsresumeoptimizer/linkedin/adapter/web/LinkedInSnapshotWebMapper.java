@@ -1,5 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.linkedin.adapter.web;
 
+import com.diegohaefliger.atsresumeoptimizer.linkedin.application.LinkedInCapture;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.application.NewLinkedInSnapshot;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.InvalidLinkedInSnapshotException;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInImage;
@@ -21,6 +22,15 @@ interface LinkedInSnapshotWebMapper {
 	@Mapping(target = "hasBanner", expression = "java(snapshot.hasBanner())")
 	@Mapping(target = "missingSections", expression = "java(snapshot.missingSections())")
 	LinkedInSnapshotResponse toResponse(LinkedInSnapshot snapshot);
+
+	@Mapping(target = "id", source = "snapshot.id")
+	@Mapping(target = "capturedAt", source = "snapshot.capturedAt")
+	@Mapping(target = "source", source = "snapshot.source")
+	@Mapping(target = "profile", source = "snapshot.profile")
+	@Mapping(target = "hasPhoto", expression = "java(capture.snapshot().hasPhoto())")
+	@Mapping(target = "hasBanner", expression = "java(capture.snapshot().hasBanner())")
+	@Mapping(target = "missingSections", expression = "java(capture.snapshot().missingSections())")
+	LinkedInCaptureResponse toCaptureResponse(LinkedInCapture capture);
 
 	LinkedInSnapshotSummaryResponse toSummaryResponse(LinkedInSnapshotSummary summary);
 
