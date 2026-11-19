@@ -51,6 +51,12 @@ class LinkedInSnapshotController {
 		return capture(request, SnapshotSource.TEXT);
 	}
 
+	@PostMapping("/bookmarklet")
+	@ResponseStatus(HttpStatus.CREATED)
+	LinkedInCaptureResponse fromBookmarklet(@Valid @RequestBody LinkedInSnapshotRequest request) {
+		return capture(request, SnapshotSource.BOOKMARKLET);
+	}
+
 	@GetMapping
 	List<LinkedInSnapshotSummaryResponse> history() {
 		return snapshotService.history().stream().map(mapper::toSummaryResponse).toList();

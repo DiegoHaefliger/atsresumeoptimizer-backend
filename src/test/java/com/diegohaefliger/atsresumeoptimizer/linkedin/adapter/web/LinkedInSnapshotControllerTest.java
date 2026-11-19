@@ -97,6 +97,17 @@ class LinkedInSnapshotControllerTest {
 	}
 
 	@Test
+	void acceptsTheBookmarkletReadingWithoutPairingToken() throws Exception {
+		when(snapshotService.capture(any())).thenAnswer(invocation -> stored(invocation.getArgument(0)));
+
+		mockMvc.perform(post("/api/v1/linkedin/snapshots/bookmarklet").contentType("application/json").content(BODY))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.source").value("BOOKMARKLET"));
+
+		verifyNoInteractions(pairingService);
+	}
+
+	@Test
 	void rejectsAnImageThatIsNotBase64() throws Exception {
 		mockMvc.perform(post("/api/v1/linkedin/snapshots/manual").contentType("application/json")
 						.content("{\"profile\":{\"headline\":\"x\"},\"photoBase64\":\"@@@\",\"photoMimeType\":\"image/png\"}"))
