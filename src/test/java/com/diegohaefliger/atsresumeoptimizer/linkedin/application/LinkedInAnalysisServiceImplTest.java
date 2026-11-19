@@ -113,7 +113,7 @@ class LinkedInAnalysisServiceImplTest {
 		assertThat(brief.getValue().linkedInProfile()).contains("Título (headline): Dev Java").contains("Foto de perfil: enviada")
 				.contains("Banner: não enviado");
 		assertThat(brief.getValue().images()).hasSize(1);
-		assertThat(analysis.overallScore()).isEqualTo(100);
+		assertThat(analysis.overallScore()).isEqualTo(42);
 		assertThat(analysis.snapshotId()).isEqualTo(snapshotId);
 		assertThat(analysis.imagesAnalyzed()).isTrue();
 		assertThat(analysis.aiModel()).isEqualTo("gpt-4o-mini");

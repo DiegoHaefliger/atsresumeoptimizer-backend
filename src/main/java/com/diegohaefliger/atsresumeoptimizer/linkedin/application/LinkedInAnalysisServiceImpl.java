@@ -88,7 +88,8 @@ class LinkedInAnalysisServiceImpl implements LinkedInAnalysisService {
 			throw new LinkedInAnalysisUnavailableException("A IA não devolveu a análise. Tenta gerar de novo.");
 		}
 		LinkedInAnalysisEntity entity = new LinkedInAnalysisEntity(UuidCreator.getTimeOrderedEpoch(), snapshot.id(), clock.instant());
-		entity.setOverallScore(draftMapper.score(result.value().overallScore()));
+		entity.setOverallScore(LinkedInOverallScore.of(report.sections(), imagesAnalyzed)
+				.orElse(draftMapper.score(result.value().overallScore())));
 		entity.setSummary(result.value().summary().strip());
 		entity.setReport(report);
 		entity.setImagesAnalyzed(imagesAnalyzed);

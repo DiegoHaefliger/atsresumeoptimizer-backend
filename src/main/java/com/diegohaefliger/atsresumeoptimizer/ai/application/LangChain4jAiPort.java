@@ -29,6 +29,7 @@ import dev.langchain4j.model.output.TokenUsage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -157,7 +158,7 @@ class LangChain4jAiPort implements AiPort {
 				.replace("{{careerProfile}}", brief.careerProfile())
 				.replace("{{linkedinProfile}}", brief.linkedInProfile())
 				.replace("{{imageNote}}", brief.images().isEmpty() ? NO_IMAGES : IMAGES_ATTACHED);
-		return call(template, prompt, LinkedInAnalysisDraft.class, false, brief.images());
+		return call(template, prompt, LinkedInAnalysisDraft.class, true, brief.images(), LangChain4jAiPort::isUsable);
 	}
 
 	@Override
@@ -213,6 +214,16 @@ class LangChain4jAiPort implements AiPort {
 
 	private <T> AiResult<T> call(
 			PromptTemplate template, String prompt, Class<T> responseType, boolean cacheable, List<ChatImage> images) {
+		return call(template, prompt, responseType, cacheable, images, value -> true);
+	}
+
+	private static boolean isUsable(LinkedInAnalysisDraft draft) {
+		return StringUtils.hasText(draft.summary()) && !draft.sections().isEmpty();
+	}
+
+	private <T> AiResult<T> call(
+			PromptTemplate template, String prompt, Class<T> responseType, boolean cacheable, List<ChatImage> images,
+			Predicate<T> usable) {
 		List<ResolvedModel> chain = modelGateway.resolveChain(template.getKey());
 		if (chain.isEmpty()) {
 			throw new AiCallException(NO_PROVIDER_CONFIGURED, null);
@@ -220,7 +231,7 @@ class LangChain4jAiPort implements AiPort {
 		AiCallException lastFailure = null;
 		for (ResolvedModel resolved : chain) {
 			try {
-				return callProvider(resolved, template, prompt, responseType, cacheable, images);
+				return callProvider(resolved, template, prompt, responseType, cacheable, images, usable);
 			} catch (AiCallException failure) {
 				lastFailure = failure;
 				LOGGER.warn("Provedor {} ({}) falhou para {}, tentando o próximo da fila", resolved.provider(),
@@ -232,10 +243,11 @@ class LangChain4jAiPort implements AiPort {
 
 	private <T> AiResult<T> callProvider(
 			ResolvedModel resolved, PromptTemplate template, String prompt, Class<T> responseType, boolean cacheable,
-			List<ChatImage> images) {
+			List<ChatImage> images, Predicate<T> usable) {
 		String model = resolved.modelName();
-		String keyHash = Sha256.hex(
-				template.getKey() + ":" + template.getVersion() + ":" + resolved.provider() + ":" + model + ":" + prompt);
+		String imageKey = images.stream().map(image -> Sha256.hex(image.base64Data())).collect(Collectors.joining(","));
+		String keyHash = Sha256.hex(template.getKey() + ":" + template.getVersion() + ":" + resolved.provider() + ":" + model
+				+ ":" + prompt + (imageKey.isEmpty() ? "" : ":" + imageKey));
 		Optional<LlmCacheEntry> cached = cacheable ? llmCacheRepository.findById(keyHash) : Optional.empty();
 		if (cached.isPresent()) {
 			return new AiResult<>(parse(cached.get().response(), responseType), AiUsage.cached(resolved.provider().label(), model));
@@ -274,7 +286,7 @@ class LangChain4jAiPort implements AiPort {
 				}
 			}
 
-			if (cacheable) {
+			if (cacheable && usable.test(value)) {
 				llmCacheRepository.save(new LlmCacheEntry(keyHash, template.getKey(), template.getVersion(), parsedText));
 			}
 
