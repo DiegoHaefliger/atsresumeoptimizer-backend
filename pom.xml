@@ -37,6 +37,7 @@
 		<languagetool.version>6.8</languagetool.version>
 		<uuid-creator.version>6.1.1</uuid-creator.version>
 		<springdoc.version>3.1.1</springdoc.version>
+		<org-json.version>20260719</org-json.version>
 		<guava.version>33.7.2-jre</guava.version>
 		<bucket4j.version>8.10.1</bucket4j.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
@@ -285,6 +286,12 @@
 				<groupId>com.google.guava</groupId>
 				<artifactId>guava</artifactId>
 				<version>${guava.version}</version>
+			</dependency>
+			<!-- languagetool-core traz org.json 20240303, afetado pelo GHSA-ghc9-756g-vrcv; corrigido na 20260719. -->
+			<dependency>
+				<groupId>org.json</groupId>
+				<artifactId>json</artifactId>
+				<version>${org-json.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
