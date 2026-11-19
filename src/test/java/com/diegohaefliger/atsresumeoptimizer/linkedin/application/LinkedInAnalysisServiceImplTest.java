@@ -118,6 +118,8 @@ class LinkedInAnalysisServiceImplTest {
 		assertThat(analysis.imagesAnalyzed()).isTrue();
 		assertThat(analysis.aiModel()).isEqualTo("gpt-4o-mini");
 		assertThat(analysis.costUsd()).isEqualByComparingTo("0.0123");
+		assertThat(analysis.report().checks()).isNotEmpty().extracting("label").contains("Sobre com texto suficiente");
+		assertThat(brief.getValue().linkedInProfile()).contains("NÃO as repita");
 		assertThat(analysis.report().sections()).hasSize(3);
 		assertThat(analysis.report().sections().get(0).section()).isEqualTo(ProfileSection.HEADLINE);
 		assertThat(analysis.report().sections().get(0).score()).isEqualTo(55);

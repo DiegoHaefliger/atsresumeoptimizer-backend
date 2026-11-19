@@ -7,12 +7,14 @@ public record LinkedInAnalysisReport(
 		List<String> topActions,
 		List<String> recruiterKeywords,
 		List<String> missingKeywords,
-		List<LinkedInSectionReview> sections) {
+		List<LinkedInSectionReview> sections,
+		List<ProfileCheck> checks) {
 
 	public LinkedInAnalysisReport {
 		topActions = topActions == null ? List.of() : List.copyOf(topActions);
 		recruiterKeywords = recruiterKeywords == null ? List.of() : List.copyOf(recruiterKeywords);
 		missingKeywords = missingKeywords == null ? List.of() : List.copyOf(missingKeywords);
 		sections = sections == null ? List.of() : List.copyOf(sections);
+		checks = checks == null ? List.of() : List.copyOf(checks);
 	}
 }

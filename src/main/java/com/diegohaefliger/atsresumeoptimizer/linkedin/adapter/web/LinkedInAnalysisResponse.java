@@ -16,6 +16,7 @@ record LinkedInAnalysisResponse(
 		List<String> recruiterKeywords,
 		List<String> missingKeywords,
 		List<LinkedInSectionReviewResponse> sections,
+		List<LinkedInProfileCheckResponse> checks,
 		boolean imagesAnalyzed,
 		String aiModel,
 		BigDecimal costUsd) {

@@ -5,12 +5,14 @@ import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInAnalysisRep
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.ProfileSection;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.SuggestionPriority;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper
 interface LinkedInAnalysisDraftMapper {
 
 	int MAX_SCORE = 100;
 
+	@Mapping(target = "checks", ignore = true)
 	LinkedInAnalysisReport toReport(LinkedInAnalysisDraft draft);
 
 	default int score(Integer value) {

@@ -4,6 +4,7 @@ import com.diegohaefliger.atsresumeoptimizer.careerprofile.CareerProfile;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInEntry;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInProfile;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshot;
+import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.ProfileCheck;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,89 +29,95 @@ final class LinkedInProfileChecks {
 	private LinkedInProfileChecks() {
 	}
 
-	static List<String> run(LinkedInSnapshot snapshot, CareerProfile career) {
+	static List<ProfileCheck> run(LinkedInSnapshot snapshot, CareerProfile career) {
 		LinkedInProfile profile = snapshot.profile();
-		List<String> checks = new ArrayList<>();
+		List<ProfileCheck> checks = new ArrayList<>();
 		headline(checks, profile, career);
 		about(checks, profile);
 		skills(checks, profile, career);
 		experiences(checks, profile);
-		customUrl(checks, profile);
+		checks.add(profile.customUrl() == null
+				? ProfileCheck.failed("URL personalizada definida", "O endereço do perfil ainda é o padrão do LinkedIn.")
+				: ProfileCheck.ok("URL personalizada definida"));
 		return checks;
 	}
 
-	private static void headline(List<String> checks, LinkedInProfile profile, CareerProfile career) {
+	private static void headline(List<ProfileCheck> checks, LinkedInProfile profile, CareerProfile career) {
+		String label = "Título com tamanho adequado";
 		String headline = profile.headline();
 		if (headline == null) {
-			checks.add("Título (headline) ausente.");
+			checks.add(ProfileCheck.failed(label, "O perfil não tem título (headline)."));
 			return;
 		}
 		if (headline.length() < HEADLINE_MIN_LENGTH) {
-			checks.add("Título (headline) curto: " + headline.length() + " caracteres, abaixo de " + HEADLINE_MIN_LENGTH + ".");
+			checks.add(ProfileCheck.failed(label, "Tem " + headline.length() + " caracteres, o ideal é a partir de "
+					+ HEADLINE_MIN_LENGTH + "."));
+		} else if (headline.length() > HEADLINE_MAX_LENGTH) {
+			checks.add(ProfileCheck.failed(label, "Passa do limite de " + HEADLINE_MAX_LENGTH + " caracteres."));
+		} else {
+			checks.add(ProfileCheck.ok(label));
 		}
-		if (headline.length() > HEADLINE_MAX_LENGTH) {
-			checks.add("Título (headline) acima do limite de " + HEADLINE_MAX_LENGTH + " caracteres.");
-		}
-		missingTerms(checks, "o cargo-alvo", career.targetJobTitle(), headline);
-		missingTerms(checks, "a senioridade alvo", career.targetSeniority(), headline);
+		mentions(checks, "Título cita o cargo-alvo", career.targetJobTitle(), headline);
+		mentions(checks, "Título cita a senioridade alvo", career.targetSeniority(), headline);
 	}
 
-	private static void missingTerms(List<String> checks, String label, String wanted, String headline) {
+	private static void mentions(List<ProfileCheck> checks, String label, String wanted, String headline) {
 		List<String> tokens = tokens(wanted);
 		if (tokens.isEmpty()) {
 			return;
 		}
 		Set<String> present = Set.copyOf(tokens(headline));
-		List<String> missing = tokens.stream().filter(token -> !present.contains(token)).toList();
-		if (missing.size() == tokens.size()) {
-			checks.add("Título (headline) não menciona " + label + " (\"" + wanted + "\").");
-		}
+		boolean found = tokens.stream().anyMatch(present::contains);
+		checks.add(found ? ProfileCheck.ok(label) : ProfileCheck.failed(label, "\"" + wanted + "\" não aparece no título."));
 	}
 
-	private static void about(List<String> checks, LinkedInProfile profile) {
+	private static void about(List<ProfileCheck> checks, LinkedInProfile profile) {
+		String label = "Sobre com texto suficiente";
 		if (profile.about() == null) {
-			checks.add("Seção Sobre ausente.");
+			checks.add(ProfileCheck.failed(label, "O perfil não tem a seção Sobre."));
 		} else if (profile.about().length() < ABOUT_MIN_LENGTH) {
-			checks.add("Seção Sobre curta: " + profile.about().length() + " caracteres, abaixo de " + ABOUT_MIN_LENGTH + ".");
+			checks.add(ProfileCheck.failed(label, "Tem " + profile.about().length() + " caracteres, o ideal é a partir de "
+					+ ABOUT_MIN_LENGTH + "."));
+		} else {
+			checks.add(ProfileCheck.ok(label));
 		}
 	}
 
-	private static void skills(List<String> checks, LinkedInProfile profile, CareerProfile career) {
+	private static void skills(List<ProfileCheck> checks, LinkedInProfile profile, CareerProfile career) {
 		List<String> skills = profile.skills();
-		if (skills.size() < SKILLS_MIN_COUNT) {
-			checks.add("Poucas competências: " + skills.size() + ", abaixo de " + SKILLS_MIN_COUNT + ".");
-		}
-		List<String> strengths = career.strengths().stream().map(LinkedInProfileChecks::normalized).toList();
-		if (skills.isEmpty() || strengths.isEmpty()) {
+		String label = "Competências suficientes";
+		checks.add(skills.size() < SKILLS_MIN_COUNT
+				? ProfileCheck.failed(label, "Tem " + skills.size() + ", o ideal é a partir de " + SKILLS_MIN_COUNT + ".")
+				: ProfileCheck.ok(label));
+		if (skills.isEmpty() || career.strengths().isEmpty()) {
 			return;
 		}
+		List<String> strengths = career.strengths().stream().map(LinkedInProfileChecks::normalized).toList();
 		List<String> pinned = skills.stream().limit(PINNED_SKILLS).map(LinkedInProfileChecks::normalized).toList();
-		if (pinned.stream().noneMatch(strengths::contains)) {
-			checks.add("Nenhuma das " + PINNED_SKILLS + " competências fixadas está entre os pontos fortes do perfil de carreira.");
-		}
+		String pinnedLabel = "Competências fixadas ligadas aos seus pontos fortes";
+		checks.add(pinned.stream().anyMatch(strengths::contains)
+				? ProfileCheck.ok(pinnedLabel)
+				: ProfileCheck.failed(pinnedLabel, "Nenhuma das " + PINNED_SKILLS
+						+ " primeiras competências é um dos pontos fortes do seu perfil de carreira."));
 		List<String> listed = skills.stream().map(LinkedInProfileChecks::normalized).toList();
 		List<String> absent = career.strengths().stream().filter(strength -> !listed.contains(normalized(strength))).toList();
-		if (!absent.isEmpty()) {
-			checks.add("Pontos fortes do perfil de carreira ausentes nas competências: " + String.join(", ", absent) + ".");
-		}
+		String coverageLabel = "Pontos fortes listados nas competências";
+		checks.add(absent.isEmpty()
+				? ProfileCheck.ok(coverageLabel)
+				: ProfileCheck.failed(coverageLabel, "Faltam: " + String.join(", ", absent) + "."));
 	}
 
-	private static void experiences(List<String> checks, LinkedInProfile profile) {
+	private static void experiences(List<ProfileCheck> checks, LinkedInProfile profile) {
+		String label = "Experiências com descrição";
 		List<LinkedInEntry> experiences = profile.experiences();
 		if (experiences.isEmpty()) {
-			checks.add("Nenhuma experiência no perfil.");
+			checks.add(ProfileCheck.failed(label, "O perfil não tem experiências."));
 			return;
 		}
 		long withoutDescription = experiences.stream().filter(entry -> entry.description() == null).count();
-		if (withoutDescription > 0) {
-			checks.add(withoutDescription + " de " + experiences.size() + " experiências sem descrição.");
-		}
-	}
-
-	private static void customUrl(List<String> checks, LinkedInProfile profile) {
-		if (profile.customUrl() == null) {
-			checks.add("URL personalizada não definida.");
-		}
+		checks.add(withoutDescription == 0
+				? ProfileCheck.ok(label)
+				: ProfileCheck.failed(label, withoutDescription + " de " + experiences.size() + " estão sem descrição."));
 	}
 
 	private static List<String> tokens(String text) {

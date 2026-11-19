@@ -17,6 +17,7 @@ import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInAnalysisUna
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSectionReview;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshot;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.LinkedInSnapshotNotFoundException;
+import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.ProfileCheck;
 import com.diegohaefliger.atsresumeoptimizer.linkedin.domain.ProfileSection;
 import com.github.f4b6a3.uuid.UuidCreator;
 import java.time.Clock;
@@ -65,8 +66,8 @@ class LinkedInAnalysisServiceImpl implements LinkedInAnalysisService {
 				: snapshotService.get(snapshotId);
 		CareerProfile career = careerProfileService.current().orElseThrow(CareerProfileNotFoundException::new);
 		String careerText = LinkedInPromptText.careerProfile(career);
-		String profileText = LinkedInPromptText.withChecks(LinkedInPromptText.profile(snapshot),
-				LinkedInProfileChecks.run(snapshot, career));
+		List<ProfileCheck> checks = LinkedInProfileChecks.run(snapshot, career);
+		String profileText = LinkedInPromptText.withChecks(LinkedInPromptText.profile(snapshot), checks);
 		List<ChatImage> images = images(snapshot);
 
 		boolean imagesAnalyzed = !images.isEmpty();
@@ -82,7 +83,7 @@ class LinkedInAnalysisServiceImpl implements LinkedInAnalysisService {
 			result = ask(new LinkedInAnalysisBrief(careerText, profileText, List.of()));
 		}
 
-		LinkedInAnalysisReport report = report(result.value());
+		LinkedInAnalysisReport report = report(result.value(), checks);
 		if (report.sections().isEmpty() || !StringUtils.hasText(result.value().summary())) {
 			throw new LinkedInAnalysisUnavailableException("A IA não devolveu a análise. Tenta gerar de novo.");
 		}
@@ -124,14 +125,14 @@ class LinkedInAnalysisServiceImpl implements LinkedInAnalysisService {
 		}
 	}
 
-	private LinkedInAnalysisReport report(LinkedInAnalysisDraft draft) {
+	private LinkedInAnalysisReport report(LinkedInAnalysisDraft draft, List<ProfileCheck> checks) {
 		LinkedInAnalysisReport mapped = draftMapper.toReport(draft);
 		Map<ProfileSection, LinkedInSectionReview> bySection = new LinkedHashMap<>();
 		mapped.sections().stream()
 				.filter(review -> review != null && review.section() != null)
 				.forEach(review -> bySection.putIfAbsent(review.section(), review));
 		return new LinkedInAnalysisReport(mapped.targetFit(), mapped.topActions(), mapped.recruiterKeywords(),
-				mapped.missingKeywords(), List.copyOf(bySection.values()));
+				mapped.missingKeywords(), List.copyOf(bySection.values()), checks);
 	}
 
 	private static List<ChatImage> images(LinkedInSnapshot snapshot) {
