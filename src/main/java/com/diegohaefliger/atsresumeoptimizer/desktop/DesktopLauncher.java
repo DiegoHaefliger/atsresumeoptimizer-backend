@@ -41,10 +41,9 @@ final class DesktopLauncher {
 	private volatile ConfigurableApplicationContext context;
 	private boolean started;
 
-	DesktopLauncher(Class<?> application) {
+	DesktopLauncher(Class<?> application, Path dataDir) {
 		this.application = application;
-		this.dataDir = Path.of(Optional.ofNullable(System.getenv("ATS_DATA_DIR"))
-				.orElseGet(() -> Path.of(System.getProperty("user.home"), ".ats-resume-optimizer").toString()));
+		this.dataDir = dataDir;
 		this.databases = new ExternalDatabaseStore(dataDir);
 	}
 
