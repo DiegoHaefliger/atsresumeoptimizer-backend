@@ -4,6 +4,7 @@ import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.anthropic.AnthropicStreamingChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import dev.langchain4j.model.googleai.GoogleAiGeminiStreamingChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
@@ -23,6 +24,8 @@ class ChatModelFactory {
 	private static final Pattern REASONING_MODEL = Pattern.compile("^(o\\d|gpt-5)");
 	// Só a família clássica aceita temperatura; modelo novo ou desconhecido (ex.: gpt-6-*) usa o padrão da OpenAI.
 	private static final Pattern CLASSIC_OPENAI_MODEL = Pattern.compile("^(gpt-[34]|chatgpt)");
+	// O num_ctx padrão do Ollama é curto e ele descarta o começo do prompt, onde ficam as instruções de formato.
+	private static final int OLLAMA_PROMPT_CONTEXT_TOKENS = 16_384;
 
 	ChatModel create(AiRuntimeSettings settings, String modelName, int maxOutputTokens) {
 		return switch (settings.provider()) {
@@ -53,6 +56,8 @@ class ChatModelFactory {
 					.modelName(modelName)
 					.temperature(settings.temperature())
 					.numPredict(maxOutputTokens)
+					.numCtx(ollamaContextTokens(maxOutputTokens))
+					.responseFormat(ResponseFormat.JSON)
 					.timeout(settings.timeout())
 					.build();
 		};
@@ -90,9 +95,14 @@ class ChatModelFactory {
 					.modelName(modelName)
 					.temperature(settings.temperature())
 					.numPredict(maxOutputTokens)
+					.numCtx(ollamaContextTokens(maxOutputTokens))
 					.timeout(settings.timeout())
 					.build();
 		};
+	}
+
+	private static int ollamaContextTokens(int maxOutputTokens) {
+		return OLLAMA_PROMPT_CONTEXT_TOKENS + maxOutputTokens;
 	}
 
 	// max_tokens é legado na OpenAI e os modelos novos o rejeitam; max_completion_tokens vale para todos.

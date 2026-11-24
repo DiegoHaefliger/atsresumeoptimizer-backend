@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,9 @@ class ChatModelFactoryTest {
 			{"id":"c","object":"chat.completion","created":1,"model":"m",
 			 "choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}],
 			 "usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}""";
+	private static final String OLLAMA_COMPLETION = """
+			{"model":"m","created_at":"2026-11-24T00:00:00Z","message":{"role":"assistant","content":"{}"},
+			 "done":true,"done_reason":"stop","prompt_eval_count":1,"eval_count":1}""";
 
 	private final ChatModelFactory factory = new ChatModelFactory();
 	private final AtomicReference<String> requestBody = new AtomicReference<>();
@@ -33,7 +37,8 @@ class ChatModelFactoryTest {
 		server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		server.createContext("/", exchange -> {
 			requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-			byte[] response = COMPLETION.getBytes(StandardCharsets.UTF_8);
+			String completion = exchange.getRequestURI().getPath().startsWith("/api/") ? OLLAMA_COMPLETION : COMPLETION;
+			byte[] response = completion.getBytes(StandardCharsets.UTF_8);
 			exchange.getResponseHeaders().add("Content-Type", "application/json");
 			exchange.sendResponseHeaders(200, response.length);
 			exchange.getResponseBody().write(response);
@@ -88,6 +93,16 @@ class ChatModelFactoryTest {
 		call(AiProvider.OPENAI_COMPATIBLE, "o3-mini", 1000);
 
 		assertThat(body()).containsEntry("max_completion_tokens", 1000).doesNotContainKeys("max_tokens", "temperature");
+	}
+
+	@Test
+	void asksOllamaForJsonWithAContextLargeEnoughToKeepTheInstructionsAndTheAnswer() {
+		call(AiProvider.OLLAMA, "gemma4", 10_000);
+
+		assertThat(body()).containsEntry("format", "json");
+		assertThat(body()).extractingByKey("options").asInstanceOf(InstanceOfAssertFactories.MAP)
+				.containsEntry("num_ctx", 26_384)
+				.containsEntry("num_predict", 10_000);
 	}
 
 	private Map<String, Object> body() {
