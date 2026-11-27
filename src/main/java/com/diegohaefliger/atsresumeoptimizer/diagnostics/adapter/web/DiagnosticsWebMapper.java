@@ -9,6 +9,7 @@ import org.mapstruct.Mapping;
 interface DiagnosticsWebMapper {
 
 	@Mapping(target = "text", expression = "java(report.asText())")
+	@Mapping(target = "verdict", expression = "java(report.verdict())")
 	DiagnosticReportResponse toResponse(DiagnosticReport report);
 
 	ClientError toDomain(ClientErrorRequest request);

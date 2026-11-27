@@ -119,6 +119,12 @@ class ResumeServiceImpl implements ResumeService {
 
 	@Override
 	@Transactional(readOnly = true)
+	public boolean hasBaseResume() {
+		return resumeRepository.existsByOriginAndTitleNot(ResumeOrigin.BASE, Resume.SCRUBBED_PLACEHOLDER);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
 	public List<ResumeSummary> listResumes() {
 		List<Resume> listed = new ArrayList<>(resumeRepository.findByOriginAndTitleNot(ResumeOrigin.BASE, Resume.SCRUBBED_PLACEHOLDER));
 		listed.addAll(resumeRepository.findTop50ByOriginAndTitleNotOrderByCreatedAtDesc(ResumeOrigin.ADAPTED, Resume.SCRUBBED_PLACEHOLDER));

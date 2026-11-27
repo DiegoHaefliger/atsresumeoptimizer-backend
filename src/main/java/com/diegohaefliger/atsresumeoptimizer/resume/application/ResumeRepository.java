@@ -11,6 +11,8 @@ interface ResumeRepository extends JpaRepository<Resume, UUID> {
 
 	List<Resume> findByOriginAndTitleNot(ResumeOrigin origin, String scrubbedPlaceholder);
 
+	boolean existsByOriginAndTitleNot(ResumeOrigin origin, String scrubbedPlaceholder);
+
 	List<Resume> findTop50ByOriginAndTitleNotOrderByCreatedAtDesc(ResumeOrigin origin, String scrubbedPlaceholder);
 
 	List<Resume> findByOriginAndSourceAnalysisIdInAndTitleNotOrderByCreatedAtDesc(ResumeOrigin origin,

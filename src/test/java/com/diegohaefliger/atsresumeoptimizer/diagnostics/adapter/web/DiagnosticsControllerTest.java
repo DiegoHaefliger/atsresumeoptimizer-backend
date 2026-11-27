@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.DiagnosticEntry;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.DiagnosticSection;
+import com.diegohaefliger.atsresumeoptimizer.diagnostics.ReadinessCheck;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.application.DiagnosticsService;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.domain.DiagnosticBundle;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.domain.DiagnosticReport;
@@ -38,6 +39,7 @@ class DiagnosticsControllerTest {
 	@Test
 	void returnsTheReportWithACopyableText() throws Exception {
 		when(service.report()).thenReturn(new DiagnosticReport(Instant.parse("2026-11-25T13:30:00Z"),
+				List.of(ReadinessCheck.warning("Currículo", "nenhum currículo enviado ainda", "Envie um currículo.")),
 				List.of(new DiagnosticSection("Sistema", List.of(new DiagnosticEntry("Java", "25")))), true, false));
 
 		mockMvc.perform(get("/api/v1/diagnostics"))
@@ -46,7 +48,10 @@ class DiagnosticsControllerTest {
 				.andExpect(jsonPath("$.sections[0].entries[0].value").value("25"))
 				.andExpect(jsonPath("$.sections[0].entries[0].personal").value(false))
 				.andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("- Java: 25")))
-				.andExpect(jsonPath("$.logFileAvailable").value(true));
+				.andExpect(jsonPath("$.logFileAvailable").value(true))
+				.andExpect(jsonPath("$.checks[0].status").value("WARNING"))
+				.andExpect(jsonPath("$.checks[0].hint").value("Envie um currículo."))
+				.andExpect(jsonPath("$.verdict").value("1 alerta."));
 	}
 
 	@Test

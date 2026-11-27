@@ -11,6 +11,9 @@ import com.diegohaefliger.atsresumeoptimizer.RequestId;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.DiagnosticEntry;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.DiagnosticSection;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.DiagnosticsContributor;
+import com.diegohaefliger.atsresumeoptimizer.diagnostics.ReadinessCheck;
+import com.diegohaefliger.atsresumeoptimizer.diagnostics.ReadinessContributor;
+import com.diegohaefliger.atsresumeoptimizer.diagnostics.ReadinessStatus;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.domain.ClientError;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.domain.DiagnosticBundle;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.domain.DiagnosticReport;
@@ -49,9 +52,45 @@ class DiagnosticsServiceImplTest {
 		MDC.clear();
 	}
 
+	private static final ReadinessContributor DATABASE =
+			() -> List.of(ReadinessCheck.ok("Banco de dados", "conectado"));
+	private static final ReadinessContributor AI = () -> List.of(ReadinessCheck.failure("Conexão com Ollama (local)",
+			"não respondeu: Connection refused", "Abra o Ollama."));
+
 	private DiagnosticsServiceImpl service(String logFile, DiagnosticsContributor... contributors) {
-		return new DiagnosticsServiceImpl(List.of(contributors), new LogFiles(logFile), new LogSanitizer(), new BundleWriter(),
-				opener, CLOCK);
+		return service(logFile, List.of(), contributors);
+	}
+
+	private DiagnosticsServiceImpl service(String logFile, List<ReadinessContributor> readiness,
+			DiagnosticsContributor... contributors) {
+		return new DiagnosticsServiceImpl(List.of(contributors), readiness, new LogFiles(logFile), new LogSanitizer(),
+				new BundleWriter(), opener, CLOCK);
+	}
+
+	@Test
+	void checksEverythingTheAppNeedsAndKeepsGoingWhenACheckBreaks() {
+		ReadinessContributor broken = () -> {
+			throw new IllegalStateException("sem bean");
+		};
+
+		DiagnosticReport report = service("", List.of(DATABASE, broken, AI), SYSTEM).report();
+
+		assertThat(report.checks()).extracting(ReadinessCheck::status)
+				.containsExactly(ReadinessStatus.OK, ReadinessStatus.FAILURE, ReadinessStatus.FAILURE);
+		assertThat(report.verdict()).isEqualTo("2 falhas.");
+	}
+
+	@Test
+	void putsTheChecksAtTheTopOfTheDownloadedReport() throws Exception {
+		DiagnosticBundle bundle = service("", List.of(DATABASE, AI), SYSTEM).bundle();
+
+		String text = unzip(bundle.content()).get("diagnostico.txt");
+		String expected = String.join(System.lineSeparator(), "## Verificação", "Resultado: 1 falha.",
+				"- [OK] Banco de dados: conectado",
+				"- [FALHA] Conexão com Ollama (local): não respondeu: Connection refused",
+				"  Como resolver: Abra o Ollama.");
+		assertThat(text).contains(expected);
+		assertThat(text.indexOf("## Verificação")).isLessThan(text.indexOf("## Sistema"));
 	}
 
 	@Test
