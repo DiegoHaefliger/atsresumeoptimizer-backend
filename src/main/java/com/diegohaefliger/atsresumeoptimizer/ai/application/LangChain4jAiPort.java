@@ -295,7 +295,7 @@ class LangChain4jAiPort implements AiPort {
 			}
 
 			if (cacheable && usable.test(value)) {
-				llmCacheRepository.save(new LlmCacheEntry(keyHash, template.getKey(), template.getVersion(), parsedText));
+				llmCacheRepository.saveIfAbsent(keyHash, template.getKey(), template.getVersion(), parsedText);
 			}
 
 			TokenUsage tokenUsage = response.tokenUsage();

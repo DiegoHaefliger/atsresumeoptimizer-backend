@@ -2,6 +2,7 @@ package com.diegohaefliger.atsresumeoptimizer.ai.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -99,7 +100,7 @@ class LangChain4jAiPortTest {
 		assertThat(result.usage().tokensIn()).isEqualTo(100);
 		assertThat(result.usage().tokensOut()).isEqualTo(50);
 		assertThat(result.usage().cached()).isFalse();
-		verify(llmCacheRepository).save(any());
+		verify(llmCacheRepository).saveIfAbsent(any(), any(), anyInt(), any());
 	}
 
 	@Test
@@ -245,7 +246,7 @@ class LangChain4jAiPortTest {
 		assertThat(result.value().name()).isEqualTo("Ana");
 		assertThat(result.value().sections().get(0).richLines()).hasSize(1);
 		verify(chatModel, org.mockito.Mockito.times(1)).chat(any(ChatRequest.class));
-		verify(llmCacheRepository).save(any());
+		verify(llmCacheRepository).saveIfAbsent(any(), any(), anyInt(), any());
 	}
 
 	@Test
@@ -265,7 +266,7 @@ class LangChain4jAiPortTest {
 		AiResult<StructuredResume> result = aiPort.structureResume("texto", "", JobFocus.NONE);
 
 		assertThat(result.value().name()).isEqualTo("Ana");
-		verify(llmCacheRepository).save(any());
+		verify(llmCacheRepository).saveIfAbsent(any(), any(), anyInt(), any());
 	}
 
 	private PromptTemplate template(String key, String content) {
@@ -417,7 +418,7 @@ class LangChain4jAiPortTest {
 		assertThat(((dev.langchain4j.data.message.TextContent) message.contents().get(0)).text())
 				.startsWith("alvo: Tech Lead | título: Dev | A foto de perfil e o banner seguem anexados");
 		assertThat(message.contents().get(1)).isInstanceOf(dev.langchain4j.data.message.ImageContent.class);
-		verify(llmCacheRepository).save(any());
+		verify(llmCacheRepository).saveIfAbsent(any(), any(), anyInt(), any());
 	}
 
 	@Test
@@ -433,9 +434,10 @@ class LangChain4jAiPortTest {
 		when(chatModel.chat(any(ChatRequest.class))).thenReturn(response);
 		var cache = new java.util.concurrent.atomic.AtomicReference<LlmCacheEntry>();
 		when(llmCacheRepository.findById(any())).thenAnswer(invocation -> Optional.ofNullable(cache.get()));
-		when(llmCacheRepository.save(any())).thenAnswer(invocation -> {
-			cache.set(invocation.getArgument(0));
-			return invocation.getArgument(0);
+		when(llmCacheRepository.saveIfAbsent(any(), any(), anyInt(), any())).thenAnswer(invocation -> {
+			cache.set(new LlmCacheEntry(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2),
+					invocation.getArgument(3)));
+			return 1;
 		});
 		var brief = new LinkedInAnalysisBrief("alvo", "perfil", List.of(new ChatImage("image/png", "AQID")));
 
@@ -459,7 +461,7 @@ class LangChain4jAiPortTest {
 
 		aiPort.analyzeLinkedIn(new LinkedInAnalysisBrief("alvo", "perfil", List.of()));
 
-		verify(llmCacheRepository, org.mockito.Mockito.never()).save(any());
+		verify(llmCacheRepository, org.mockito.Mockito.never()).saveIfAbsent(any(), any(), anyInt(), any());
 	}
 
 	@Test
@@ -482,7 +484,7 @@ class LangChain4jAiPortTest {
 		assertThat(result.value().skills()).containsExactly("Java");
 		var message = (dev.langchain4j.data.message.UserMessage) requestCaptor.getValue().messages().get(0);
 		assertThat(((dev.langchain4j.data.message.TextContent) message.contents().get(0)).text()).isEqualTo("texto: Ana Souza\nDev Java");
-		verify(llmCacheRepository).save(any());
+		verify(llmCacheRepository).saveIfAbsent(any(), any(), anyInt(), any());
 	}
 
 	@Test
