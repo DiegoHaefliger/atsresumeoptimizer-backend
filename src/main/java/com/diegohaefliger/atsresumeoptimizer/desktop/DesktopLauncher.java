@@ -1,5 +1,6 @@
 package com.diegohaefliger.atsresumeoptimizer.desktop;
 
+import com.diegohaefliger.atsresumeoptimizer.desktop.application.DatabaseInUseException;
 import com.diegohaefliger.atsresumeoptimizer.desktop.application.DesktopRestart;
 import com.diegohaefliger.atsresumeoptimizer.desktop.application.ExternalDatabaseStore;
 import java.io.IOException;
@@ -29,6 +30,7 @@ final class DesktopLauncher {
 	private static final Duration RUNNING_INSTANCE_WAIT = Duration.ofSeconds(90);
 	private static final Duration POLL_INTERVAL = Duration.ofMillis(500);
 	private static final Duration RESTART_DELAY = Duration.ofSeconds(1);
+	private static final String VERSION = DesktopBrand.version().orElse("");
 
 	private final Class<?> application;
 	private final Path dataDir;
@@ -68,11 +70,16 @@ final class DesktopLauncher {
 				return;
 			} catch (RuntimeException | IOException failure) {
 				window.close();
-				boolean externalDatabaseDown = databases.load().isPresent() && isDatabaseFailure(failure);
-				switch (StartupFailureDialog.ask(failure, dataDir.resolve("logs").resolve("app.log"), externalDatabaseDown)) {
+				boolean externalDatabase = databases.load().isPresent();
+				Optional<DatabaseInUseException> inUse = cause(failure, DatabaseInUseException.class);
+				StartupChoice choice = inUse.isPresent()
+						? StartupFailureDialog.askDatabaseInUse(inUse.get().getMessage(), externalDatabase)
+						: StartupFailureDialog.ask(failure, dataDir.resolve("logs").resolve("app.log"),
+								externalDatabase && isDatabaseFailure(failure));
+				switch (choice) {
 					case RETRY -> LOGGER.info("Tentando iniciar de novo");
 					case USE_EMBEDDED -> databases.disable();
-					case EXIT -> System.exit(1);
+					case EXIT, OPEN_RUNNING -> System.exit(1);
 				}
 			}
 		}
@@ -105,7 +112,7 @@ final class DesktopLauncher {
 	private void onReady(ApplicationReadyEvent event) {
 		URI url = URI.create("http://localhost:" + port + "/");
 		try {
-			lock.publishPort(port);
+			lock.publishPort(port, VERSION);
 		} catch (IOException exception) {
 			LOGGER.warn("Não deu pra gravar a porta do app; abrir de novo não vai achar esta instância.", exception);
 		}
@@ -116,6 +123,15 @@ final class DesktopLauncher {
 			Browser.open(url);
 		}
 		LOGGER.info("App pronto em {}", url);
+	}
+
+	private static <T extends Throwable> Optional<T> cause(Throwable failure, Class<T> type) {
+		for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+			if (type.isInstance(cause)) {
+				return Optional.of(type.cast(cause));
+			}
+		}
+		return Optional.empty();
 	}
 
 	private static boolean isDatabaseFailure(Throwable failure) {
@@ -136,7 +152,17 @@ final class DesktopLauncher {
 			}
 			Optional<Integer> port = SingleInstanceLock.publishedPort(dataDir);
 			if (port.isPresent()) {
-				Browser.open(URI.create("http://localhost:" + port.get() + "/"));
+				Optional<String> runningVersion = SingleInstanceLock.publishedVersion(dataDir);
+				StartupChoice choice = runningVersion.filter(VERSION::equals).isPresent()
+						? StartupChoice.OPEN_RUNNING
+						: StartupFailureDialog.askOtherVersionRunning(runningVersion, VERSION);
+				if (choice == StartupChoice.RETRY) {
+					deadline = Instant.now().plus(RUNNING_INSTANCE_WAIT);
+					continue;
+				}
+				if (choice == StartupChoice.OPEN_RUNNING) {
+					Browser.open(URI.create("http://localhost:" + port.get() + "/"));
+				}
 				return Optional.empty();
 			}
 			try {

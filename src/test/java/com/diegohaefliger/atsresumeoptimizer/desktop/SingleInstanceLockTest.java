@@ -25,19 +25,28 @@ class SingleInstanceLockTest {
 	void letsAnotherLaunchFindThePortOnceTheAppIsReady() throws Exception {
 		SingleInstanceLock lock = SingleInstanceLock.tryAcquire(dataDir).orElseThrow();
 
-		lock.publishPort(8123);
+		lock.publishPort(8123, "1.1.14");
 
 		assertThat(SingleInstanceLock.publishedPort(dataDir)).contains(8123);
+		assertThat(SingleInstanceLock.publishedVersion(dataDir)).contains("1.1.14");
 	}
 
 	@Test
 	void stopsAdvertisingThePortWhenTheAppStartsClosing() throws Exception {
 		SingleInstanceLock lock = SingleInstanceLock.tryAcquire(dataDir).orElseThrow();
-		lock.publishPort(8123);
+		lock.publishPort(8123, "1.1.14");
 
 		lock.withdrawPort();
 
 		assertThat(SingleInstanceLock.publishedPort(dataDir)).isEmpty();
+		assertThat(SingleInstanceLock.publishedVersion(dataDir)).isEmpty();
+	}
+
+	@Test
+	void anInstanceFromBeforeTheVersionFileAdvertisesNoVersion() throws Exception {
+		Files.writeString(dataDir.resolve("app.port"), "8123");
+
+		assertThat(SingleInstanceLock.publishedVersion(dataDir)).isEmpty();
 	}
 
 	@Test

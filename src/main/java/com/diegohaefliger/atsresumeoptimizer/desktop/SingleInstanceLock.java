@@ -14,14 +14,17 @@ final class SingleInstanceLock {
 
 	private static final String LOCK_FILE = "app.lock";
 	private static final String PORT_FILE = "app.port";
+	private static final String VERSION_FILE = "app.version";
 
 	// Guardado só pra manter o lock vivo até a JVM sair; o sistema operacional solta se o processo cair.
 	private final FileLock lock;
 	private final Path portFile;
+	private final Path versionFile;
 
-	private SingleInstanceLock(FileLock lock, Path portFile) {
+	private SingleInstanceLock(FileLock lock, Path portFile, Path versionFile) {
 		this.lock = lock;
 		this.portFile = portFile;
+		this.versionFile = versionFile;
 	}
 
 	static Optional<SingleInstanceLock> tryAcquire(Path dataDir) throws IOException {
@@ -40,16 +43,28 @@ final class SingleInstanceLock {
 			return Optional.empty();
 		}
 		Path portFile = dataDir.resolve(PORT_FILE);
+		Path versionFile = dataDir.resolve(VERSION_FILE);
 		Files.deleteIfExists(portFile);
-		return Optional.of(new SingleInstanceLock(lock, portFile));
+		Files.deleteIfExists(versionFile);
+		return Optional.of(new SingleInstanceLock(lock, portFile, versionFile));
 	}
 
-	void publishPort(int port) throws IOException {
+	// A versão fica fora do app.port: versões antigas leem esse arquivo como número.
+	void publishPort(int port, String version) throws IOException {
+		Files.writeString(versionFile, version, StandardCharsets.UTF_8);
 		Files.writeString(portFile, Integer.toString(port), StandardCharsets.UTF_8);
 	}
 
 	void withdrawPort() throws IOException {
 		Files.deleteIfExists(portFile);
+		Files.deleteIfExists(versionFile);
+	}
+
+	static Optional<String> publishedVersion(Path dataDir) throws IOException {
+		Path versionFile = dataDir.resolve(VERSION_FILE);
+		return Files.isRegularFile(versionFile)
+				? Optional.of(Files.readString(versionFile, StandardCharsets.UTF_8).strip())
+				: Optional.empty();
 	}
 
 	static Optional<Integer> publishedPort(Path dataDir) throws IOException {
