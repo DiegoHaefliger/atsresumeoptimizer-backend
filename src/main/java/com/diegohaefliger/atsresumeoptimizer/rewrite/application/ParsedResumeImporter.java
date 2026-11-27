@@ -49,6 +49,9 @@ final class ParsedResumeImporter {
 
 	private static final String CONTACT_SEPARATOR = " | ";
 	private static final int CONTACT_SLOTS = 6;
+	private static final int EMAIL_SLOT = 0;
+	private static final int PHONE_SLOT = 1;
+	private static final Pattern NON_DIGIT = Pattern.compile("\\D");
 	private static final Pattern LANGUAGE_LEVEL_SEPARATOR = Pattern.compile("\\s*(?::|\\s[-–—]\\s)\\s*");
 	private static final Pattern LANGUAGE_LEVEL_IN_PARENTHESES = Pattern.compile("^(.+?)\\s*\\((.+)\\)$");
 
@@ -67,14 +70,24 @@ final class ParsedResumeImporter {
 	static ResumeContact contact(ParsingResult parsingResult) {
 		ContactInfo found = parsingResult.contact();
 		List<String> slots = contactLineSlots(ResumeHeader.of(parsingResult));
-		boolean positional = slots.size() == CONTACT_SLOTS;
+		boolean positional = slots.size() == CONTACT_SLOTS && inSystemOrder(found, slots);
 		return new ResumeContact(
-				found.email().orElseGet(() -> slot(positional, slots, 0)),
-				found.phone().orElseGet(() -> slot(positional, slots, 1)),
+				found.email().orElseGet(() -> slot(positional, slots, EMAIL_SLOT)),
+				found.phone().orElseGet(() -> slot(positional, slots, PHONE_SLOT)),
 				found.linkedInProfile().orElseGet(() -> slot(positional, slots, 2)),
 				found.githubProfile().orElseGet(() -> slot(positional, slots, 3)),
 				found.portfolio().orElseGet(() -> slot(positional, slots, 4)),
 				found.location().orElseGet(() -> slot(positional, slots, 5)));
+	}
+
+	private static boolean inSystemOrder(ContactInfo found, List<String> slots) {
+		boolean emailInPlace = found.email().map(email -> email.equalsIgnoreCase(slots.get(EMAIL_SLOT))).orElse(true);
+		boolean phoneInPlace = found.phone().map(phone -> digits(phone).equals(digits(slots.get(PHONE_SLOT)))).orElse(true);
+		return emailInPlace && phoneInPlace;
+	}
+
+	private static String digits(String text) {
+		return NON_DIGIT.matcher(text).replaceAll("");
 	}
 
 	private static String slot(boolean positional, List<String> slots, int index) {
@@ -89,7 +102,7 @@ final class ParsedResumeImporter {
 				.filter(token -> !token.isEmpty()).toList();
 	}
 
-	private static ResumeSection section(Section section) {
+	static ResumeSection section(Section section) {
 		ResumeSectionSemanticType type = semanticType(section.title());
 		List<ResumeTextLine> textLines = ResumeTextLine.of(section.content());
 		if (ENTRY_TYPES.contains(type)) {
