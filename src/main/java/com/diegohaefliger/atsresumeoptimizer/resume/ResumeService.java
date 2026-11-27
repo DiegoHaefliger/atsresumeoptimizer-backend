@@ -20,6 +20,8 @@ public interface ResumeService {
 	/** O número da versão conta as já apagadas, pra "versão 2" não virar "versão 1" depois de excluir a primeira. */
 	List<ResumeSummary> listResumes();
 
+	boolean hasBaseResume();
+
 	/** Só currículos adaptados cuja análise está na lista, do mais novo para o mais antigo. */
 	List<ResumeSummary> listAdaptedFromAnalyses(Collection<UUID> analysisIds);
 

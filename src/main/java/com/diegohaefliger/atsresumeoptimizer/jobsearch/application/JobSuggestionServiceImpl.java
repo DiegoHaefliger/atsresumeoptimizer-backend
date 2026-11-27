@@ -2,9 +2,11 @@ package com.diegohaefliger.atsresumeoptimizer.jobsearch.application;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.JobSuggestionService;
@@ -12,6 +14,8 @@ import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.InvalidSuggestionS
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.JobSuggestion;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.JobSuggestionNotFoundException;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionCounts;
+import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionPage;
+import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionQuery;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionStatus;
 import com.diegohaefliger.atsresumeoptimizer.job.JobDetails;
 import com.diegohaefliger.atsresumeoptimizer.job.JobOrigin;
@@ -19,8 +23,6 @@ import com.diegohaefliger.atsresumeoptimizer.job.JobStructuringService;
 
 @Service
 class JobSuggestionServiceImpl implements JobSuggestionService {
-
-	private static final Sort BY_SCORE_THEN_NEWEST = Sort.by(Sort.Order.desc("score").nullsLast(), Sort.Order.desc("foundAt"));
 
 	private final SuggestionRepository repository;
 	private final SuggestionEntityMapper mapper;
@@ -39,20 +41,20 @@ class JobSuggestionServiceImpl implements JobSuggestionService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<JobSuggestion> newSuggestions() {
-		return list(SuggestionStatus.NEW);
+	public SuggestionPage newSuggestions(SuggestionQuery query) {
+		return page(SuggestionStatus.NEW, query);
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<JobSuggestion> belowAdherence() {
-		return list(SuggestionStatus.FILTERED);
+	public SuggestionPage belowAdherence(SuggestionQuery query) {
+		return page(SuggestionStatus.FILTERED, query);
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<JobSuggestion> discarded() {
-		return list(SuggestionStatus.DISCARDED);
+	public SuggestionPage discarded(SuggestionQuery query) {
+		return page(SuggestionStatus.DISCARDED, query);
 	}
 
 	@Override
@@ -104,8 +106,12 @@ class JobSuggestionServiceImpl implements JobSuggestionService {
 		return mapper.toDomain(suggestion);
 	}
 
-	private List<JobSuggestion> list(SuggestionStatus status) {
-		return repository.findByStatus(status, BY_SCORE_THEN_NEWEST).stream().map(mapper::toDomain).toList();
+	private SuggestionPage page(SuggestionStatus status, SuggestionQuery query) {
+		PageRequest request = PageRequest.of(query.page(), query.size(), SuggestionOrdering.of(query.sort()));
+		Page<SuggestionEntity> found = repository.findAll(
+				SuggestionSpecification.matching(status, query, LocalDate.now(clock)), request);
+		return new SuggestionPage(found.map(mapper::toDomain).getContent(), found.getNumber(), found.getSize(),
+				found.getTotalElements(), found.getTotalPages(), repository.findDistinctSourcesByStatus(status));
 	}
 
 	private SuggestionEntity find(UUID id) {

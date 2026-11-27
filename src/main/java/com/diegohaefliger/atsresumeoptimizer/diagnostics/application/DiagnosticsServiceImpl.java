@@ -4,6 +4,8 @@ import com.diegohaefliger.atsresumeoptimizer.RequestId;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.DiagnosticEntry;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.DiagnosticSection;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.DiagnosticsContributor;
+import com.diegohaefliger.atsresumeoptimizer.diagnostics.ReadinessCheck;
+import com.diegohaefliger.atsresumeoptimizer.diagnostics.ReadinessContributor;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.domain.ClientError;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.domain.DiagnosticBundle;
 import com.diegohaefliger.atsresumeoptimizer.diagnostics.domain.DiagnosticReport;
@@ -29,17 +31,21 @@ class DiagnosticsServiceImpl implements DiagnosticsService {
 	private static final int LOG_TAIL_LINES = 3000;
 	private static final DateTimeFormatter FILE_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmm");
 	private static final String NO_ID = "sem-codigo";
+	private static final String UNCHECKED_HINT = "Envie o pacote de diagnóstico pelo relato de problema.";
 
 	private final List<DiagnosticsContributor> contributors;
+	private final List<ReadinessContributor> readinessContributors;
 	private final LogFiles logFiles;
 	private final LogSanitizer sanitizer;
 	private final BundleWriter bundleWriter;
 	private final FolderOpener folderOpener;
 	private final Clock clock;
 
-	DiagnosticsServiceImpl(List<DiagnosticsContributor> contributors, LogFiles logFiles, LogSanitizer sanitizer,
+	DiagnosticsServiceImpl(List<DiagnosticsContributor> contributors,
+			List<ReadinessContributor> readinessContributors, LogFiles logFiles, LogSanitizer sanitizer,
 			BundleWriter bundleWriter, FolderOpener folderOpener, Clock clock) {
 		this.contributors = List.copyOf(contributors);
+		this.readinessContributors = List.copyOf(readinessContributors);
 		this.logFiles = logFiles;
 		this.sanitizer = sanitizer;
 		this.bundleWriter = bundleWriter;
@@ -49,9 +55,10 @@ class DiagnosticsServiceImpl implements DiagnosticsService {
 
 	@Override
 	public DiagnosticReport report() {
+		List<ReadinessCheck> checks = readinessContributors.stream().flatMap(contributor -> check(contributor).stream()).toList();
 		List<DiagnosticSection> sections = contributors.stream().map(DiagnosticsServiceImpl::collect).toList();
 		boolean openable = logFiles.folder().isPresent() && folderOpener.available();
-		return new DiagnosticReport(clock.instant(), sections, logFiles.appLog().isPresent(), openable);
+		return new DiagnosticReport(clock.instant(), checks, sections, logFiles.appLog().isPresent(), openable);
 	}
 
 	@Override
@@ -92,6 +99,16 @@ class DiagnosticsServiceImpl implements DiagnosticsService {
 		} catch (IOException exception) {
 			LOG.warn("Não deu pra ler {}", log, exception);
 			return "Não deu pra ler " + log + ": " + exception.getMessage();
+		}
+	}
+
+	private static List<ReadinessCheck> check(ReadinessContributor contributor) {
+		try {
+			return contributor.checks();
+		} catch (RuntimeException exception) {
+			LOG.warn("Verificação de {} falhou", contributor.getClass().getSimpleName(), exception);
+			return List.of(ReadinessCheck.failure(contributor.getClass().getSimpleName(),
+					"não deu pra verificar: " + exception.getMessage(), UNCHECKED_HINT));
 		}
 	}
 

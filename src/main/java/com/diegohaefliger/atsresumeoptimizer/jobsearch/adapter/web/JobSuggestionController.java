@@ -1,8 +1,10 @@
 package com.diegohaefliger.atsresumeoptimizer.jobsearch.adapter.web;
 
-import java.util.List;
+import jakarta.validation.Valid;
 import java.util.UUID;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,18 +24,18 @@ class JobSuggestionController {
 	}
 
 	@GetMapping
-	List<JobSuggestionResponse> newSuggestions() {
-		return suggestionService.newSuggestions().stream().map(mapper::toResponse).toList();
+	JobSuggestionPageResponse newSuggestions(@Valid @ParameterObject @ModelAttribute SuggestionPageRequest request) {
+		return mapper.toResponse(suggestionService.newSuggestions(mapper.toQuery(request)));
 	}
 
 	@GetMapping("/below-adherence")
-	List<JobSuggestionResponse> belowAdherence() {
-		return suggestionService.belowAdherence().stream().map(mapper::toResponse).toList();
+	JobSuggestionPageResponse belowAdherence(@Valid @ParameterObject @ModelAttribute SuggestionPageRequest request) {
+		return mapper.toResponse(suggestionService.belowAdherence(mapper.toQuery(request)));
 	}
 
 	@GetMapping("/discarded")
-	List<JobSuggestionResponse> discarded() {
-		return suggestionService.discarded().stream().map(mapper::toResponse).toList();
+	JobSuggestionPageResponse discarded(@Valid @ParameterObject @ModelAttribute SuggestionPageRequest request) {
+		return mapper.toResponse(suggestionService.discarded(mapper.toQuery(request)));
 	}
 
 	@GetMapping("/count")

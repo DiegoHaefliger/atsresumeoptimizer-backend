@@ -48,7 +48,8 @@ class RewriteGuardRails {
 				skillPreservationGuard.apply(grounded, originalSections, jobHighlighted), originalGroups);
 		ensureNoBulletWasDropped(guarded, originalBullets.size());
 		ensureProjectsWereKept(guarded, originalSections);
-		return new SkillLineCleaner(originalText).apply(withoutBoldBullets(guarded));
+		StructuredResume cleaned = DuplicatedContextCleaner.apply(EntrySubheadingSplitter.apply(withoutBoldBullets(guarded)));
+		return new SkillLineCleaner(originalText).apply(OriginalSectionRestorer.apply(cleaned, originalSections));
 	}
 
 	private StructuredResume withoutBoldBullets(StructuredResume content) {

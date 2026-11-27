@@ -174,6 +174,21 @@ class ParsedResumeImporterTest {
 				"Localização"));
 	}
 
+	@Test
+	void ignoresTheHeaderPositionsWhenTheCandidateWroteTheContactsInAnotherOrder() {
+		String raw = "Ana\nSão Paulo - SP | Analista | Backend | (11) 98888-7777 | ana@email.com | Java\nObjetivo\nTexto\n";
+		ParsingResult result = new ParsingResult(
+				new NormalizedDocument(SourceFormat.PDF, raw, raw, 1),
+				new ParsingSignals(false, false, false, false, false, false, false, false),
+				List.of(new Section("Objetivo", true, "Texto")),
+				new ContactInfo(Optional.of("ana@email.com"), Optional.of("(11) 98888-7777"), Optional.empty(),
+						Optional.empty(), Optional.empty(), Optional.empty()));
+
+		ResumeContact contact = ParsedResumeImporter.contact(result);
+
+		assertThat(contact).isEqualTo(new ResumeContact("ana@email.com", "(11) 98888-7777", null, null, null, null));
+	}
+
 	private ParsingResult parsingResult() {
 		return parsingResult(new Section("Resumo", true, "Backend com 6 anos de Java.\nFoco em APIs.\n"),
 				new Section("Experiência Profissional", true, "• Criou APIs REST em Java\n- Reduziu custo de nuvem em 20%\n"));
