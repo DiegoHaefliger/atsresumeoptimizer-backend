@@ -1,17 +1,18 @@
 package com.diegohaefliger.atsresumeoptimizer.jobsearch;
 
-import java.util.List;
 import java.util.UUID;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.JobSuggestion;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionCounts;
+import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionPage;
+import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionQuery;
 
 public interface JobSuggestionService {
 
-	List<JobSuggestion> newSuggestions();
+	SuggestionPage newSuggestions(SuggestionQuery query);
 
-	List<JobSuggestion> belowAdherence();
+	SuggestionPage belowAdherence(SuggestionQuery query);
 
-	List<JobSuggestion> discarded();
+	SuggestionPage discarded(SuggestionQuery query);
 
 	SuggestionCounts counts();
 

@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,7 +15,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -25,6 +29,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.InvalidSuggestionStateException;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.JobSuggestionNotFoundException;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionCounts;
+import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionQuery;
+import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionSort;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionStatus;
 import com.diegohaefliger.atsresumeoptimizer.job.JobDetails;
 import com.diegohaefliger.atsresumeoptimizer.job.JobOrigin;
@@ -176,29 +182,51 @@ class JobSuggestionServiceImplTest {
 		assertThatThrownBy(() -> service.promote(id)).isInstanceOf(JobSuggestionNotFoundException.class);
 	}
 
-	@Test
-	void listsTheSuggestionsBelowTheMinimumHighestScoreFirst() {
-		suggestion.setStatus(SuggestionStatus.FILTERED);
-		suggestion.setScore(65);
-		when(repository.findByStatus(eq(SuggestionStatus.FILTERED), any(Sort.class))).thenReturn(List.of(suggestion));
+	private static SuggestionQuery query(SuggestionSort sort, int page, int size) {
+		return new SuggestionQuery(null, null, null, null, sort, page, size);
+	}
 
-		var listed = service.belowAdherence();
-
-		assertThat(listed).hasSize(1);
-		assertThat(listed.getFirst().score()).isEqualTo(65);
-		assertThat(listed.getFirst().status()).isEqualTo(SuggestionStatus.FILTERED);
+	@SuppressWarnings("unchecked")
+	private void returnsPage(List<SuggestionEntity> content, Pageable pageable, long total) {
+		Page<SuggestionEntity> page = new PageImpl<>(content, pageable, total);
+		when(repository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 	}
 
 	@Test
-	void sortsEveryTabByHighestScoreThenNewest() {
-		when(repository.findByStatus(any(SuggestionStatus.class), any(Sort.class))).thenReturn(List.of());
+	@SuppressWarnings("unchecked")
+	void returnsTheRequestedPageOfSuggestionsBelowTheMinimumWithTheirSources() {
+		suggestion.setStatus(SuggestionStatus.FILTERED);
+		suggestion.setScore(65);
+		returnsPage(List.of(suggestion), PageRequest.of(1, 30), 61);
+		when(repository.findDistinctSourcesByStatus(SuggestionStatus.FILTERED)).thenReturn(List.of("GUPY", "LINKEDIN"));
 
-		service.newSuggestions();
+		var page = service.belowAdherence(query(SuggestionSort.SCORE_DESC, 1, 30));
 
-		var sort = org.mockito.ArgumentCaptor.forClass(Sort.class);
-		org.mockito.Mockito.verify(repository).findByStatus(eq(SuggestionStatus.NEW), sort.capture());
-		assertThat(sort.getValue().stream().map(order -> order.getProperty() + ":" + order.getDirection()))
-				.containsExactly("score:DESC", "foundAt:DESC");
+		assertThat(page.items()).hasSize(1);
+		assertThat(page.items().getFirst().score()).isEqualTo(65);
+		assertThat(page.page()).isEqualTo(1);
+		assertThat(page.totalItems()).isEqualTo(61);
+		assertThat(page.totalPages()).isEqualTo(3);
+		assertThat(page.sources()).containsExactly("GUPY", "LINKEDIN");
+		var pageable = ArgumentCaptor.forClass(Pageable.class);
+		verify(repository).findAll(any(Specification.class), pageable.capture());
+		assertThat(pageable.getValue().getPageNumber()).isEqualTo(1);
+		assertThat(pageable.getValue().getPageSize()).isEqualTo(30);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void sortsByPublicationDateWhenAsked() {
+		returnsPage(List.of(), PageRequest.of(0, 30), 0);
+
+		service.newSuggestions(query(SuggestionSort.POSTED_DESC, 0, 30));
+
+		var pageable = ArgumentCaptor.forClass(Pageable.class);
+		verify(repository).findAll(any(Specification.class), pageable.capture());
+		assertThat(pageable.getValue().getSort().stream().map(order -> order.getProperty() + ":" + order.getDirection()))
+				.containsExactly("postedOn:DESC", "score:DESC", "foundAt:DESC", "id:ASC");
+		assertThat(pageable.getValue().getSort().getOrderFor("postedOn").getNullHandling())
+				.isEqualTo(Sort.NullHandling.NULLS_LAST);
 	}
 
 	@Test
@@ -214,12 +242,12 @@ class JobSuggestionServiceImplTest {
 
 	@Test
 	void listsOnlyTheNewSuggestionsAndCountsEachTab() {
-		when(repository.findByStatus(eq(SuggestionStatus.NEW), any(Sort.class))).thenReturn(List.of(suggestion));
+		returnsPage(List.of(suggestion), PageRequest.of(0, 30), 1);
 		when(repository.countByStatus(SuggestionStatus.NEW)).thenReturn(3L);
 		when(repository.countByStatus(SuggestionStatus.FILTERED)).thenReturn(5L);
 		when(repository.countByStatus(SuggestionStatus.DISCARDED)).thenReturn(2L);
 
-		assertThat(service.newSuggestions()).hasSize(1);
+		assertThat(service.newSuggestions(query(SuggestionSort.SCORE_DESC, 0, 30)).items()).hasSize(1);
 		assertThat(service.counts()).isEqualTo(new SuggestionCounts(3, 5, 2));
 	}
 }

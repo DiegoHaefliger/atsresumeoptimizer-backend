@@ -5,13 +5,17 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import com.diegohaefliger.atsresumeoptimizer.jobsearch.domain.SuggestionStatus;
 
-interface SuggestionRepository extends JpaRepository<SuggestionEntity, UUID> {
+interface SuggestionRepository extends JpaRepository<SuggestionEntity, UUID>, JpaSpecificationExecutor<SuggestionEntity> {
 
 	List<SuggestionEntity> findByStatus(SuggestionStatus status, Sort sort);
+
+	@Query("select distinct s.source from SuggestionEntity s where s.status = :status and s.source is not null order by s.source")
+	List<String> findDistinctSourcesByStatus(@Param("status") SuggestionStatus status);
 
 	long countByStatus(SuggestionStatus status);
 
